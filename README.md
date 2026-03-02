@@ -8,7 +8,7 @@ Central control display firmware for an ESP32-P4 with a 7" touchscreen, providin
 
 ## Hardware Overview
 
-- **Microcontroller:** ESP32-P4 (Waveshare ESP32-P4 WiFi6 Touch LCD 7B)
+- **Microcontroller:** ESP32-P4 ([Waveshare ESP32-P4 WiFi6 Touch LCD 7B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7b.htm?aff_id=Trailcurrent)) — selected for its processing power and rich display capability, enabling more engaging touch-panel UIs
 - **WiFi:** Via ESP-Hosted (ESP32-C6 slave over SDIO)
 - **Display:** 7" 1024x600 MIPI-DSI LCD with capacitive touch
 - **Build System:** ESP-IDF v5.5.1
@@ -29,7 +29,7 @@ Central control display firmware for an ESP32-P4 with a 7" touchscreen, providin
 
 ### Components
 
-- **Board:** Waveshare ESP32-P4 WiFi6 Touch LCD 7B
+- **Board:** [Waveshare ESP32-P4 WiFi6 Touch LCD 7B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7b.htm?aff_id=Trailcurrent)
 - **WiFi Module:** ESP32-C6 (integrated, communicates via ESP-Hosted SDIO)
 
 ## Firmware
