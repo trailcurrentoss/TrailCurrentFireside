@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/6",
+    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/0",
     "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
     "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
     "selectedStyleObject": "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles/14",
@@ -30,6 +30,7 @@
           },
           {
             "type": "border",
+            "selected": 3,
             "size": 246.5,
             "location": "right",
             "children": [
@@ -197,7 +198,7 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 57.211672075689926,
-              "selected": 1,
+              "selected": 3,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -873,7 +874,8 @@
                       "component": "themes",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -889,8 +891,7 @@
                       "component": "colors",
                       "enableClose": false
                     }
-                  ],
-                  "active": true
+                  ]
                 }
               ]
             }
@@ -1029,7 +1030,18 @@
       "selection": {
         "0": {
           "0": {},
-          "1": {}
+          "1": {
+            "0": {
+              "$selected": true
+            }
+          },
+          "3": {
+            "1": {},
+            "2": {},
+            "3": {
+              "0": {}
+            }
+          }
         }
       },
       "transform": {
@@ -1051,6 +1063,7 @@
         "0": {
           "0": {},
           "1": {},
+          "2": {},
           "3": {}
         }
       },
@@ -1120,10 +1133,14 @@
       "selection": {
         "0": {
           "0": {},
+          "1": {
+            "1": {
+              "$selected": true
+            }
+          },
           "2": {
             "0": {},
-            "1": {},
-            "$selected": true
+            "1": {}
           }
         }
       },

@@ -3,21 +3,36 @@
 
 #include <stdbool.h>
 
-typedef struct {
-    const char* broker_uri;
-    const char* client_id;
-    const char* username;
-    const char* password;
-} mqtt_client_config_t;
+/**
+ * Load MQTT settings from NVS (namespace "sd_config").
+ * Must be called after sd_config_read() has populated NVS.
+ * Returns true if host, username, and password are all present.
+ */
+bool mqtt_client_load_settings(void);
 
-void mqtt_client_init(const mqtt_client_config_t* config);
+/**
+ * Connect to the MQTT broker using loaded settings.
+ * Builds mqtts:// URI, creates client with TLS, subscribes on connect.
+ * Call this after WiFi has obtained an IP address.
+ */
+void mqtt_client_connect(void);
 
-void mqtt_client_start(void);
+/**
+ * Process queued incoming MQTT messages.
+ * Dequeues messages, parses JSON, updates UI variables.
+ * Call this periodically from the main loop.
+ */
+void mqtt_client_process_messages(void);
 
+/**
+ * Check if MQTT client is currently connected to the broker.
+ */
 bool mqtt_client_is_connected(void);
 
-int mqtt_client_publish(const char* topic, const char* payload, int payload_len);
+/**
+ * Publish a message to the specified topic.
+ * Returns message ID on success, -1 on failure.
+ */
+int mqtt_client_publish(const char *topic, const char *payload, int payload_len);
 
-int mqtt_client_subscribe(const char* topic);
-
-#endif // APP_MQTT_H
+#endif /* APP_MQTT_H */

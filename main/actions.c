@@ -9,7 +9,6 @@
 #include "styles.h"
 #include "ui.h"
 #include "vars.h"
-#include "wifi_credentials.h"
 #include "app_mqtt.h"
 #include <stdint.h>
 #include <string.h>
@@ -24,13 +23,7 @@
 #define WIFI_ENABLED 0
 #endif
 
-/* WiFi scan results storage */
-#define MAX_WIFI_NETWORKS 20
 #if WIFI_ENABLED
-static wifi_ap_record_t wifi_scan_results[MAX_WIFI_NETWORKS];
-static uint16_t wifi_scan_count = 0;
-static char wifi_networks_list[MAX_WIFI_NETWORKS * 33 + MAX_WIFI_NETWORKS]; /* SSIDs + newlines */
-static int selected_wifi_index = -1;
 static char wifi_connected_ip[20] = {0};
 static int wifi_retry_count = 0;
 #define WIFI_MAX_RETRIES 5
@@ -82,7 +75,8 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
       bsp_display_lock(0);
       lv_label_set_text(objects.label_wifi_connection_status, status_msg);
       bsp_display_unlock();
-      mqtt_client_start();
+      /* Connect MQTT now that we have network */
+      mqtt_client_connect();
     }
   }
 }
@@ -256,7 +250,7 @@ void action_change_screen(lv_event_t *e) {
   lv_obj_clear_state(
       objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_settings,
       LV_STATE_CHECKED);
-  /* Clear all the toolbar button checked states for the water page */
+  /* Clear all the toolbar button checked states for the entertainment page */
   lv_obj_clear_state(
       objects
           .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_home,
@@ -407,10 +401,10 @@ void action_rotate_screen(lv_event_t *e) {
 void action_send_device_command(lv_event_t *e) {
   int device_id = (int)lv_event_get_user_data(e);
   char topic[64];
-  snprintf(topic, sizeof(topic), "trailcurrent/lights/%d/set", device_id);
-  const char *payload = "{\"action\":\"toggle\"}";
+  snprintf(topic, sizeof(topic), "local/lights/%d/command", device_id);
+  const char *payload = "{\"state\":1}";
   if (mqtt_client_publish(topic, payload, strlen(payload)) < 0) {
-    ESP_LOGW(TAG, "MQTT not connected, cannot send toggle for device %d", device_id);
+    ESP_LOGW(TAG, "MQTT not connected, cannot send command for device %d", device_id);
   }
 }
 
@@ -473,264 +467,45 @@ void action_set_device_brightness_level(lv_event_t *e) {
   int32_t slider_val = lv_slider_get_value(slider);
   int32_t brightness = slider_val * 255 / 100; /* scale 0-100 to 0-255 */
   char topic[64];
-  snprintf(topic, sizeof(topic), "trailcurrent/lights/%d/set", (int)device_id);
+  snprintf(topic, sizeof(topic), "local/lights/%d/command", (int)device_id);
   char payload[32];
   snprintf(payload, sizeof(payload), "{\"brightness\":%d}", (int)brightness);
   mqtt_client_publish(topic, payload, strlen(payload));
 }
 
+/* Stub action functions - these are referenced by EEZ Studio generated UI
+ * but no longer have active implementations (WiFi config is via SD card now).
+ * Keep stubs so the project compiles until EEZ Studio project is updated. */
 void action_selected_wifi_changed(lv_event_t *e) {
-  // TODO: Implement action selected_wifi_changed here
+  (void)e;
 }
 
 void action_show_wi_fi_keyaboard_entry(lv_event_t *e) {
-  (void)e; /* Password keyboard is shown when password field is focused */
-  lv_obj_clear_flag(objects.keyboard_password, LV_OBJ_FLAG_HIDDEN);
+  (void)e;
 }
 
 void action_hide_wifi_keyboard(lv_event_t *e) {
-  (void)e; /* Hide the password keyboard */
-  lv_obj_add_flag(objects.keyboard_password, LV_OBJ_FLAG_HIDDEN);
+  (void)e;
 }
 
-#if WIFI_ENABLED
-/**
- * @brief Build the roller options string from scan results
- */
-static void build_wifi_networks_string(void) {
-  wifi_networks_list[0] = '\0';
-
-  if (wifi_scan_count == 0) {
-    strcpy(wifi_networks_list, "No networks found");
-    return;
-  }
-
-  char *ptr = wifi_networks_list;
-  for (int i = 0; i < wifi_scan_count && i < MAX_WIFI_NETWORKS; i++) {
-    /* Add SSID to the list */
-    int len = strlen((char *)wifi_scan_results[i].ssid);
-    if (len > 0) {
-      memcpy(ptr, wifi_scan_results[i].ssid, len);
-      ptr += len;
-
-      /* Add signal strength indicator */
-      int rssi = wifi_scan_results[i].rssi;
-      if (rssi > -50) {
-        strcpy(ptr, " ****");
-      } else if (rssi > -60) {
-        strcpy(ptr, " ***");
-      } else if (rssi > -70) {
-        strcpy(ptr, " **");
-      } else {
-        strcpy(ptr, " *");
-      }
-      ptr += strlen(ptr);
-
-      /* Add newline separator for roller (except for last item) */
-      if (i < wifi_scan_count - 1) {
-        *ptr++ = '\n';
-      }
-    }
-  }
-  *ptr = '\0';
-}
-
-/**
- * @brief Scan for WiFi networks action handler
- * Called when "Scan Networks" button is clicked
- */
 void action_scan_wifi_networks(lv_event_t *e) {
   (void)e;
-  ESP_LOGI(TAG, "=== WiFi Scan Debug ===");
-
-  /* Check WiFi mode first */
-  wifi_mode_t mode;
-  esp_err_t err = esp_wifi_get_mode(&mode);
-  ESP_LOGI(TAG, "WiFi mode check: err=%s, mode=%d (1=STA)", esp_err_to_name(err), mode);
-
-  /* Check if WiFi is started */
-  uint8_t mac[6];
-  err = esp_wifi_get_mac(WIFI_IF_STA, mac);
-  if (err == ESP_OK) {
-    ESP_LOGI(TAG, "WiFi STA MAC: %02x:%02x:%02x:%02x:%02x:%02x",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  } else {
-    ESP_LOGE(TAG, "Cannot get MAC - WiFi may not be initialized: %s", esp_err_to_name(err));
-  }
-
-  /* Update status label */
-  lv_label_set_text(objects.label_wifi_scan_status, "Scanning...");
-
-  /* Configure and start the scan */
-  wifi_scan_config_t scan_config = {
-      .ssid = NULL,
-      .bssid = NULL,
-      .channel = 0,
-      .show_hidden = false,
-      .scan_type = WIFI_SCAN_TYPE_ACTIVE,
-      .scan_time.active.min = 120,
-      .scan_time.active.max = 500,
-  };
-
-  ESP_LOGI(TAG, "Starting scan (blocking, all channels, active scan)...");
-  err = esp_wifi_scan_start(&scan_config, true); /* blocking scan */
-  ESP_LOGI(TAG, "esp_wifi_scan_start() returned: %s", esp_err_to_name(err));
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "WiFi scan failed to start: %s", esp_err_to_name(err));
-    lv_label_set_text(objects.label_wifi_scan_status, "Scan failed");
-    return;
-  }
-
-  /* Get number of APs found */
-  uint16_t ap_count = 0;
-  err = esp_wifi_scan_get_ap_num(&ap_count);
-  ESP_LOGI(TAG, "esp_wifi_scan_get_ap_num(): err=%s, count=%d", esp_err_to_name(err), ap_count);
-
-  /* Get scan results */
-  wifi_scan_count = MAX_WIFI_NETWORKS;
-  err = esp_wifi_scan_get_ap_records(&wifi_scan_count, wifi_scan_results);
-  ESP_LOGI(TAG, "esp_wifi_scan_get_ap_records(): err=%s, returned=%d records",
-           esp_err_to_name(err), wifi_scan_count);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to get scan results: %s", esp_err_to_name(err));
-    lv_label_set_text(objects.label_wifi_scan_status, "Scan failed");
-    return;
-  }
-
-  /* Remove entries with empty SSIDs so roller indices match array indices */
-  int write_idx = 0;
-  for (int i = 0; i < wifi_scan_count; i++) {
-    if (strlen((char *)wifi_scan_results[i].ssid) > 0) {
-      if (write_idx != i) {
-        wifi_scan_results[write_idx] = wifi_scan_results[i];
-      }
-      write_idx++;
-    }
-  }
-  wifi_scan_count = write_idx;
-
-  /* Log each network found */
-  ESP_LOGI(TAG, "=== Scan Results (%d networks) ===", wifi_scan_count);
-  for (int i = 0; i < wifi_scan_count; i++) {
-    ESP_LOGI(TAG, "  [%d] SSID: %s, RSSI: %d, Channel: %d, Auth: %d",
-             i, wifi_scan_results[i].ssid, wifi_scan_results[i].rssi,
-             wifi_scan_results[i].primary, wifi_scan_results[i].authmode);
-  }
-
-  /* Build the roller options string */
-  build_wifi_networks_string();
-
-  /* Update the roller with network list */
-  lv_roller_set_options(objects.roller_wifi_networks, wifi_networks_list, LV_ROLLER_MODE_NORMAL);
-
-  /* Update status label */
-  char status_msg[64];
-  snprintf(status_msg, sizeof(status_msg), "Found %d network%s",
-           wifi_scan_count, wifi_scan_count == 1 ? "" : "s");
-  lv_label_set_text(objects.label_wifi_scan_status, status_msg);
-
-  /* Reset selection */
-  selected_wifi_index = -1;
-}
-
-/**
- * @brief WiFi network selected action handler
- * Called when user selects a network from the roller
- */
-void action_wifi_network_selected(lv_event_t *e) {
-  (void)e;
-  uint16_t selected = lv_roller_get_selected(objects.roller_wifi_networks);
-
-  if (selected < wifi_scan_count) {
-    selected_wifi_index = selected;
-    ESP_LOGI(TAG, "Selected WiFi network: %s (RSSI: %d)",
-             wifi_scan_results[selected].ssid,
-             wifi_scan_results[selected].rssi);
-
-    /* Show the keyboard for password entry */
-    lv_obj_clear_flag(objects.keyboard_password, LV_OBJ_FLAG_HIDDEN);
-
-    /* Focus on password field */
-    lv_obj_add_state(objects.textarea_wifi_password, LV_STATE_FOCUSED);
-  }
-}
-
-/**
- * @brief Connect to WiFi action handler
- * Called when "Connect" button is clicked
- */
-void action_connect_to_wifi(lv_event_t *e) {
-  (void)e;
-
-  /* Hide keyboard if visible */
-  lv_obj_add_flag(objects.keyboard_password, LV_OBJ_FLAG_HIDDEN);
-
-  if (selected_wifi_index < 0 || (uint16_t)selected_wifi_index >= wifi_scan_count) {
-    ESP_LOGW(TAG, "No WiFi network selected");
-    lv_label_set_text(objects.label_wifi_connection_status, "Status: Select a network first");
-    return;
-  }
-
-  /* Get the selected SSID */
-  const char *ssid = (const char *)wifi_scan_results[selected_wifi_index].ssid;
-
-  /* Get the password from textarea */
-  const char *password = lv_textarea_get_text(objects.textarea_wifi_password);
-
-  ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
-  lv_label_set_text(objects.label_wifi_connection_status, "Status: Connecting...");
-  wifi_retry_count = 0;
-
-  /* Save credentials to NVS */
-  wifi_save_credentials(ssid, password);
-
-  /* Configure WiFi station */
-  wifi_config_t wifi_config = {0};
-  strlcpy((char *)wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-  strlcpy((char *)wifi_config.sta.password, password, sizeof(wifi_config.sta.password));
-  wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-
-  esp_err_t err = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to set WiFi config: %s", esp_err_to_name(err));
-    lv_label_set_text(objects.label_wifi_connection_status, "Status: Config failed");
-    return;
-  }
-
-  /* Start connection */
-  err = esp_wifi_connect();
-  if (err != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to start WiFi connection: %s", esp_err_to_name(err));
-    lv_label_set_text(objects.label_wifi_connection_status, "Status: Connection failed");
-    return;
-  }
-
-  /* Connection status will be updated by WiFi event handler */
-  lv_label_set_text(objects.label_wifi_connection_status, "Status: Connecting...");
-}
-
-#else /* WIFI_ENABLED == 0 */
-
-/**
- * WiFi not enabled - stub implementations
- * Enable ESP-Hosted WiFi in menuconfig to use WiFi features on ESP32-P4
- */
-void action_scan_wifi_networks(lv_event_t *e) {
-  (void)e;
-  ESP_LOGW(TAG, "WiFi not enabled. Enable CONFIG_ESP_HOSTED_ENABLED in menuconfig.");
-  lv_label_set_text(objects.label_wifi_scan_status, "WiFi not configured");
+  ESP_LOGI(TAG, "WiFi config is now via SD card config.env");
 }
 
 void action_wifi_network_selected(lv_event_t *e) {
   (void)e;
-  ESP_LOGW(TAG, "WiFi not enabled");
 }
 
 void action_connect_to_wifi(lv_event_t *e) {
   (void)e;
-  ESP_LOGW(TAG, "WiFi not enabled. Enable CONFIG_ESP_HOSTED_ENABLED in menuconfig.");
-  lv_label_set_text(objects.label_wifi_connection_status, "WiFi not configured");
+  ESP_LOGI(TAG, "WiFi config is now via SD card config.env");
 }
 
-#endif /* WIFI_ENABLED */
+void action_settings_selection_change(lv_event_t *e) {
+  (void)e;
+}
 
+void action_commit_mac_address_changes(lv_event_t *e) {
+  (void)e;
+}

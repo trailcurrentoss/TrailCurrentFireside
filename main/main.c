@@ -12,7 +12,8 @@
 #include "screens.h"
 #include "ui.h"
 #include "vars.h"
-#include "wifi_credentials.h"
+#include "mqtt_vars.h"
+#include "sd_config.h"
 #include "app_mqtt.h"
 
 /* Check if WiFi is enabled (ESP-Hosted for ESP32-P4 via ESP-WIFI-REMOTE) */
@@ -28,15 +29,25 @@ extern void wifi_event_handler_init(void);
 
 static const char *TAG = "MAIN";
 
+#define SD_NVS_NAMESPACE "sd_config"
+
 void app_main(void)
 {
-    /* Initialize NVS - required for WiFi */
+    /* Initialize NVS - required for WiFi and config storage */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+
+    /* Read configuration from SD card before WiFi/network init */
+    bool sd_config_found = sd_config_read();
+    if (sd_config_found) {
+        ESP_LOGI(TAG, "SD card config loaded successfully");
+    } else {
+        ESP_LOGW(TAG, "No SD card config found - insert SD card with config.env");
+    }
 
 #if WIFI_ENABLED
     /* Initialize ESP-Hosted transport to communicate with C6 slave */
@@ -96,16 +107,10 @@ void app_main(void)
         ESP_LOGW(TAG, "WiFi: Could not get STA MAC address");
     }
 
-    ESP_LOGI(TAG, "WiFi initialized in STA mode - ready for scanning");
+    ESP_LOGI(TAG, "WiFi initialized in STA mode");
 
-    /* Initialize MQTT client (connection starts when WiFi gets IP) */
-    static const mqtt_client_config_t mqtt_cfg = {
-        .broker_uri = "mqtt://YOUR_MQTT_BROKER_IP_OR_HOSTNAME",
-        .client_id = "wall_display",
-        .username = NULL,
-        .password = NULL,
-    };
-    mqtt_client_init(&mqtt_cfg);
+    /* Load MQTT settings from NVS (populated by SD card read) */
+    mqtt_client_load_settings();
 #endif
 
     bsp_display_cfg_t cfg = {
@@ -127,42 +132,56 @@ void app_main(void)
 
     bsp_display_lock(0);
     ui_init();
+
+
 #if WIFI_ENABLED
     /* Register WiFi event handlers for UI updates (must be after ui_init) */
     wifi_event_handler_init();
 
-    /* Auto-connect to saved WiFi credentials on boot */
-    {
-        char saved_ssid[33] = {0};
-        char saved_password[65] = {0};
-        if (wifi_load_credentials(saved_ssid, sizeof(saved_ssid),
-                                  saved_password, sizeof(saved_password)) == 0
-            && strlen(saved_ssid) > 0) {
-            ESP_LOGI(TAG, "Found saved WiFi credentials for: %s", saved_ssid);
-            wifi_config_t wifi_config = {0};
-            strlcpy((char *)wifi_config.sta.ssid, saved_ssid,
-                    sizeof(wifi_config.sta.ssid));
-            strlcpy((char *)wifi_config.sta.password, saved_password,
-                    sizeof(wifi_config.sta.password));
-            wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-            esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-            esp_wifi_connect();
-            lv_label_set_text(objects.label_wifi_connection_status,
-                              "Status: Connecting...");
-            ESP_LOGI(TAG, "WiFi auto-connect initiated");
-        } else {
-            ESP_LOGI(TAG, "No saved WiFi credentials found");
+    /* Auto-connect to WiFi using credentials from SD card config */
+    if (sd_config_found) {
+        nvs_handle_t nvs;
+        if (nvs_open(SD_NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
+            char ssid[33] = {0};
+            char password[65] = {0};
+            size_t ssid_len = sizeof(ssid);
+            size_t pass_len = sizeof(password);
+
+            if (nvs_get_str(nvs, "wifiSSID", ssid, &ssid_len) == ESP_OK &&
+                strlen(ssid) > 0) {
+                nvs_get_str(nvs, "wifiPass", password, &pass_len);
+
+                ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
+                wifi_config_t wifi_config = {0};
+                strlcpy((char *)wifi_config.sta.ssid, ssid,
+                        sizeof(wifi_config.sta.ssid));
+                strlcpy((char *)wifi_config.sta.password, password,
+                        sizeof(wifi_config.sta.password));
+                wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+                esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+                esp_wifi_connect();
+                lv_label_set_text(objects.label_wifi_connection_status,
+                                  "Status: Connecting...");
+                ESP_LOGI(TAG, "WiFi auto-connect initiated");
+            } else {
+                ESP_LOGW(TAG, "No WiFi SSID in config");
+                lv_label_set_text(objects.label_wifi_connection_status,
+                                  "Status: No config on SD card");
+            }
+            nvs_close(nvs);
         }
+    } else {
+        lv_label_set_text(objects.label_wifi_connection_status,
+                          "Status: Insert SD card with config.env");
     }
 #endif
-    /* TODO: REMOVE THESE DEFAULTS USED FOR TESTING */
-    set_var_current_interior_temperature(65);
-    set_var_desired_temperature(70);
-    set_var_current_exterior_temperature(-4);
     bsp_display_unlock();
-    ESP_LOGI(TAG,"Setup done");
+    ESP_LOGI(TAG, "Setup done");
     while (1)
     {
+        /* Process incoming MQTT messages (updates UI variables) */
+        mqtt_client_process_messages();
+
         bsp_display_lock(0);
         lv_timer_handler(); /* let the GUI do its work */
         bsp_display_unlock();

@@ -517,7 +517,7 @@ void create_screen_page_home() {
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     add_style_label_default(obj);
                     lv_obj_set_style_align(obj, LV_ALIGN_TOP_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "December 20th, 2025");
+                    lv_label_set_text(obj, "----- --, ----");
                 }
                 {
                     lv_obj_t *obj = lv_obj_create(parent_obj);
@@ -537,7 +537,7 @@ void create_screen_page_home() {
                             lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_color(obj, lv_color_hex(theme_colors[active_theme_index][7]), LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text(obj, "12");
+                            lv_label_set_text(obj, "--");
                         }
                     }
                 }
@@ -559,7 +559,7 @@ void create_screen_page_home() {
                             lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_color(obj, lv_color_hex(theme_colors[active_theme_index][7]), LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text(obj, "34");
+                            lv_label_set_text(obj, "--");
                         }
                     }
                 }
@@ -905,7 +905,7 @@ void create_screen_page_trailer() {
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     add_style_label_default(obj);
                     lv_obj_set_style_align(obj, LV_ALIGN_TOP_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "768");
+                    lv_label_set_text(obj, "-");
                 }
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
@@ -935,7 +935,7 @@ void create_screen_page_trailer() {
                     add_style_label_default(obj);
                     lv_obj_set_style_align(obj, LV_ALIGN_TOP_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "20");
+                    lv_label_set_text(obj, "-");
                 }
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
@@ -943,7 +943,7 @@ void create_screen_page_trailer() {
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                     add_style_label_default(obj);
                     lv_obj_set_style_align(obj, LV_ALIGN_BOTTOM_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "GPS + Beidou + GLONASS");
+                    lv_label_set_text(obj, "Not Available");
                 }
             }
         }
@@ -1564,7 +1564,7 @@ void create_screen_page_air_quality() {
                     lv_obj_set_style_text_font(obj, &lv_font_montserrat_48, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(theme_colors[active_theme_index][8]), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "79");
+                    lv_label_set_text(obj, "--");
                 }
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);

@@ -1,10 +1,13 @@
 #include "vars.h"
+#include "mqtt_vars.h"
 #include "bsp/display.h"
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
 #include "lvgl.h"
+#include "screens.h"
 #include "ui.h"
 #include <string.h>
+#include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -219,4 +222,150 @@ int32_t get_var_current_device_brightness_identifier() {
 }
 void set_var_current_device_brightness_identifier(int32_t value) {
     current_device_brightness_identifier = value;
+}
+
+/* ===== MQTT-sourced variables ===== */
+
+/* Helper: update a device button and its icon indicator.
+ * Button uses LV_STATE_CHECKED for EEZ Studio checked-state styles.
+ * Indicator swaps between on/off EEZ Studio shared styles for icon color. */
+static void update_device_status(lv_obj_t *button, lv_obj_t *indicator, int32_t value) {
+    if (!button || !indicator) return;
+    if (value > 0) {
+        lv_obj_add_state(button, LV_STATE_CHECKED);
+        lv_obj_add_state(indicator, LV_STATE_CHECKED);
+    } else {
+        lv_obj_clear_state(button, LV_STATE_CHECKED);
+        lv_obj_clear_state(indicator, LV_STATE_CHECKED);
+    }
+}
+
+/* Device light status (0=off, >0=on with brightness) */
+static int32_t device_status[8] = {0};
+
+void set_var_device01_status(int32_t value) {
+    device_status[0] = value;
+    update_device_status(objects.btn_device01, objects.lbl_device01_status_ind, value);
+}
+void set_var_device02_status(int32_t value) {
+    device_status[1] = value;
+    update_device_status(objects.btn_device02, objects.lbl_device02_status_ind, value);
+}
+void set_var_device03_status(int32_t value) {
+    device_status[2] = value;
+    update_device_status(objects.btn_device03, objects.lbl_device03_status_ind, value);
+}
+void set_var_device04_status(int32_t value) {
+    device_status[3] = value;
+    update_device_status(objects.btn_device04, objects.lbl_device04_status_ind, value);
+}
+void set_var_device05_status(int32_t value) {
+    device_status[4] = value;
+    update_device_status(objects.btn_device05, objects.lbl_device05_status_ind, value);
+}
+void set_var_device06_status(int32_t value) {
+    device_status[5] = value;
+    update_device_status(objects.btn_device06, objects.lbl_device06_status_ind, value);
+}
+void set_var_device07_status(int32_t value) {
+    device_status[6] = value;
+    update_device_status(objects.btn_device07, objects.lbl_device07_status_ind, value);
+}
+void set_var_device08_status(int32_t value) {
+    device_status[7] = value;
+    update_device_status(objects.btn_device08, objects.lbl_device08_status_ind, value);
+}
+
+/* Battery SOC */
+static int32_t battery_soc = 0;
+void set_var_battery_soc(int32_t percent) {
+    battery_soc = percent;
+    if (objects.bar_battery_soc)
+        lv_bar_set_value(objects.bar_battery_soc, percent, LV_ANIM_ON);
+    if (objects.label_power_battery_percentage) {
+        char buf[16];
+        sprintf(buf, "%d%%", (int)percent);
+        lv_label_set_text(objects.label_power_battery_percentage, buf);
+    }
+}
+
+/* Battery voltage */
+static float battery_voltage_val = 0.0f;
+void set_var_battery_voltage(float volts) {
+    battery_voltage_val = volts;
+    if (objects.label_battery_voltage) {
+        char buf[16];
+        sprintf(buf, "%.1fV", volts);
+        lv_label_set_text(objects.label_battery_voltage, buf);
+    }
+}
+
+/* Solar watts */
+static int32_t solar_watts_val = 0;
+void set_var_solar_watts(int32_t watts) {
+    solar_watts_val = watts;
+    if (objects.label_remaining_cacpity_2) {
+        char buf[16];
+        sprintf(buf, "%dW", (int)watts);
+        lv_label_set_text(objects.label_remaining_cacpity_2, buf);
+    }
+}
+
+/* Solar / charge status */
+static char solar_status_str[64] = {0};
+void set_var_solar_status(const char *status) {
+    strncpy(solar_status_str, status, sizeof(solar_status_str) - 1);
+    solar_status_str[sizeof(solar_status_str) - 1] = '\0';
+    if (objects.label_solar_status)
+        lv_label_set_text(objects.label_solar_status, status);
+}
+
+/* GPS latitude */
+static float gps_latitude = 0.0f;
+void set_var_latitude(float lat) {
+    gps_latitude = lat;
+}
+
+/* GPS longitude */
+static float gps_longitude = 0.0f;
+void set_var_longitude(float lon) {
+    gps_longitude = lon;
+}
+
+/* GPS altitude */
+static float gps_altitude = 0.0f;
+void set_var_altitude(float feet) {
+    gps_altitude = feet;
+}
+
+/* GPS speed */
+static float gps_speed = 0.0f;
+void set_var_speed(float knots) {
+    gps_speed = knots;
+}
+
+/* GPS course */
+static float gps_course = 0.0f;
+void set_var_course(float degrees) {
+    gps_course = degrees;
+}
+
+/* GNSS mode */
+static char gnss_mode_str[32] = {0};
+void set_var_gnss_mode(const char *mode) {
+    strncpy(gnss_mode_str, mode, sizeof(gnss_mode_str) - 1);
+    gnss_mode_str[sizeof(gnss_mode_str) - 1] = '\0';
+}
+
+/* Humidity */
+static float humidity_val = 0.0f;
+void set_var_humidity(float percent) {
+    humidity_val = percent;
+}
+
+/* MQTT connected status */
+static bool mqtt_connected = false;
+void set_var_mqtt_connected(bool connected) {
+    mqtt_connected = connected;
+    ESP_LOGI(TAG, "MQTT %s", connected ? "connected" : "disconnected");
 }
