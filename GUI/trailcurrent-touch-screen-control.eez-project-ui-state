@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/2",
     "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
     "selectedActionObject": "[trailcurrent-touch-screen-control.eez-project]:/actions/2",
     "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
@@ -238,11 +238,11 @@
                 {
                   "type": "tab",
                   "id": "#c8f7d65a-ffc1-4a56-b6a3-1da4b62dfd6a",
-                  "name": "PageTrailer",
+                  "name": "PagePowerManagement",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/1",
-                    "permanent": false
+                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/2",
+                    "permanent": true
                   },
                   "icon": "svg:page"
                 },
@@ -268,8 +268,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -289,7 +288,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1136,16 +1136,19 @@
             "1": {}
           },
           "5": {
-            "1": {}
+            "1": {},
+            "2": {
+              "$selected": true
+            }
           }
         }
       },
       "transform": {
         "translate": {
-          "x": -388.4744444444443,
-          "y": -255.37222222222198
+          "x": -248.47444444444432,
+          "y": -200.37222222222198
         },
-        "scale": 0.75
+        "scale": 0.5
       },
       "timeline": {
         "isEditorActive": false,

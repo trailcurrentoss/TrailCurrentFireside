@@ -26,6 +26,8 @@ extern void set_var_battery_soc(int32_t percent);
 extern void set_var_battery_voltage(float volts);
 extern void set_var_solar_watts(int32_t watts);
 extern void set_var_solar_status(const char *status);
+extern void set_var_consumption_watts(int32_t watts);
+extern void set_var_time_remaining(int32_t minutes);
 extern void set_var_latitude(float lat);
 extern void set_var_longitude(float lon);
 extern void set_var_altitude(float feet);
@@ -349,11 +351,15 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *bv = cJSON_GetObjectItem(doc, "battery_voltage");
         cJSON *sw = cJSON_GetObjectItem(doc, "solar_watts");
         cJSON *ct = cJSON_GetObjectItem(doc, "charge_type");
+        cJSON *cw = cJSON_GetObjectItem(doc, "consumption_watts");
+        cJSON *tr = cJSON_GetObjectItem(doc, "time_remaining_minutes");
 
         if (bp) set_var_battery_soc((int32_t)bp->valuedouble);
         if (bv) set_var_battery_voltage((float)bv->valuedouble);
         if (sw) set_var_solar_watts((int32_t)sw->valuedouble);
         if (ct && ct->valuestring) set_var_solar_status(ct->valuestring);
+        if (cw) set_var_consumption_watts((int32_t)cw->valuedouble);
+        if (tr) set_var_time_remaining((int32_t)tr->valuedouble);
     }
     /* local/airquality/temphumid */
     else if (strcmp(topic, "local/airquality/temphumid") == 0) {

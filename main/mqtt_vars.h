@@ -23,6 +23,8 @@ void set_var_battery_soc(int32_t percent);
 void set_var_battery_voltage(float volts);
 void set_var_solar_watts(int32_t watts);
 void set_var_solar_status(const char *status);
+void set_var_consumption_watts(int32_t watts);
+void set_var_time_remaining(int32_t minutes);
 
 /* GPS / GNSS */
 void set_var_latitude(float lat);

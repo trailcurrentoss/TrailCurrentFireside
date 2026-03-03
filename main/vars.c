@@ -263,10 +263,10 @@ void set_var_battery_soc(int32_t percent) {
     battery_soc = percent;
     if (objects.bar_battery_soc)
         lv_bar_set_value(objects.bar_battery_soc, percent, LV_ANIM_ON);
-    if (objects.label_power_battery_percentage) {
+    if (objects.label_power_battery_percentage_value) {
         char buf[16];
         sprintf(buf, "%d%%", (int)percent);
-        lv_label_set_text(objects.label_power_battery_percentage, buf);
+        lv_label_set_text(objects.label_power_battery_percentage_value, buf);
     }
 }
 
@@ -274,10 +274,10 @@ void set_var_battery_soc(int32_t percent) {
 static float battery_voltage_val = 0.0f;
 void set_var_battery_voltage(float volts) {
     battery_voltage_val = volts;
-    if (objects.label_battery_voltage) {
+    if (objects.label_battery_voltage_value) {
         char buf[16];
         sprintf(buf, "%.1fV", volts);
-        lv_label_set_text(objects.label_battery_voltage, buf);
+        lv_label_set_text(objects.label_battery_voltage_value, buf);
     }
 }
 
@@ -285,10 +285,10 @@ void set_var_battery_voltage(float volts) {
 static int32_t solar_watts_val = 0;
 void set_var_solar_watts(int32_t watts) {
     solar_watts_val = watts;
-    if (objects.label_remaining_cacpity_2) {
+    if (objects.label_solar_power_wattage_value) {
         char buf[16];
         sprintf(buf, "%dW", (int)watts);
-        lv_label_set_text(objects.label_remaining_cacpity_2, buf);
+        lv_label_set_text(objects.label_solar_power_wattage_value, buf);
     }
 }
 
@@ -297,8 +297,8 @@ static char solar_status_str[64] = {0};
 void set_var_solar_status(const char *status) {
     strncpy(solar_status_str, status, sizeof(solar_status_str) - 1);
     solar_status_str[sizeof(solar_status_str) - 1] = '\0';
-    if (objects.label_solar_status)
-        lv_label_set_text(objects.label_solar_status, status);
+    if (objects.label_charge_status_value_s)
+        lv_label_set_text(objects.label_charge_status_value_s, status);
 }
 
 /* GPS latitude */
@@ -428,6 +428,68 @@ void update_clock_display(void) {
 
     /* AM/PM */
     lv_label_set_text(objects.obj6, ti.tm_hour >= 12 ? "PM" : "AM");
+}
+
+/* Battery consumption watts (instantaneous power from Victron BMV P field) */
+void set_var_consumption_watts(int32_t watts) {
+    if (objects.label_power_consumption_wattage_value) {
+        char buf[16];
+        sprintf(buf, "%d", (int)watts);
+        lv_label_set_text(objects.label_power_consumption_wattage_value, buf);
+    }
+}
+
+/* Battery time-to-go (from Victron BMV TTG, arrives as minutes).
+ * 0 or 0xFFFF from the shunt = no valid data. */
+void set_var_time_remaining(int32_t minutes) {
+    if (minutes <= 0 || minutes >= 0xFFFF) {
+        /* No valid TTG data */
+        if (objects.label_power_remaining_time_to_go_value)
+            lv_label_set_text(objects.label_power_remaining_time_to_go_value, "-");
+        if (objects.label_time_to_go_measurement_type)
+            lv_label_set_text(objects.label_time_to_go_measurement_type, "");
+        if (objects.power_arc_remaining_hours)
+            lv_arc_set_value(objects.power_arc_remaining_hours, 0);
+        return;
+    }
+
+    char value_buf[16];
+    const char *unit;
+
+    if (minutes >= 1440) {
+        /* > 1 day: show days */
+        int days = minutes / 1440;
+        int hrs  = (minutes % 1440) / 60;
+        snprintf(value_buf, sizeof(value_buf), "%dd %dh", days, hrs);
+        unit = "Days";
+        if (objects.power_arc_remaining_hours) {
+            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 30);
+            lv_arc_set_value(objects.power_arc_remaining_hours, days > 30 ? 30 : days);
+        }
+    } else if (minutes >= 60) {
+        /* > 1 hour: show hours */
+        int hrs  = minutes / 60;
+        int mins = minutes % 60;
+        snprintf(value_buf, sizeof(value_buf), "%d:%02d", hrs, mins);
+        unit = "Hrs";
+        if (objects.power_arc_remaining_hours) {
+            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 24);
+            lv_arc_set_value(objects.power_arc_remaining_hours, hrs);
+        }
+    } else {
+        /* < 1 hour: show minutes */
+        snprintf(value_buf, sizeof(value_buf), "%d", (int)minutes);
+        unit = "Min";
+        if (objects.power_arc_remaining_hours) {
+            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 60);
+            lv_arc_set_value(objects.power_arc_remaining_hours, minutes);
+        }
+    }
+
+    if (objects.label_power_remaining_time_to_go_value)
+        lv_label_set_text(objects.label_power_remaining_time_to_go_value, value_buf);
+    if (objects.label_time_to_go_measurement_type)
+        lv_label_set_text(objects.label_time_to_go_measurement_type, unit);
 }
 
 /* MQTT connected status */
