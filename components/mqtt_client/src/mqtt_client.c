@@ -349,13 +349,11 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/airquality/temphumid */
     else if (strcmp(topic, "local/airquality/temphumid") == 0) {
-        cJSON *temp = cJSON_GetObjectItem(doc, "temperature");
+        cJSON *temp_f = cJSON_GetObjectItem(doc, "tempInF");
         cJSON *humid = cJSON_GetObjectItem(doc, "humidity");
 
-        if (temp) {
-            float temp_c = (float)temp->valuedouble;
-            float temp_f = temp_c * 9.0f / 5.0f + 32.0f;
-            set_var_current_interior_temperature((int32_t)temp_f);
+        if (temp_f) {
+            set_var_current_interior_temperature((int32_t)temp_f->valuedouble);
         }
         if (humid) {
             set_var_humidity((float)humid->valuedouble);
