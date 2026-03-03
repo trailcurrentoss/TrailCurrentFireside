@@ -227,53 +227,40 @@ void set_var_current_device_brightness_identifier(int32_t value) {
 /* ===== MQTT-sourced variables ===== */
 
 /* Helper: update a device button and its icon indicator.
- * Button uses LV_STATE_CHECKED for EEZ Studio checked-state styles.
- * Indicator swaps between on/off EEZ Studio shared styles for icon color. */
-static void update_device_status(lv_obj_t *button, lv_obj_t *indicator, int32_t value) {
-    if (!button || !indicator) return;
+ * Only the button state is set — children inherit from the parent.
+ * MQTT is the single source of truth; no local state tracking. */
+static void update_device_status(lv_obj_t *button, int32_t value) {
+    if (!button) return;
     if (value > 0) {
         lv_obj_add_state(button, LV_STATE_CHECKED);
-        lv_obj_add_state(indicator, LV_STATE_CHECKED);
     } else {
         lv_obj_clear_state(button, LV_STATE_CHECKED);
-        lv_obj_clear_state(indicator, LV_STATE_CHECKED);
     }
 }
 
-/* Device light status (0=off, >0=on with brightness) */
-static int32_t device_status[8] = {0};
-
 void set_var_device01_status(int32_t value) {
-    device_status[0] = value;
-    update_device_status(objects.btn_device01, objects.lbl_device01_status_ind, value);
+    update_device_status(objects.btn_device01, value);
 }
 void set_var_device02_status(int32_t value) {
-    device_status[1] = value;
-    update_device_status(objects.btn_device02, objects.lbl_device02_status_ind, value);
+    update_device_status(objects.btn_device02, value);
 }
 void set_var_device03_status(int32_t value) {
-    device_status[2] = value;
-    update_device_status(objects.btn_device03, objects.lbl_device03_status_ind, value);
+    update_device_status(objects.btn_device03, value);
 }
 void set_var_device04_status(int32_t value) {
-    device_status[3] = value;
-    update_device_status(objects.btn_device04, objects.lbl_device04_status_ind, value);
+    update_device_status(objects.btn_device04, value);
 }
 void set_var_device05_status(int32_t value) {
-    device_status[4] = value;
-    update_device_status(objects.btn_device05, objects.lbl_device05_status_ind, value);
+    update_device_status(objects.btn_device05, value);
 }
 void set_var_device06_status(int32_t value) {
-    device_status[5] = value;
-    update_device_status(objects.btn_device06, objects.lbl_device06_status_ind, value);
+    update_device_status(objects.btn_device06, value);
 }
 void set_var_device07_status(int32_t value) {
-    device_status[6] = value;
-    update_device_status(objects.btn_device07, objects.lbl_device07_status_ind, value);
+    update_device_status(objects.btn_device07, value);
 }
 void set_var_device08_status(int32_t value) {
-    device_status[7] = value;
-    update_device_status(objects.btn_device08, objects.lbl_device08_status_ind, value);
+    update_device_status(objects.btn_device08, value);
 }
 
 /* Battery SOC */
