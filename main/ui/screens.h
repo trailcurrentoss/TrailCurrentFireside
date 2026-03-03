@@ -13,15 +13,13 @@ typedef struct _objects_t {
     lv_obj_t *page_power_management;
     lv_obj_t *page_air_quality;
     lv_obj_t *page_water;
-    lv_obj_t *page_entertainment;
     lv_obj_t *page_settings;
     lv_obj_t *widget_home_page_bottom_nav_bar;
     lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_home_page_bottom_nav_bar__bottom_nav_bar_button_settings;
     lv_obj_t *panel_control_buttons;
     lv_obj_t *btn_device01;
@@ -64,9 +62,6 @@ typedef struct _objects_t {
     lv_obj_t *lbl_time_minutes;
     lv_obj_t *obj5;
     lv_obj_t *obj6;
-    lv_obj_t *obj7;
-    lv_obj_t *label_current_exterior_temperature;
-    lv_obj_t *obj8;
     lv_obj_t *container_modal_background;
     lv_obj_t *panel_device_brighness_level;
     lv_obj_t *slider_device_brightness_level;
@@ -74,24 +69,28 @@ typedef struct _objects_t {
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_settings;
     lv_obj_t *panel_trailer_side_view;
-    lv_obj_t *obj9;
+    lv_obj_t *obj7;
     lv_obj_t *label_front_level_value;
     lv_obj_t *label_front_level_fa_indicator;
     lv_obj_t *label_back_level_value;
     lv_obj_t *label_front_leve_label_1;
     lv_obj_t *label_back_level_fa_indicator;
     lv_obj_t *label_front_leve_label;
+    lv_obj_t *obj8;
+    lv_obj_t *obj9;
+    lv_obj_t *label_gnss_elevation_value;
     lv_obj_t *obj10;
     lv_obj_t *obj11;
-    lv_obj_t *obj12;
-    lv_obj_t *obj13;
+    lv_obj_t *label_gnss_num_sats_value;
+    lv_obj_t *label_gnss_mode_value;
+    lv_obj_t *label_latitude_value;
+    lv_obj_t *label_longitude_value;
     lv_obj_t *panel_trailer_back;
-    lv_obj_t *obj14;
+    lv_obj_t *obj12;
     lv_obj_t *label_left_side_level_fa_indicator;
     lv_obj_t *label_left_side_level_value;
     lv_obj_t *label_left_side_leve_label;
@@ -102,9 +101,8 @@ typedef struct _objects_t {
     lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_settings;
     lv_obj_t *panel_solar_input;
     lv_obj_t *label_remaining_cacpity_2;
@@ -118,7 +116,7 @@ typedef struct _objects_t {
     lv_obj_t *panel_power_battery_stats;
     lv_obj_t *label_power_remaining_cacpity_1;
     lv_obj_t *bar_battery_soc;
-    lv_obj_t *obj15;
+    lv_obj_t *obj13;
     lv_obj_t *label_power_battery_percentage;
     lv_obj_t *label_battery_voltage;
     lv_obj_t *panel_power_remaining_time;
@@ -134,65 +132,31 @@ typedef struct _objects_t {
     lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+    lv_obj_t *obj14;
+    lv_obj_t *obj15;
     lv_obj_t *obj16;
-    lv_obj_t *obj17;
-    lv_obj_t *obj18;
     lv_obj_t *widget_water_page_bottom_nav_bar;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+    lv_obj_t *obj17;
+    lv_obj_t *obj18;
     lv_obj_t *obj19;
-    lv_obj_t *obj20;
-    lv_obj_t *obj21;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_home;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
-    lv_obj_t *widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_settings;
-    lv_obj_t *obj22;
-    lv_obj_t *obj23;
-    lv_obj_t *obj24;
-    lv_obj_t *obj25;
-    lv_obj_t *obj26;
-    lv_obj_t *obj27;
-    lv_obj_t *obj28;
-    lv_obj_t *obj29;
-    lv_obj_t *obj30;
-    lv_obj_t *obj31;
-    lv_obj_t *obj32;
-    lv_obj_t *obj33;
-    lv_obj_t *obj34;
-    lv_obj_t *obj35;
-    lv_obj_t *label_signal_icon;
-    lv_obj_t *label_tuned_station;
-    lv_obj_t *obj36;
-    lv_obj_t *obj37;
-    lv_obj_t *obj38;
-    lv_obj_t *obj39;
-    lv_obj_t *obj40;
-    lv_obj_t *obj41;
-    lv_obj_t *obj42;
     lv_obj_t *widget_settings_page_bottom_nav_bar;
     lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
     lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_power;
-    lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_water;
-    lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_entertainment;
+    lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
     lv_obj_t *widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_settings;
-    lv_obj_t *obj43;
-    lv_obj_t *obj44;
+    lv_obj_t *obj20;
+    lv_obj_t *obj21;
     lv_obj_t *btn_theme_light;
     lv_obj_t *lbl_device08_status_ind_5;
     lv_obj_t *btn_theme_dark;
@@ -222,8 +186,7 @@ enum ScreensEnum {
     SCREEN_ID_PAGE_POWER_MANAGEMENT = 3,
     SCREEN_ID_PAGE_AIR_QUALITY = 4,
     SCREEN_ID_PAGE_WATER = 5,
-    SCREEN_ID_PAGE_ENTERTAINMENT = 6,
-    SCREEN_ID_PAGE_SETTINGS = 7,
+    SCREEN_ID_PAGE_SETTINGS = 6,
 };
 
 void create_screen_page_home();
@@ -240,9 +203,6 @@ void tick_screen_page_air_quality();
 
 void create_screen_page_water();
 void tick_screen_page_water();
-
-void create_screen_page_entertainment();
-void tick_screen_page_entertainment();
 
 void create_screen_page_settings();
 void tick_screen_page_settings();

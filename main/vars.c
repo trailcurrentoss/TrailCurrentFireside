@@ -83,7 +83,14 @@ void set_var_rotation_degrees(int32_t value) { rotation_degrees = value; }
 
 int32_t satellite_count;
 int32_t get_var_satellite_count() { return satellite_count; }
-void set_var_satellite_count(int32_t value) { satellite_count = value; }
+void set_var_satellite_count(int32_t value) {
+  satellite_count = value;
+  if (objects.label_gnss_num_sats_value) {
+    char buf[8];
+    sprintf(buf, "%d", (int)value);
+    lv_label_set_text(objects.label_gnss_num_sats_value, buf);
+  }
+}
 
 /* Current interior temperature */
 int32_t current_interior_temperature;
@@ -132,19 +139,6 @@ int32_t get_var_current_exterior_temperature() {
 }
 void set_var_current_exterior_temperature(int32_t value) {
   current_exterior_temperature = value;
-  char buffer[20];
-  sprintf(buffer, "%d", value);
-  lv_label_set_text(objects.label_current_exterior_temperature, buffer);
-}
-
-/* Deisred FM Radio Station */
-float desired_fm_radio_station;
-float get_var_desired_fm_radio_station() { return desired_fm_radio_station; }
-void set_var_desired_fm_radio_station(float value) {
-  desired_fm_radio_station = value;
-  char buf[16]; // Make sure buffer is large enough
-  sprintf(buf, "%.1f", value);
-  lv_label_set_text(objects.label_tuned_station, buf);
 }
 
 char current_time_zone_string[100] = {0};
@@ -311,18 +305,33 @@ void set_var_solar_status(const char *status) {
 static float gps_latitude = 0.0f;
 void set_var_latitude(float lat) {
     gps_latitude = lat;
+    if (objects.label_latitude_value) {
+        char buf[16];
+        sprintf(buf, "%.6f", lat);
+        lv_label_set_text(objects.label_latitude_value, buf);
+    }
 }
 
 /* GPS longitude */
 static float gps_longitude = 0.0f;
 void set_var_longitude(float lon) {
     gps_longitude = lon;
+    if (objects.label_longitude_value) {
+        char buf[16];
+        sprintf(buf, "%.6f", lon);
+        lv_label_set_text(objects.label_longitude_value, buf);
+    }
 }
 
 /* GPS altitude */
 static float gps_altitude = 0.0f;
 void set_var_altitude(float feet) {
     gps_altitude = feet;
+    if (objects.label_gnss_elevation_value) {
+        char buf[16];
+        sprintf(buf, "%.0f ft", feet);
+        lv_label_set_text(objects.label_gnss_elevation_value, buf);
+    }
 }
 
 /* GPS speed */
@@ -342,6 +351,9 @@ static char gnss_mode_str[32] = {0};
 void set_var_gnss_mode(const char *mode) {
     strncpy(gnss_mode_str, mode, sizeof(gnss_mode_str) - 1);
     gnss_mode_str[sizeof(gnss_mode_str) - 1] = '\0';
+    if (objects.label_gnss_mode_value) {
+        lv_label_set_text(objects.label_gnss_mode_value, gnss_mode_str);
+    }
 }
 
 /* Humidity */

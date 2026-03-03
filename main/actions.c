@@ -142,250 +142,99 @@ void action_change_theme(lv_event_t *e) {
   }
 }
 
-void action_change_screen(lv_event_t *e) {
-  int *to_screen = (int *)lv_event_get_user_data(e);
-  /* Clear all toolbar button checked states for all home buttons */
-  lv_obj_clear_state(
-      objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_home_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_home_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all toolbar button checked states for the traile page buttons */
-  lv_obj_clear_state(
-      objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all toolbar button checked states for the power page buttons */
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all the toolbar button checked states for the air quality page */
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all the toolbar button checked states for the water page */
-  lv_obj_clear_state(
-      objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_water_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_water_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all the toolbar button checked states for the entertainment page */
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
-  /* Clear all the toolbar buttons checked states for the settings page */
-  lv_obj_clear_state(
-      objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_home,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_power,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_water,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-      LV_STATE_CHECKED);
-  lv_obj_clear_state(
-      objects
-          .widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-      LV_STATE_CHECKED);
+/* Nav button lookup: nav_buttons[page][btn] where btn index matches page index
+ * for the "active" button (e.g. nav_buttons[0][0] = home page's home button).
+ * Populated by init_nav_lookup() after ui_init(). */
+#define NUM_PAGES 6
+static lv_obj_t *nav_buttons[NUM_PAGES][NUM_PAGES];
+static lv_obj_t *page_screens[NUM_PAGES];
 
-  if (to_screen == 0) {
-    /* Set the active state for the home page home icon */
-    lv_obj_add_state(
-        objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_home,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_home);
-  } else if (to_screen == 1) {
-    /* Set the active state for the trailer page trailer icon */
-    lv_obj_add_state(
-        objects
-            .widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_trailer,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_trailer);
-  } else if (to_screen == 2) {
-    /* Set the active state for the power page power icon */
-    lv_obj_add_state(
-        objects
-            .widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_power,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_power_management);
-  } else if (to_screen == 3) {
-    /* Set the active state for the air quality page air icon */
-    lv_obj_add_state(
-        objects
-            .widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_air_quality,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_air_quality);
-  } else if (to_screen == 4) {
-    /* Set the active state for the water page water icon */
-    lv_obj_add_state(
-        objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_water,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_water);
-  } else if (to_screen == 5) {
-    /* Set the active state for the entertainment page entertainment icon */
-    lv_obj_add_state(
-        objects
-            .widget_entertainment_page_bottom_nav_bar__bottom_nav_bar_button_entertainment,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_entertainment);
-  } else {
-    /* Set the active state for the settings page settings icon */
-    lv_obj_add_state(
-        objects
-            .widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_settings,
-        LV_STATE_CHECKED);
-    /* Change to that screen */
-    lv_scr_load(objects.page_settings);
+void init_nav_lookup(void) {
+  page_screens[0] = objects.page_home;
+  page_screens[1] = objects.page_trailer;
+  page_screens[2] = objects.page_power_management;
+  page_screens[3] = objects.page_air_quality;
+  page_screens[4] = objects.page_water;
+  page_screens[5] = objects.page_settings;
+
+  /* Home page nav buttons */
+  nav_buttons[0][0] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[0][1] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[0][2] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[0][3] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[0][4] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[0][5] = objects.widget_home_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Trailer page nav buttons */
+  nav_buttons[1][0] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[1][1] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[1][2] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[1][3] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[1][4] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[1][5] = objects.widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Power management page nav buttons */
+  nav_buttons[2][0] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[2][1] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[2][2] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[2][3] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[2][4] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[2][5] = objects.widget_power_management_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Air quality page nav buttons */
+  nav_buttons[3][0] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[3][1] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[3][2] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[3][3] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[3][4] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[3][5] = objects.widget_air_quality_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Water page nav buttons */
+  nav_buttons[4][0] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[4][1] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[4][2] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[4][3] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[4][4] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[4][5] = objects.widget_water_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Settings page nav buttons */
+  nav_buttons[5][0] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_home;
+  nav_buttons[5][1] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_trailer;
+  nav_buttons[5][2] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_power;
+  nav_buttons[5][3] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_air_quality;
+  nav_buttons[5][4] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_water;
+  nav_buttons[5][5] = objects.widget_settings_page_bottom_nav_bar__bottom_nav_bar_button_settings;
+
+  /* Set home button checked on the home page (initial state) */
+  lv_obj_add_state(nav_buttons[0][0], LV_STATE_CHECKED);
+}
+
+/* Map EEZ Studio user_data values to internal page indices.
+ * EEZ values: 0=home, 1=trailer, 2=power, 3=air_quality, 4=water, 6=settings
+ * (5 was the removed entertainment page) */
+static int eez_to_page_idx(int eez_id) {
+  switch (eez_id) {
+    case 0: return 0;
+    case 1: return 1;
+    case 2: return 2;
+    case 3: return 3;
+    case 4: return 4;
+    default: return 5; /* settings (user_data=6) */
   }
+}
+
+void action_change_screen(lv_event_t *e) {
+  int eez_id = (int)lv_event_get_user_data(e);
+  int to_idx = eez_to_page_idx(eez_id);
+
+  /* Clear all nav buttons on the target page, then set the active one */
+  for (int btn = 0; btn < NUM_PAGES; btn++) {
+    lv_obj_clear_state(nav_buttons[to_idx][btn], LV_STATE_CHECKED);
+  }
+  lv_obj_add_state(nav_buttons[to_idx][to_idx], LV_STATE_CHECKED);
+
+  /* Animated screen transition — fast fade */
+  lv_scr_load_anim(page_screens[to_idx], LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
 }
 
 void action_rotate_screen(lv_event_t *e) {
@@ -436,13 +285,6 @@ void action_send_device_command(lv_event_t *e) {
 void action_change_desired_temperature(lv_event_t *e) {
   int new_desired_temperature = lv_arc_get_value(objects.arc_thermostat);
   set_var_desired_temperature(new_desired_temperature);
-}
-
-void action_change_fm_radio_station(lv_event_t *e) {
-  lv_obj_t *slider = lv_event_get_target(e);
-  int32_t value = lv_slider_get_value(slider);
-  float deisred_station = (value / 10.0);
-  set_var_desired_fm_radio_station(deisred_station);
 }
 
 void action_go_to_preset(lv_event_t *e) { ESP_LOGE(TAG, "Got here prset"); }

@@ -27,6 +27,9 @@ extern void wifi_event_handler_init(void);
 #define WIFI_ENABLED 0
 #endif
 
+/* Nav button lookup table init from actions.c */
+extern void init_nav_lookup(void);
+
 static const char *TAG = "MAIN";
 
 #define SD_NVS_NAMESPACE "sd_config"
@@ -114,12 +117,19 @@ void app_main(void)
 #endif
 
     bsp_display_cfg_t cfg = {
-        .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
-        .buffer_size = BSP_LCD_DRAW_BUFF_SIZE,
-        .double_buffer = BSP_LCD_DRAW_BUFF_DOUBLE,
+        .lvgl_port_cfg = {
+            .task_priority = 5,
+            .task_stack = 7168,
+            .task_affinity = 1,       /* Pin LVGL to core 1 (core 0 runs app_main/MQTT task) */
+            .task_max_sleep_ms = 500,
+            .task_stack_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT,
+            .timer_period_ms = 5,
+        },
+        .buffer_size = BSP_LCD_H_RES * 100, /* Larger draw buffer for fewer flushes */
+        .double_buffer = 1,                  /* Enable double buffering */
         .flags = {
-            .buff_dma = true,
-            .buff_spiram = false,
+            .buff_dma = false,
+            .buff_spiram = true,   /* Use PSRAM for draw buffers */
             .sw_rotate = true,
         }};
     lv_display_t *disp = bsp_display_start_with_config(&cfg);
@@ -132,6 +142,7 @@ void app_main(void)
 
     bsp_display_lock(0);
     ui_init();
+    init_nav_lookup();
 
     /* Restore persisted user settings (theme, brightness, timeout, timezone) */
     extern void restore_user_settings(void);
@@ -184,20 +195,19 @@ void app_main(void)
     uint32_t last_clock_tick = 0;
     while (1)
     {
-        /* Process incoming MQTT messages (updates UI variables) */
+        /* Process incoming MQTT messages — blocks up to 10ms on the queue,
+         * wakes immediately when a message arrives. */
         mqtt_client_process_messages();
 
-        bsp_display_lock(0);
-        lv_timer_handler(); /* let the GUI do its work */
-
-        /* Update clock display once per second */
-        uint32_t now_tick = lv_tick_get();
+        /* Update clock display once per second.
+         * lv_timer_handler() is NOT called here — the BSP LVGL port task
+         * already runs it on a 5ms timer (core 1, priority 5). */
+        uint32_t now_tick = xTaskGetTickCount() * portTICK_PERIOD_MS;
         if (now_tick - last_clock_tick >= 1000) {
             last_clock_tick = now_tick;
+            bsp_display_lock(0);
             update_clock_display();
+            bsp_display_unlock();
         }
-
-        bsp_display_unlock();
-        vTaskDelay(pdMS_TO_TICKS(5));
     }
 }

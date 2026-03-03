@@ -263,13 +263,21 @@ void mqtt_client_connect(void) {
 }
 
 void mqtt_client_process_messages(void) {
-    if (!s_incoming_queue)
+    if (!s_incoming_queue) {
+        vTaskDelay(pdMS_TO_TICKS(10));
         return;
+    }
 
     mqtt_message_t msg;
-    while (xQueueReceive(s_incoming_queue, &msg, 0) == pdTRUE) {
+    /* Block up to 10ms waiting for the first message — wakes immediately
+     * when a message arrives instead of polling on a fixed interval. */
+    if (xQueueReceive(s_incoming_queue, &msg, pdMS_TO_TICKS(10)) == pdTRUE) {
+        /* Acquire lock once, process all pending messages, release */
         bsp_display_lock(0);
         process_message(msg.topic, msg.payload, msg.payload_len);
+        while (xQueueReceive(s_incoming_queue, &msg, 0) == pdTRUE) {
+            process_message(msg.topic, msg.payload, msg.payload_len);
+        }
         bsp_display_unlock();
     }
 }
