@@ -203,11 +203,6 @@ typedef struct _objects_t {
     lv_obj_t *label_screen_timeout_value;
     lv_obj_t *button_screen_timeout_increase;
     lv_obj_t *tab_connectivity;
-    lv_obj_t *button_scan_wifi;
-    lv_obj_t *label_wifi_scan_status;
-    lv_obj_t *roller_wifi_networks;
-    lv_obj_t *textarea_wifi_password;
-    lv_obj_t *button_connect_wifi;
     lv_obj_t *label_wifi_connection_status;
     lv_obj_t *button_settings_demo_light_sequence_start;
     lv_obj_t *button_settings_demo_light_sequence_stop;
@@ -216,7 +211,6 @@ typedef struct _objects_t {
     lv_obj_t *label_about_header;
     lv_obj_t *label_version_number;
     lv_obj_t *mcu_mac_address_value;
-    lv_obj_t *keyboard_password;
 } objects_t;
 
 extern objects_t objects;

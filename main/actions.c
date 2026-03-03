@@ -461,51 +461,17 @@ void action_close_dialog(lv_event_t *e) {
 }
 
 void action_set_device_brightness_level(lv_event_t *e) {
+  /* Only publish on release, not while the slider is being dragged */
+  if (lv_event_get_code(e) != LV_EVENT_RELEASED) return;
+
   int32_t device_id = get_var_current_device_brightness_identifier();
   if (device_id < 0) return;
   lv_obj_t *slider = lv_event_get_target(e);
   int32_t slider_val = lv_slider_get_value(slider);
   int32_t brightness = slider_val * 255 / 100; /* scale 0-100 to 0-255 */
   char topic[64];
-  snprintf(topic, sizeof(topic), "local/lights/%d/command", (int)device_id);
+  snprintf(topic, sizeof(topic), "local/lights/%d/brightness", (int)device_id);
   char payload[32];
   snprintf(payload, sizeof(payload), "{\"brightness\":%d}", (int)brightness);
   mqtt_client_publish(topic, payload, strlen(payload));
-}
-
-/* Stub action functions - these are referenced by EEZ Studio generated UI
- * but no longer have active implementations (WiFi config is via SD card now).
- * Keep stubs so the project compiles until EEZ Studio project is updated. */
-void action_selected_wifi_changed(lv_event_t *e) {
-  (void)e;
-}
-
-void action_show_wi_fi_keyaboard_entry(lv_event_t *e) {
-  (void)e;
-}
-
-void action_hide_wifi_keyboard(lv_event_t *e) {
-  (void)e;
-}
-
-void action_scan_wifi_networks(lv_event_t *e) {
-  (void)e;
-  ESP_LOGI(TAG, "WiFi config is now via SD card config.env");
-}
-
-void action_wifi_network_selected(lv_event_t *e) {
-  (void)e;
-}
-
-void action_connect_to_wifi(lv_event_t *e) {
-  (void)e;
-  ESP_LOGI(TAG, "WiFi config is now via SD card config.env");
-}
-
-void action_settings_selection_change(lv_event_t *e) {
-  (void)e;
-}
-
-void action_commit_mac_address_changes(lv_event_t *e) {
-  (void)e;
 }

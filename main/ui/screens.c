@@ -2537,104 +2537,10 @@ void create_screen_page_settings() {
                             {
                                 lv_obj_t *parent_obj = obj;
                                 {
-                                    lv_obj_t *obj = lv_label_create(parent_obj);
-                                    lv_obj_set_pos(obj, 0, 10);
-                                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                    add_style_label_default(obj);
-                                    lv_label_set_text(obj, "WiFi Network Selection");
-                                }
-                                {
-                                    // ButtonScanWifi
-                                    lv_obj_t *obj = lv_btn_create(parent_obj);
-                                    objects.button_scan_wifi = obj;
-                                    lv_obj_set_pos(obj, 0, 45);
-                                    lv_obj_set_size(obj, 180, 50);
-                                    lv_obj_add_event_cb(obj, action_scan_wifi_networks, LV_EVENT_CLICKED, (void *)0);
-                                    add_style_style_button_default(obj);
-                                    {
-                                        lv_obj_t *parent_obj = obj;
-                                        {
-                                            lv_obj_t *obj = lv_label_create(parent_obj);
-                                            lv_obj_set_pos(obj, 0, 0);
-                                            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                            add_style_label_default(obj);
-                                            lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text(obj, "Scan Networks");
-                                        }
-                                    }
-                                }
-                                {
-                                    // LabelWifiScanStatus
-                                    lv_obj_t *obj = lv_label_create(parent_obj);
-                                    objects.label_wifi_scan_status = obj;
-                                    lv_obj_set_pos(obj, 200, 55);
-                                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                    add_style_label_default(obj);
-                                    lv_label_set_text(obj, "Tap 'Scan Networks' to find WiFi");
-                                }
-                                {
-                                    lv_obj_t *obj = lv_label_create(parent_obj);
-                                    lv_obj_set_pos(obj, 0, 105);
-                                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                    add_style_label_default(obj);
-                                    lv_label_set_text(obj, "Available Networks:");
-                                }
-                                {
-                                    // RollerWifiNetworks
-                                    lv_obj_t *obj = lv_roller_create(parent_obj);
-                                    objects.roller_wifi_networks = obj;
-                                    lv_obj_set_pos(obj, 0, 90);
-                                    lv_obj_set_size(obj, 500, 100);
-                                    lv_roller_set_options(obj, "No networks found", LV_ROLLER_MODE_NORMAL);
-                                    lv_obj_add_event_cb(obj, action_wifi_network_selected, LV_EVENT_VALUE_CHANGED, (void *)0);
-                                    lv_obj_add_flag(obj, LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ON_FOCUS);
-                                    add_style_roller_default(obj);
-                                }
-                                {
-                                    lv_obj_t *obj = lv_label_create(parent_obj);
-                                    lv_obj_set_pos(obj, 0, 210);
-                                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                    add_style_label_default(obj);
-                                    lv_label_set_text(obj, "Password:");
-                                }
-                                {
-                                    // TextareaWifiPassword
-                                    lv_obj_t *obj = lv_textarea_create(parent_obj);
-                                    objects.textarea_wifi_password = obj;
-                                    lv_obj_set_pos(obj, 0, 235);
-                                    lv_obj_set_size(obj, 400, 60);
-                                    lv_textarea_set_max_length(obj, 128);
-                                    lv_textarea_set_placeholder_text(obj, "Enter password");
-                                    lv_textarea_set_one_line(obj, true);
-                                    lv_textarea_set_password_mode(obj, true);
-                                    lv_obj_add_event_cb(obj, action_hide_wifi_keyboard, LV_EVENT_DEFOCUSED, (void *)1);
-                                    lv_obj_add_event_cb(obj, action_show_wi_fi_keyaboard_entry, LV_EVENT_FOCUSED, (void *)1);
-                                }
-                                {
-                                    // ButtonConnectWifi
-                                    lv_obj_t *obj = lv_btn_create(parent_obj);
-                                    objects.button_connect_wifi = obj;
-                                    lv_obj_set_pos(obj, 420, 225);
-                                    lv_obj_set_size(obj, 140, 60);
-                                    lv_obj_add_event_cb(obj, action_connect_to_wifi, LV_EVENT_CLICKED, (void *)0);
-                                    add_style_style_button_default(obj);
-                                    {
-                                        lv_obj_t *parent_obj = obj;
-                                        {
-                                            lv_obj_t *obj = lv_label_create(parent_obj);
-                                            lv_obj_set_pos(obj, 0, 0);
-                                            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                                            add_style_label_default(obj);
-                                            lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text(obj, "Connect");
-                                        }
-                                    }
-                                }
-                                {
                                     // LabelWifiConnectionStatus
                                     lv_obj_t *obj = lv_label_create(parent_obj);
                                     objects.label_wifi_connection_status = obj;
-                                    lv_obj_set_pos(obj, 0, 400);
+                                    lv_obj_set_pos(obj, 0, 10);
                                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
                                     add_style_label_default(obj);
                                     lv_label_set_text(obj, "Status: Not connected");
@@ -2782,19 +2688,7 @@ void create_screen_page_settings() {
                 }
             }
         }
-        {
-            // KeyboardPassword
-            lv_obj_t *obj = lv_keyboard_create(parent_obj);
-            objects.keyboard_password = obj;
-            lv_obj_set_pos(obj, 0, 0);
-            lv_obj_set_size(obj, LV_PCT(100), 235);
-            lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_PRESS_LOCK|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
-            add_style_keyboard_default(obj);
-            lv_obj_set_style_align(obj, LV_ALIGN_BOTTOM_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
-        }
     }
-    lv_keyboard_set_textarea(objects.keyboard_password, objects.textarea_wifi_password);
     
     tick_screen_page_settings();
 }

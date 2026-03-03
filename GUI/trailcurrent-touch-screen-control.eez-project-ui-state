@@ -1,7 +1,8 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/6",
     "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
+    "selectedActionObject": "[trailcurrent-touch-screen-control.eez-project]:/actions/2",
     "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
     "selectedStyleObject": "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles/14",
     "selectedThemeObject": "[trailcurrent-touch-screen-control.eez-project]:/themes/0",
@@ -31,7 +32,7 @@
           {
             "type": "border",
             "selected": 3,
-            "size": 246.5,
+            "size": 367.5,
             "location": "right",
             "children": [
               {
@@ -174,7 +175,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -197,8 +199,8 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 57.211672075689926,
-              "selected": 3,
+              "weight": 33.33437128167538,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -257,13 +259,12 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#08309158-104e-4833-bb34-09e1c6eab7de",
-              "weight": 17.94909663166177,
+              "weight": 41.82639742567633,
               "children": [
                 {
                   "type": "tabset",
@@ -1212,16 +1213,19 @@
         "0": {
           "0": {},
           "1": {
-            "0": {},
+            "0": {
+              "3": {
+                "$selected": true
+              }
+            },
             "1": {}
-          },
-          "2": {}
+          }
         }
       },
       "transform": {
         "translate": {
-          "x": -238.88858736619915,
-          "y": -267.0705347720272
+          "x": -512,
+          "y": -482.5
         },
         "scale": 0.75
       },
