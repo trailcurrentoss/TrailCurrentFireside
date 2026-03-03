@@ -350,6 +350,74 @@ void set_var_humidity(float percent) {
     humidity_val = percent;
 }
 
+/* GPS time → system clock */
+static bool system_time_set = false;
+
+void set_var_gps_time(int year, int month, int day, int hour, int minute, int second) {
+    /* Convert UTC fields to epoch via mktime with TZ temporarily set to UTC */
+    setenv("TZ", "UTC0", 1);
+    tzset();
+
+    struct tm tm = {0};
+    tm.tm_year = year - 1900;
+    tm.tm_mon  = month - 1;
+    tm.tm_mday = day;
+    tm.tm_hour = hour;
+    tm.tm_min  = minute;
+    tm.tm_sec  = second;
+
+    time_t t = mktime(&tm);
+    struct timeval tv = { .tv_sec = t, .tv_usec = 0 };
+    settimeofday(&tv, NULL);
+    system_time_set = true;
+
+    update_clock_display();
+}
+
+static const char *month_names[] = {
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+};
+
+void update_clock_display(void) {
+    if (!system_time_set) return;
+
+    /* Apply user-selected timezone */
+    const char *tz = get_var_current_time_zone_string();
+    if (tz && strlen(tz) > 0) {
+        setenv("TZ", tz, 1);
+    } else {
+        setenv("TZ", "UTC0", 1);
+    }
+    tzset();
+
+    time_t now;
+    time(&now);
+    struct tm ti;
+    localtime_r(&now, &ti);
+
+    /* Date: "January 01, 2026" */
+    char date_buf[32];
+    snprintf(date_buf, sizeof(date_buf), "%s %02d, %d",
+             month_names[ti.tm_mon], ti.tm_mday, ti.tm_year + 1900);
+    lv_label_set_text(objects.lbl_date, date_buf);
+
+    /* Hours (12-hour) */
+    int h12 = ti.tm_hour % 12;
+    if (h12 == 0) h12 = 12;
+    char hour_buf[4];
+    snprintf(hour_buf, sizeof(hour_buf), "%d", h12);
+    lv_label_set_text(objects.lbl_time_hour, hour_buf);
+
+    /* Minutes */
+    char min_buf[4];
+    snprintf(min_buf, sizeof(min_buf), "%02d", ti.tm_min);
+    lv_label_set_text(objects.lbl_time_minutes, min_buf);
+
+    /* AM/PM */
+    lv_label_set_text(objects.obj6, ti.tm_hour >= 12 ? "PM" : "AM");
+}
+
 /* MQTT connected status */
 static bool mqtt_connected = false;
 void set_var_mqtt_connected(bool connected) {

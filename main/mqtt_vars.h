@@ -35,6 +35,12 @@ void set_var_gnss_mode(const char *mode);
 /* Air quality */
 void set_var_humidity(float percent);
 
+/* GPS time (UTC) */
+void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);
+
+/* Clock display update (call periodically from main loop with display lock held) */
+void update_clock_display(void);
+
 /* Connection status */
 void set_var_mqtt_connected(bool connected);
 

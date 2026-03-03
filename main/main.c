@@ -181,6 +181,7 @@ void app_main(void)
 #endif
     bsp_display_unlock();
     ESP_LOGI(TAG, "Setup done");
+    uint32_t last_clock_tick = 0;
     while (1)
     {
         /* Process incoming MQTT messages (updates UI variables) */
@@ -188,6 +189,14 @@ void app_main(void)
 
         bsp_display_lock(0);
         lv_timer_handler(); /* let the GUI do its work */
+
+        /* Update clock display once per second */
+        uint32_t now_tick = lv_tick_get();
+        if (now_tick - last_clock_tick >= 1000) {
+            last_clock_tick = now_tick;
+            update_clock_display();
+        }
+
         bsp_display_unlock();
         vTaskDelay(pdMS_TO_TICKS(5));
     }

@@ -36,6 +36,7 @@ extern void set_var_humidity(float percent);
 extern void set_var_mqtt_connected(bool connected);
 extern void set_var_satellite_count(int32_t value);
 extern void set_var_current_interior_temperature(int32_t value);
+extern void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);
 
 static const char *TAG = "MQTT";
 
@@ -82,6 +83,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         esp_mqtt_client_subscribe(s_client, "local/gps/latlon", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/alt", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/details", 0);
+        esp_mqtt_client_subscribe(s_client, "local/gps/time", 0);
         ESP_LOGI(TAG, "Subscribed to all topics");
 
         bsp_display_lock(0);
@@ -382,6 +384,20 @@ static void process_message(const char *topic, const char *payload, int length) 
         if (spd) set_var_speed((float)spd->valuedouble);
         if (crs) set_var_course((float)crs->valuedouble);
         if (gnss) process_gnss_mode(gnss->valueint);
+    }
+    /* local/gps/time */
+    else if (strcmp(topic, "local/gps/time") == 0) {
+        cJSON *yr = cJSON_GetObjectItem(doc, "year");
+        cJSON *mo = cJSON_GetObjectItem(doc, "month");
+        cJSON *dy = cJSON_GetObjectItem(doc, "day");
+        cJSON *hr = cJSON_GetObjectItem(doc, "hour");
+        cJSON *mn = cJSON_GetObjectItem(doc, "minute");
+        cJSON *sc = cJSON_GetObjectItem(doc, "second");
+
+        if (yr && mo && dy && hr && mn && sc) {
+            set_var_gps_time(yr->valueint, mo->valueint, dy->valueint,
+                             hr->valueint, mn->valueint, sc->valueint);
+        }
     }
     else {
         ESP_LOGD(TAG, "Unhandled topic: %s", topic);

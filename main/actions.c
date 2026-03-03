@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "vars.h"
 #include "app_mqtt.h"
+#include "mqtt_vars.h"
 #include "nvs.h"
 #include <stdint.h>
 #include <string.h>
@@ -496,6 +497,9 @@ void action_timezone_change(lv_event_t *e) {
       lv_dropdown_get_selected(objects.drop_down_selected_time_zone);
   set_var_user_settings_changed(true);
   set_var_current_time_zone_string(timezoneItems[selectedIndex]);
+
+  /* Immediately refresh the clock display with the new timezone */
+  update_clock_display();
 
   /* Persist to NVS */
   nvs_handle_t nvs;
