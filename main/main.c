@@ -46,7 +46,7 @@ void app_main(void)
     if (sd_config_found) {
         ESP_LOGI(TAG, "SD card config loaded successfully");
     } else {
-        ESP_LOGW(TAG, "No SD card config found - insert SD card with config.env");
+        ESP_LOGI(TAG, "No SD card present - using existing NVS settings");
     }
 
 #if WIFI_ENABLED
@@ -141,8 +141,9 @@ void app_main(void)
     /* Register WiFi event handlers for UI updates (must be after ui_init) */
     wifi_event_handler_init();
 
-    /* Auto-connect to WiFi using credentials from SD card config */
-    if (sd_config_found) {
+    /* Auto-connect to WiFi using credentials from NVS
+       (populated by SD card config.env — SD is only needed to update settings) */
+    {
         nvs_handle_t nvs;
         if (nvs_open(SD_NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
             char ssid[33] = {0};
@@ -167,15 +168,15 @@ void app_main(void)
                                   "Status: Connecting...");
                 ESP_LOGI(TAG, "WiFi auto-connect initiated");
             } else {
-                ESP_LOGW(TAG, "No WiFi SSID in config");
+                ESP_LOGW(TAG, "No WiFi SSID in NVS");
                 lv_label_set_text(objects.label_wifi_connection_status,
-                                  "Status: No config on SD card");
+                                  "Status: To update settings, insert SD card with config.env");
             }
             nvs_close(nvs);
+        } else {
+            lv_label_set_text(objects.label_wifi_connection_status,
+                              "Status: To update settings, insert SD card with config.env");
         }
-    } else {
-        lv_label_set_text(objects.label_wifi_connection_status,
-                          "Status: Insert SD card with config.env");
     }
 #endif
     bsp_display_unlock();
