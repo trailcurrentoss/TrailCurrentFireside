@@ -133,6 +133,9 @@ void app_main(void)
     bsp_display_lock(0);
     ui_init();
 
+    /* Restore persisted user settings (theme, brightness, timeout, timezone) */
+    extern void restore_user_settings(void);
+    restore_user_settings();
 
 #if WIFI_ENABLED
     /* Register WiFi event handlers for UI updates (must be after ui_init) */

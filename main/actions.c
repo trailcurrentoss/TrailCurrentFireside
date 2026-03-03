@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "vars.h"
 #include "app_mqtt.h"
+#include "nvs.h"
 #include <stdint.h>
 #include <string.h>
 
@@ -22,6 +23,8 @@
 #else
 #define WIFI_ENABLED 0
 #endif
+
+#define USER_SETTINGS_NVS_NAMESPACE "user_settings"
 
 #if WIFI_ENABLED
 static char wifi_connected_ip[20] = {0};
@@ -105,16 +108,37 @@ void wifi_event_handler_init(void) {
 
 static const char *TAG = "ACTIONS";
 
+static int32_t last_persisted_brightness = -1;
+
 void action_change_screen_brightness(lv_event_t *e) {
   lv_obj_t *slider = lv_event_get_target(e);
   int32_t value = lv_slider_get_value(slider);
   bsp_display_brightness_set(value);
+
+  /* Persist only when the value actually changes (event is LV_EVENT_PRESSING,
+     so this fires repeatedly while dragging — deduplicate to reduce NVS writes) */
+  if (value != last_persisted_brightness) {
+    last_persisted_brightness = value;
+    nvs_handle_t nvs;
+    if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+      nvs_set_u8(nvs, "brightness", (uint8_t)value);
+      nvs_commit(nvs);
+      nvs_close(nvs);
+    }
+  }
 }
 
 void action_change_theme(lv_event_t *e) {
   set_var_user_settings_changed(true);
   int themeIndex = (int)lv_event_get_user_data(e);
   set_var_selected_theme(themeIndex);
+
+  nvs_handle_t nvs;
+  if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+    nvs_set_u8(nvs, "theme", (uint8_t)themeIndex);
+    nvs_commit(nvs);
+    nvs_close(nvs);
+  }
 }
 
 void action_change_screen(lv_event_t *e) {
@@ -423,18 +447,63 @@ void action_change_fm_radio_station(lv_event_t *e) {
 void action_go_to_preset(lv_event_t *e) { ESP_LOGE(TAG, "Got here prset"); }
 
 /* NOTE: These have to match the order of the drop down items in the UI */
-const char *timezoneItems[41] = {"ASKT9AKDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "CST6CDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "MST7MDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "HST11HDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "EST5EDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
-                                 "MST7"};
+static const char *timezoneItems[] = {
+    "ASKT9AKDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "CST6CDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "MST7MDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "HST11HDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "PST8PDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "EST5EDT,M3.2.0/2:00:00,M11.1.0/2:00:00",
+    "MST7",
+};
+#define TIMEZONE_COUNT (sizeof(timezoneItems) / sizeof(timezoneItems[0]))
+
+void restore_user_settings(void) {
+  nvs_handle_t nvs;
+  if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READONLY, &nvs) != ESP_OK)
+    return;
+
+  uint8_t tzIndex = 0;
+  if (nvs_get_u8(nvs, "tzIndex", &tzIndex) == ESP_OK && tzIndex < TIMEZONE_COUNT) {
+    lv_dropdown_set_selected(objects.drop_down_selected_time_zone, tzIndex);
+    set_var_current_time_zone_string(timezoneItems[tzIndex]);
+    ESP_LOGI(TAG, "Restored timezone index %d", tzIndex);
+  }
+
+  uint8_t theme = 0;
+  if (nvs_get_u8(nvs, "theme", &theme) == ESP_OK) {
+    set_var_selected_theme(theme);
+    ESP_LOGI(TAG, "Restored theme %d", theme);
+  }
+
+  uint8_t brightness = 0;
+  if (nvs_get_u8(nvs, "brightness", &brightness) == ESP_OK) {
+    bsp_display_brightness_set(brightness);
+    lv_slider_set_value(objects.slider_screen_brightness, brightness, LV_ANIM_OFF);
+    ESP_LOGI(TAG, "Restored brightness %d", brightness);
+  }
+
+  int8_t timeout = 0;
+  if (nvs_get_i8(nvs, "timeout", &timeout) == ESP_OK) {
+    set_var_screen_timeout_value(timeout);
+    ESP_LOGI(TAG, "Restored screen timeout %d", timeout);
+  }
+
+  nvs_close(nvs);
+}
 void action_timezone_change(lv_event_t *e) {
-  uint8_t selectedIdex =
+  uint8_t selectedIndex =
       lv_dropdown_get_selected(objects.drop_down_selected_time_zone);
   set_var_user_settings_changed(true);
-  set_var_current_time_zone_string(timezoneItems[selectedIdex]);
+  set_var_current_time_zone_string(timezoneItems[selectedIndex]);
+
+  /* Persist to NVS */
+  nvs_handle_t nvs;
+  if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+    nvs_set_u8(nvs, "tzIndex", selectedIndex);
+    nvs_commit(nvs);
+    nvs_close(nvs);
+  }
 }
 
 void action_timeout_changed(lv_event_t *e) {
@@ -447,6 +516,13 @@ void action_timeout_changed(lv_event_t *e) {
     currentTimeoutValue++;
   }
   set_var_screen_timeout_value(currentTimeoutValue);
+
+  nvs_handle_t nvs;
+  if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+    nvs_set_i8(nvs, "timeout", (int8_t)currentTimeoutValue);
+    nvs_commit(nvs);
+    nvs_close(nvs);
+  }
 }
 
 void action_show_device_brightness_dialog(lv_event_t *e) {
