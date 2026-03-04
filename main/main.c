@@ -29,6 +29,7 @@ extern void wifi_event_handler_init(void);
 
 /* Nav button lookup table init from actions.c */
 extern void init_nav_lookup(void);
+extern void init_brightness_slider(void);
 
 static const char *TAG = "MAIN";
 
@@ -143,6 +144,7 @@ void app_main(void)
     bsp_display_lock(0);
     ui_init();
     init_nav_lookup();
+    init_brightness_slider();
 
     /* Restore persisted user settings (theme, brightness, timeout, timezone) */
     extern void restore_user_settings(void);

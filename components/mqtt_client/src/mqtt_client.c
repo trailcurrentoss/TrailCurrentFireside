@@ -39,6 +39,7 @@ extern void set_var_mqtt_connected(bool connected);
 extern void set_var_satellite_count(int32_t value);
 extern void set_var_current_interior_temperature(int32_t value);
 extern void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);
+extern int32_t get_var_current_device_brightness_identifier(void);
 
 static const char *TAG = "MQTT";
 
@@ -326,6 +327,13 @@ static void process_message(const char *topic, const char *payload, int length) 
     if (strncmp(topic, "local/lights/", 13) == 0) {
         const char *id_str = topic + 13;
         int id = atoi(id_str);
+
+        /* Skip updates for the device whose brightness is being adjusted
+         * by the user — avoids fighting with another controller. */
+        if (id == (int)get_var_current_device_brightness_identifier()) {
+            cJSON_Delete(doc);
+            return;
+        }
 
         cJSON *state_j = cJSON_GetObjectItem(doc, "state");
         cJSON *brightness_j = cJSON_GetObjectItem(doc, "brightness");

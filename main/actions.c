@@ -383,9 +383,17 @@ void action_close_dialog(lv_event_t *e) {
 }
 
 void action_set_device_brightness_level(lv_event_t *e) {
-  /* Only publish on release, not while the slider is being dragged */
-  if (lv_event_get_code(e) != LV_EVENT_RELEASED) return;
+  /* EEZ Studio binds this to LV_EVENT_PRESSING — intentionally a no-op.
+   * We send the brightness command only on release via the callback
+   * registered by init_brightness_slider(). */
+  (void)e;
+}
 
+/**
+ * Called on LV_EVENT_RELEASED for the brightness slider.
+ * Sends the brightness command only when the user lifts their finger.
+ */
+static void brightness_slider_released(lv_event_t *e) {
   int32_t device_id = get_var_current_device_brightness_identifier();
   if (device_id < 0) return;
   lv_obj_t *slider = lv_event_get_target(e);
@@ -396,4 +404,9 @@ void action_set_device_brightness_level(lv_event_t *e) {
   char payload[32];
   snprintf(payload, sizeof(payload), "{\"brightness\":%d}", (int)brightness);
   mqtt_client_publish(topic, payload, strlen(payload));
+}
+
+void init_brightness_slider(void) {
+  lv_obj_add_event_cb(objects.slider_device_brightness_level,
+                       brightness_slider_released, LV_EVENT_RELEASED, NULL);
 }
