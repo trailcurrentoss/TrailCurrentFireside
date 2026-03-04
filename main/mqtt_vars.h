@@ -8,6 +8,9 @@
 extern "C" {
 #endif
 
+/* Get last MQTT-received brightness for a device (0-255, device_id 1-8) */
+int32_t get_var_device_brightness(int32_t device_id);
+
 /* Device light status (0=off, >0=on with brightness value) */
 void set_var_device01_status(int32_t value);
 void set_var_device02_status(int32_t value);

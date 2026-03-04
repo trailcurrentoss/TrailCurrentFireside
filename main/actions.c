@@ -372,9 +372,15 @@ void action_timeout_changed(lv_event_t *e) {
 }
 
 void action_show_device_brightness_dialog(lv_event_t *e) {
-  lv_obj_clear_flag(objects.container_modal_background, LV_OBJ_FLAG_HIDDEN);
   int eventValue = (int)lv_event_get_user_data(e);
   set_var_current_device_brightness_identifier(eventValue);
+
+  /* Initialise slider to the device's last known brightness (0-255 → 0-100) */
+  int32_t brightness = get_var_device_brightness(eventValue);
+  int32_t slider_val = (brightness > 0) ? brightness * 100 / 255 : 0;
+  lv_slider_set_value(objects.slider_device_brightness_level, slider_val, LV_ANIM_OFF);
+
+  lv_obj_clear_flag(objects.container_modal_background, LV_OBJ_FLAG_HIDDEN);
 }
 
 void action_close_dialog(lv_event_t *e) {
