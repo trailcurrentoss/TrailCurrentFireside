@@ -1,13 +1,14 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/2",
+    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/4",
     "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
     "selectedActionObject": "[trailcurrent-touch-screen-control.eez-project]:/actions/2",
     "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
-    "selectedStyleObject": "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles/14",
+    "selectedStyleObject": "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles/1",
     "selectedThemeObject": "[trailcurrent-touch-screen-control.eez-project]:/themes/0",
     "selectedThemeColorObject": "[trailcurrent-touch-screen-control.eez-project]:/colors/3",
     "selectedFontObject": "[trailcurrent-touch-screen-control.eez-project]:/fonts/1",
+    "selectedBitmapObject": "[trailcurrent-touch-screen-control.eez-project]:/bitmaps/3",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -198,10 +199,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 52.458952871733956,
-              "selected": 3,
+              "selected": 6,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#94c47839-0e02-4b15-85c2-e47bbc027989",
+                  "name": "PageSettings",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/5",
+                    "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
                 {
                   "type": "tab",
                   "id": "#8a9818ff-c7c0-48a8-a518-78ae356de2b7",
@@ -268,7 +280,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -288,8 +301,7 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -1070,7 +1082,7 @@
           "x": -194.42110389610355,
           "y": -217.93186965346842
         },
-        "scale": 0.5
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1107,7 +1119,12 @@
     "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0[flow-state]": {
       "selection": {
         "0": {
-          "0": {}
+          "0": {},
+          "3": {
+            "0": {
+              "$selected": true
+            }
+          }
         }
       },
       "transform": {
@@ -1115,7 +1132,7 @@
           "x": -231.55909090909086,
           "y": 95.00464646464638
         },
-        "scale": 0.5
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1148,7 +1165,7 @@
           "x": -248.47444444444432,
           "y": -200.37222222222198
         },
-        "scale": 0.5
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1177,7 +1194,7 @@
           "x": -198.75783582089542,
           "y": -27.944402985074618
         },
-        "scale": 0.75
+        "scale": 1
       },
       "timeline": {
         "isEditorActive": false,
@@ -1191,21 +1208,19 @@
         "0": {
           "0": {},
           "1": {
-            "0": {},
-            "1": {}
+            "1": {},
+            "2": {}
           },
           "2": {},
-          "3": {
-            "$selected": true
-          }
+          "3": {}
         }
       },
       "transform": {
         "translate": {
-          "x": -289.7617819990954,
-          "y": -122.66580732700142
+          "x": -348.7617819990953,
+          "y": -209.6658073270014
         },
-        "scale": 0.5
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1271,10 +1286,11 @@
       }
     },
     "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles[tree-state]": {
-      "13": {},
-      "14": {
+      "1": {
         "$selected": true
-      }
+      },
+      "13": {},
+      "14": {}
     }
   },
   "activeOutputSection": 0,
@@ -1292,14 +1308,14 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "MARGIN",
-    "TEXT",
-    "POSITION AND SIZE",
+    "MISCELLANEOUS",
     "BACKGROUND",
-    "BORDER"
+    "POSITION AND SIZE",
+    "TEXT",
+    "IMAGE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.5,
+  "flowZoom": 0.75,
   "implementationLanguage": "C"
 }
