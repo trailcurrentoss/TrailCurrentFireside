@@ -8,6 +8,10 @@
 extern "C" {
 #endif
 
+/* Temperature unit: 0=Fahrenheit, 1=Celsius */
+int32_t get_var_temperature_unit(void);
+void set_var_temperature_unit(int32_t value);
+
 /* Get last MQTT-received brightness for a device (0-255, device_id 1-8) */
 int32_t get_var_device_brightness(int32_t device_id);
 

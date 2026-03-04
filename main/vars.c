@@ -30,6 +30,18 @@ void set_var_user_settings_changed(bool value) {
   user_settings_changed = value;
 }
 
+/* Temperature unit: 0=Fahrenheit, 1=Celsius */
+static int32_t temperature_unit = 0;
+int32_t get_var_temperature_unit() { return temperature_unit; }
+
+static int32_t fahrenheit_to_display(int32_t f) {
+  if (temperature_unit == 1)
+    return (f - 32) * 5 / 9;
+  return f;
+}
+
+/* set_var_temperature_unit() is defined after current_interior_temperature */
+
 int32_t selected_theme;
 int32_t get_var_selected_theme() { return selected_theme; }
 void set_var_selected_theme(int32_t value) {
@@ -99,9 +111,33 @@ int32_t get_var_current_interior_temperature() {
 }
 void set_var_current_interior_temperature(int32_t value) {
   current_interior_temperature = value;
+  int32_t display_val = fahrenheit_to_display(value);
   char buffer[20];
-  sprintf(buffer, "%d", value);
+  sprintf(buffer, "%d", (int)display_val);
   lv_label_set_text(objects.label_current_interior_temperature, buffer);
+  if (objects.label_air_quality_temperature_value)
+    lv_label_set_text(objects.label_air_quality_temperature_value, buffer);
+}
+
+void set_var_temperature_unit(int32_t value) {
+  temperature_unit = value;
+
+  /* Toggle button checked states (parent only — children inherit) */
+  lv_obj_clear_state(objects.btn_temp_fahrenheit, LV_STATE_CHECKED);
+  lv_obj_clear_state(objects.btn_temp_celsius, LV_STATE_CHECKED);
+  if (value == 0) {
+    lv_obj_add_state(objects.btn_temp_fahrenheit, LV_STATE_CHECKED);
+  } else {
+    lv_obj_add_state(objects.btn_temp_celsius, LV_STATE_CHECKED);
+  }
+
+  /* Update unit indicator label on air quality page */
+  if (objects.label_temp_value_indicator)
+    lv_label_set_text(objects.label_temp_value_indicator,
+                      value == 1 ? "\u00b0C" : "\u00b0F");
+
+  /* Re-render current temperature in the new unit */
+  set_var_current_interior_temperature(current_interior_temperature);
 }
 
 /* Desired temperature */
@@ -379,6 +415,11 @@ void set_var_gnss_mode(const char *mode) {
 static float humidity_val = 0.0f;
 void set_var_humidity(float percent) {
     humidity_val = percent;
+    if (objects.label_air_quality_humdity_value) {
+        char buf[16];
+        sprintf(buf, "%.0f", percent);
+        lv_label_set_text(objects.label_air_quality_humdity_value, buf);
+    }
 }
 
 /* GPS time → system clock */

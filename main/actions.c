@@ -142,6 +142,19 @@ void action_change_theme(lv_event_t *e) {
   }
 }
 
+void action_temperature_unit_change(lv_event_t *e) {
+  set_var_user_settings_changed(true);
+  int unit = (int)lv_event_get_user_data(e);
+  set_var_temperature_unit(unit);
+
+  nvs_handle_t nvs;
+  if (nvs_open(USER_SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvs) == ESP_OK) {
+    nvs_set_u8(nvs, "tempUnit", (uint8_t)unit);
+    nvs_commit(nvs);
+    nvs_close(nvs);
+  }
+}
+
 /* Nav button lookup: nav_buttons[page][btn] where btn index matches page index
  * for the "active" button (e.g. nav_buttons[0][0] = home page's home button).
  * Populated by init_nav_lookup() after ui_init(). */
@@ -330,6 +343,12 @@ void restore_user_settings(void) {
   if (nvs_get_i8(nvs, "timeout", &timeout) == ESP_OK) {
     set_var_screen_timeout_value(timeout);
     ESP_LOGI(TAG, "Restored screen timeout %d", timeout);
+  }
+
+  uint8_t tempUnit = 0;
+  if (nvs_get_u8(nvs, "tempUnit", &tempUnit) == ESP_OK) {
+    set_var_temperature_unit(tempUnit);
+    ESP_LOGI(TAG, "Restored temp unit %d", tempUnit);
   }
 
   nvs_close(nvs);

@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/4",
+    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/3",
     "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
     "selectedActionObject": "[trailcurrent-touch-screen-control.eez-project]:/actions/2",
     "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
@@ -31,8 +31,8 @@
           },
           {
             "type": "border",
-            "selected": 2,
-            "size": 367.5,
+            "selected": 3,
+            "size": 278.5,
             "location": "right",
             "children": [
               {
@@ -175,7 +175,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -199,18 +200,29 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 52.458952871733956,
-              "selected": 6,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#94c47839-0e02-4b15-85c2-e47bbc027989",
-                  "name": "PageSettings",
+                  "id": "#8fab68f4-9570-4687-b796-61fef5ff860d",
+                  "name": "PageTrailer",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/5",
+                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/1",
                     "permanent": false
+                  },
+                  "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#94c47839-0e02-4b15-85c2-e47bbc027989",
+                  "name": "PageAirQuality",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/3",
+                    "permanent": true
                   },
                   "icon": "svg:page"
                 },
@@ -280,8 +292,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -1079,8 +1090,8 @@
       },
       "transform": {
         "translate": {
-          "x": -194.42110389610355,
-          "y": -217.93186965346842
+          "x": -391.42110389610355,
+          "y": -218.93186965346842
         },
         "scale": 0.75
       },
@@ -1104,10 +1115,10 @@
       },
       "transform": {
         "translate": {
-          "x": -169.02835820895524,
-          "y": -194.1353233830846
+          "x": -349.02835820895524,
+          "y": -260.1353233830846
         },
-        "scale": 0.5
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1121,9 +1132,7 @@
         "0": {
           "0": {},
           "3": {
-            "0": {
-              "$selected": true
-            }
+            "0": {}
           }
         }
       },
@@ -1178,23 +1187,22 @@
       "selection": {
         "0": {
           "0": {},
-          "1": {
-            "1": {
+          "1": {},
+          "2": {
+            "2": {
               "$selected": true
             }
           },
-          "2": {
-            "0": {},
-            "1": {}
-          }
+          "3": {},
+          "4": {}
         }
       },
       "transform": {
         "translate": {
-          "x": -198.75783582089542,
-          "y": -27.944402985074618
+          "x": -393.41283582089545,
+          "y": -194.9444029850746
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1236,7 +1244,10 @@
           "1": {
             "0": {
               "3": {
-                "$selected": true
+                "4": {
+                  "0": {}
+                },
+                "5": {}
               }
             },
             "1": {}
@@ -1245,8 +1256,8 @@
       },
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -482.5
+          "x": -210,
+          "y": -248.5
         },
         "scale": 0.75
       },

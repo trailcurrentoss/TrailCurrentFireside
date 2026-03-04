@@ -20,6 +20,7 @@ extern void action_timezone_change(lv_event_t * e);
 extern void action_set_device_brightness_level(lv_event_t * e);
 extern void action_show_device_brightness_dialog(lv_event_t * e);
 extern void action_close_dialog(lv_event_t * e);
+extern void action_temperature_unit_change(lv_event_t * e);
 
 
 #ifdef __cplusplus
