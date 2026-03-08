@@ -12,6 +12,8 @@
 #include "screens.h"
 #include "ui.h"
 #include "vars.h"
+#include "bsp/display.h"
+#include "bsp/esp-bsp.h"
 #include "mqtt_vars.h"
 #include "sd_config.h"
 #include "app_mqtt.h"
@@ -32,6 +34,30 @@ extern void init_nav_lookup(void);
 extern void init_brightness_slider(void);
 
 static const char *TAG = "MAIN";
+
+/* Screen timeout / blanking state */
+static volatile bool screen_blanked = false;
+static lv_obj_t *wake_overlay = NULL;
+
+/**
+ * @brief Touch callback on the wake overlay.
+ * Absorbs the first touch after screen blank so it doesn't trigger UI buttons,
+ * then restores the persisted brightness and removes the overlay.
+ * Runs in the LVGL task context (display lock already held).
+ */
+static void wake_touch_cb(lv_event_t *e) {
+    (void)e;
+    screen_blanked = false;
+    /* Restore brightness to the persisted slider value */
+    int32_t brightness = lv_slider_get_value(objects.slider_screen_brightness);
+    if (brightness < 10) brightness = 10; /* ensure screen is actually visible */
+    bsp_display_brightness_set(brightness);
+    if (wake_overlay) {
+        lv_obj_del(wake_overlay);
+        wake_overlay = NULL;
+    }
+    ESP_LOGI(TAG, "Screen wake - restored brightness %d", (int)brightness);
+}
 
 #define SD_NVS_NAMESPACE "sd_config"
 
@@ -200,6 +226,30 @@ void app_main(void)
         /* Process incoming MQTT messages — blocks up to 10ms on the queue,
          * wakes immediately when a message arrives. */
         mqtt_client_process_messages();
+
+        /* Screen timeout: blank after inactivity, wake on touch.
+         * Check every loop iteration (~10ms) for responsive wake. */
+        if (!screen_blanked) {
+            int32_t timeout_val = get_var_screen_timeout_value();
+            if (timeout_val > 0) {
+                uint32_t timeout_ms = (uint32_t)timeout_val * 60 * 1000;
+                bsp_display_lock(0);
+                uint32_t inactive_ms = lv_disp_get_inactive_time(NULL);
+                if (inactive_ms >= timeout_ms) {
+                    screen_blanked = true;
+                    bsp_display_brightness_set(0);
+                    /* Fullscreen overlay absorbs the first wake touch */
+                    wake_overlay = lv_obj_create(lv_layer_top());
+                    lv_obj_remove_style_all(wake_overlay);
+                    lv_obj_set_size(wake_overlay, LV_PCT(100), LV_PCT(100));
+                    lv_obj_add_flag(wake_overlay, LV_OBJ_FLAG_CLICKABLE);
+                    lv_obj_clear_flag(wake_overlay, LV_OBJ_FLAG_SCROLLABLE);
+                    lv_obj_add_event_cb(wake_overlay, wake_touch_cb, LV_EVENT_CLICKED, NULL);
+                    ESP_LOGI(TAG, "Screen blanked after %d min inactivity", (int)timeout_val);
+                }
+                bsp_display_unlock();
+            }
+        }
 
         /* Update clock display once per second.
          * lv_timer_handler() is NOT called here — the BSP LVGL port task

@@ -241,7 +241,11 @@ int32_t get_var_screen_timeout_value() { return screen_timeout_value; }
 void set_var_screen_timeout_value(int32_t value) {
   screen_timeout_value = value;
   char buffer[20];
-  sprintf(buffer, "%d", value);
+  if (value <= 0) {
+    sprintf(buffer, "Off");
+  } else {
+    sprintf(buffer, "%d min", value);
+  }
   lv_label_set_text(objects.label_screen_timeout_value, buffer);
 }
 

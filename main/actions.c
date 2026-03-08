@@ -380,6 +380,9 @@ void action_timeout_changed(lv_event_t *e) {
   } else {
     currentTimeoutValue++;
   }
+  /* Clamp to 0-60 range (0 = disabled, 1-60 = minutes) */
+  if (currentTimeoutValue < 0) currentTimeoutValue = 0;
+  if (currentTimeoutValue > 60) currentTimeoutValue = 60;
   set_var_screen_timeout_value(currentTimeoutValue);
 
   nvs_handle_t nvs;

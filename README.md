@@ -1,4 +1,4 @@
-# TrailCurrent Wall Mounted Display
+# TrailCurrent Fireside
 
 Central control display firmware for an ESP32-P4 with a 7" touchscreen, providing a dashboard for monitoring and controlling devices on the [TrailCurrent](https://trailcurrent.com) CAN bus via WiFi and MQTT.
 
@@ -83,7 +83,7 @@ MQTT_PASS=mqttpassword
 
 Optionally include a `ca.crt` file on the SD card for custom TLS certificate authority.
 
-On boot, the device reads `config.env` from the SD card and stores the values into NVS. Once provisioned, the SD card is not needed for normal operation — it only needs to be reinserted to update settings. The device uses the same `config.env` format as the [TrailCurrent Waveshare ESP32-S3 Remote](https://github.com/KDElmira/TrailCurrentWaveshareEsp32s3Remote).
+On boot, the device reads `config.env` from the SD card and stores the values into NVS. Once provisioned, the SD card is not needed for normal operation — it only needs to be reinserted to update settings. The device uses the same `config.env` format as the [TrailCurrent Waveshare ESP32-S3 Remote](https://github.com/trailcurrentoss/TrailCurrentWaveshareEsp32s3Remote).
 
 ### MQTT
 
