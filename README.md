@@ -92,6 +92,7 @@ The MQTT client connects over TLS (`mqtts://`) using credentials from NVS. It su
 - `local/lights/+/status` — Light on/off and brightness state
 - `local/energy/status` — Energy monitoring data
 - `local/airquality/temphumid` — Temperature and humidity
+- `local/airquality/status` — CO2 (eCO2 ppm) and TVOC (ppb)
 - `local/gps/latlon`, `local/gps/alt`, `local/gps/details` — GPS data
 
 Light commands are published to `local/lights/{id}/command`.

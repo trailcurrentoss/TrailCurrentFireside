@@ -35,6 +35,8 @@ extern void set_var_speed(float knots);
 extern void set_var_course(float degrees);
 extern void set_var_gnss_mode(const char *mode);
 extern void set_var_humidity(float percent);
+extern void set_var_co2(int32_t ppm);
+extern void set_var_tvoc(int32_t ppb);
 extern void set_var_mqtt_connected(bool connected);
 extern void set_var_satellite_count(int32_t value);
 extern void set_var_current_interior_temperature(int32_t value);
@@ -83,6 +85,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         esp_mqtt_client_subscribe(s_client, "local/lights/+/status", 0);
         esp_mqtt_client_subscribe(s_client, "local/energy/status", 0);
         esp_mqtt_client_subscribe(s_client, "local/airquality/temphumid", 0);
+        esp_mqtt_client_subscribe(s_client, "local/airquality/status", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/latlon", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/alt", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/details", 0);
@@ -380,6 +383,16 @@ static void process_message(const char *topic, const char *payload, int length) 
         if (humid) {
             set_var_humidity((float)humid->valuedouble);
         }
+    }
+    /* local/airquality/status */
+    else if (strcmp(topic, "local/airquality/status") == 0) {
+        cJSON *eco2 = cJSON_GetObjectItem(doc, "eco2_ppm");
+        cJSON *tvoc = cJSON_GetObjectItem(doc, "tvoc_ppb");
+
+        if (eco2 && cJSON_IsNumber(eco2))
+            set_var_co2((int32_t)eco2->valuedouble);
+        if (tvoc && cJSON_IsNumber(tvoc))
+            set_var_tvoc((int32_t)tvoc->valuedouble);
     }
     /* local/gps/latlon */
     else if (strcmp(topic, "local/gps/latlon") == 0) {

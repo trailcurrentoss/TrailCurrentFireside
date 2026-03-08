@@ -142,8 +142,10 @@ typedef struct _objects_t {
     lv_obj_t *label_air_quality_humdity_value;
     lv_obj_t *obj16;
     lv_obj_t *obj17;
+    lv_obj_t *label_air_quality_co2_value;
     lv_obj_t *obj18;
     lv_obj_t *obj19;
+    lv_obj_t *label_air_quality_tvoc_value;
     lv_obj_t *widget_water_page_bottom_nav_bar;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_water_page_bottom_nav_bar__bottom_nav_bar_button_trailer;

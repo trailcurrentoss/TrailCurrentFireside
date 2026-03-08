@@ -426,6 +426,24 @@ void set_var_humidity(float percent) {
     }
 }
 
+/* CO2 (eCO2 in ppm) */
+void set_var_co2(int32_t ppm) {
+    if (objects.label_air_quality_co2_value) {
+        char buf[16];
+        sprintf(buf, "%d", (int)ppm);
+        lv_label_set_text(objects.label_air_quality_co2_value, buf);
+    }
+}
+
+/* TVOC (ppb) */
+void set_var_tvoc(int32_t ppb) {
+    if (objects.label_air_quality_tvoc_value) {
+        char buf[16];
+        sprintf(buf, "%d", (int)ppb);
+        lv_label_set_text(objects.label_air_quality_tvoc_value, buf);
+    }
+}
+
 /* GPS time → system clock */
 static bool system_time_set = false;
 

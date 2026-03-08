@@ -43,6 +43,8 @@ void set_var_gnss_mode(const char *mode);
 
 /* Air quality */
 void set_var_humidity(float percent);
+void set_var_co2(int32_t ppm);
+void set_var_tvoc(int32_t ppb);
 
 /* GPS time (UTC) */
 void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);

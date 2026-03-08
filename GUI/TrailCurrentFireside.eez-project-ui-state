@@ -1,14 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[trailcurrent-touch-screen-control.eez-project]:/userPages/0",
-    "selectedUserWidgetObject": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
-    "selectedActionObject": "[trailcurrent-touch-screen-control.eez-project]:/actions/2",
-    "selectedGlobalVariableObject": "[trailcurrent-touch-screen-control.eez-project]:/variables/globalVariables/22",
-    "selectedStyleObject": "[trailcurrent-touch-screen-control.eez-project]:/lvglStyles/styles/1",
-    "selectedThemeObject": "[trailcurrent-touch-screen-control.eez-project]:/themes/0",
-    "selectedThemeColorObject": "[trailcurrent-touch-screen-control.eez-project]:/colors/3",
-    "selectedFontObject": "[trailcurrent-touch-screen-control.eez-project]:/fonts/1",
-    "selectedBitmapObject": "[trailcurrent-touch-screen-control.eez-project]:/bitmaps/3",
+    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/3",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -199,100 +191,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 52.458952871733956,
-              "selected": 6,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#8fab68f4-9570-4687-b796-61fef5ff860d",
-                  "name": "PageTrailer",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/1",
-                    "permanent": false
-                  },
-                  "icon": "svg:page"
-                },
-                {
-                  "type": "tab",
-                  "id": "#94c47839-0e02-4b15-85c2-e47bbc027989",
+                  "id": "#271b3acc-df77-4a33-8902-368be5704fae",
                   "name": "PageAirQuality",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/3",
-                    "permanent": true
-                  },
-                  "icon": "svg:page"
-                },
-                {
-                  "type": "tab",
-                  "id": "#8a9818ff-c7c0-48a8-a518-78ae356de2b7",
-                  "name": "fa32",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/fonts/1",
-                    "permanent": true
-                  },
-                  "icon": "material:font_download"
-                },
-                {
-                  "type": "tab",
-                  "id": "#21d56ee3-3785-4779-be37-7a4710e035a5",
-                  "name": "fa16",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/fonts/0",
-                    "permanent": true
-                  },
-                  "icon": "material:font_download"
-                },
-                {
-                  "type": "tab",
-                  "id": "#9194bfdd-3363-4105-afa3-4aa0cf20d566",
-                  "name": "BottomNavBar",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userWidgets/0",
-                    "permanent": true
-                  },
-                  "icon": "svg:user_widget"
-                },
-                {
-                  "type": "tab",
-                  "id": "#c8f7d65a-ffc1-4a56-b6a3-1da4b62dfd6a",
-                  "name": "PagePowerManagement",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/2",
-                    "permanent": true
-                  },
-                  "icon": "svg:page"
-                },
-                {
-                  "type": "tab",
-                  "id": "#cf93c653-8746-4d6e-b30f-fb69e0d5eb9b",
-                  "name": "PageHome",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/0",
-                    "permanent": true
-                  },
-                  "icon": "svg:page"
-                },
-                {
-                  "type": "tab",
-                  "id": "#40f95866-231d-4fff-a0bb-596bbe44f1e0",
-                  "name": "PageWater",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[trailcurrent-touch-screen-control.eez-project]:/userPages/4",
-                    "permanent": true
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/3",
+                    "permanent": false
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -312,7 +225,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1302,6 +1216,94 @@
       },
       "13": {},
       "14": {}
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/0[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/1[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/2[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/3[flow-state]": {
+      "selection": {
+        "0": {
+          "3": {
+            "2": {
+              "$selected": true
+            }
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/4[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
     }
   },
   "activeOutputSection": 0,
