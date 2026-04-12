@@ -1,4 +1,5 @@
 #include "app_mqtt.h"
+#include <stddef.h>
 #include "mqtt_client.h" /* ESP-IDF esp_mqtt library */
 #include "esp_log.h"
 #include "esp_wifi.h"
@@ -63,6 +64,10 @@ static void apply_module_status(module_type_t mod, uint8_t inst, uint8_t ch, int
     }
 }
 
+/* Discovery / OTA trigger dispatch (implemented in main/) */
+extern void discovery_handle_trigger(void);
+extern void ota_handle_trigger(void);
+
 static const char *TAG = "MQTT";
 
 #define NVS_NAMESPACE "sd_config"
@@ -112,6 +117,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         esp_mqtt_client_subscribe(s_client, "local/gps/time", 0);
         esp_mqtt_client_subscribe(s_client, "local/water/status", 0);
         esp_mqtt_client_subscribe(s_client, "local/relays/+/status", 0);
+        esp_mqtt_client_subscribe(s_client, "local/discovery/trigger", 0);
+        esp_mqtt_client_subscribe(s_client, "local/ota/trigger", 0);
         ESP_LOGI(TAG, "Subscribed to all topics");
 
         bsp_display_lock(0);
@@ -150,6 +157,26 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         msg.payload_len = data_len;
 
         ESP_LOGD(TAG, "RX: %s (%d bytes)", msg.topic, msg.payload_len);
+
+        /* Discovery / OTA triggers are dispatched directly from the MQTT task
+         * (they spawn their own worker tasks) rather than going through the
+         * LVGL-synchronous main-loop queue. Payload is a hostname string
+         * (esp32-XXXXXX); discovery also accepts "*" broadcast. */
+        if (strcmp(msg.topic, "local/discovery/trigger") == 0 ||
+            strcmp(msg.topic, "local/ota/trigger") == 0) {
+            char my_host[16];
+            mqtt_client_hostname(my_host, sizeof(my_host));
+            bool is_discovery = (strcmp(msg.topic, "local/discovery/trigger") == 0);
+            bool broadcast = is_discovery && msg.payload_len == 1 && msg.payload[0] == '*';
+            if (broadcast || strncmp(msg.payload, my_host, msg.payload_len) == 0) {
+                if (is_discovery) discovery_handle_trigger();
+                else              ota_handle_trigger();
+            } else {
+                ESP_LOGD(TAG, "Trigger for %.*s — not us (%s)",
+                         msg.payload_len, msg.payload, my_host);
+            }
+            break;
+        }
 
         if (s_incoming_queue) {
             xQueueSend(s_incoming_queue, &msg, 0);
@@ -312,6 +339,26 @@ void mqtt_client_process_messages(void) {
 
 bool mqtt_client_is_connected(void) {
     return s_connected;
+}
+
+void mqtt_client_stop(void) {
+    if (s_client) {
+        esp_mqtt_client_stop(s_client);
+        esp_mqtt_client_destroy(s_client);
+        s_client = NULL;
+    }
+    s_connected = false;
+    bsp_display_lock(0);
+    set_var_mqtt_connected(false);
+    bsp_display_unlock();
+    ESP_LOGI(TAG, "MQTT client stopped");
+}
+
+const char *mqtt_client_hostname(char *out, size_t out_len) {
+    uint8_t mac[6] = {0};
+    esp_wifi_get_mac(WIFI_IF_STA, mac);
+    snprintf(out, out_len, "esp32-%02X%02X%02X", mac[3], mac[4], mac[5]);
+    return out;
 }
 
 int mqtt_client_publish(const char *topic, const char *payload, int payload_len) {

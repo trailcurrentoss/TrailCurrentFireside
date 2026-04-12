@@ -20,6 +20,8 @@
 #include "sd_config.h"
 #include "app_mqtt.h"
 #include "button_config.h"
+#include "discovery.h"
+#include "ota.h"
 
 /* Check if WiFi is enabled (ESP-Hosted for ESP32-P4 via ESP-WIFI-REMOTE) */
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
@@ -244,6 +246,10 @@ void app_main(void)
     }
 #endif
     bsp_display_unlock();
+
+    discovery_init();
+    ota_init();
+
     ESP_LOGI(TAG, "Setup done");
     uint32_t last_clock_tick = 0;
     while (1)

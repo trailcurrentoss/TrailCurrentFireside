@@ -7,3 +7,5 @@ dependencies:
     version: "*"
   espressif/esp_hosted:
     version: "*"
+  espressif/mdns:
+    version: "*"
