@@ -10,10 +10,15 @@
 #include "ui.h"
 #include "vars.h"
 #include "app_mqtt.h"
+#include "button_config.h"
 #include "mqtt_vars.h"
 #include "nvs.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 /* Check if WiFi is enabled (ESP-Hosted for ESP32-P4) */
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
@@ -285,14 +290,46 @@ void action_rotate_screen(lv_event_t *e) {
   }
 }
 
-void action_send_device_command(lv_event_t *e) {
-  int device_id = (int)lv_event_get_user_data(e);
-  char topic[64];
-  snprintf(topic, sizeof(topic), "local/lights/%d/command", device_id);
-  const char *payload = "{\"state\":1}";
-  if (mqtt_client_publish(topic, payload, strlen(payload)) < 0) {
-    ESP_LOGW(TAG, "MQTT not connected, cannot send command for device %d", device_id);
+/* Build a CAN-frame JSON payload matching Headwaters' publishCanMessage()
+ * format and publish it to "can/outbound". Data bytes are serialized as
+ * 8 arrays of 8 bits (MSB-first), padded to 8 bytes. */
+static void publish_can_frame(uint16_t can_id, const uint8_t *data, int dlc) {
+  char payload[512];
+  int n = snprintf(payload, sizeof(payload),
+                   "{\"identifier\":\"0x%x\",\"data_length_code\":%d,\"data\":[",
+                   can_id, dlc);
+  for (int b = 0; b < 8; b++) {
+    uint8_t byte = (b < dlc) ? data[b] : 0;
+    n += snprintf(payload + n, sizeof(payload) - n,
+                  "%s[%d,%d,%d,%d,%d,%d,%d,%d]",
+                  b == 0 ? "" : ",",
+                  (byte >> 7) & 1, (byte >> 6) & 1, (byte >> 5) & 1,
+                  (byte >> 4) & 1, (byte >> 3) & 1, (byte >> 2) & 1,
+                  (byte >> 1) & 1, (byte >> 0) & 1);
   }
+  n += snprintf(payload + n, sizeof(payload) - n,
+                "],\"extd\":0,\"rtr\":0,\"ss\":0,\"self\":0}");
+  if (mqtt_client_publish("can/outbound", payload, n) < 0) {
+    ESP_LOGW(TAG, "MQTT not connected, cannot publish CAN 0x%x", can_id);
+  }
+}
+
+void action_send_device_command(lv_event_t *e) {
+  int btn = (int)lv_event_get_user_data(e);
+  if (btn < 1 || btn > NUM_BUTTONS) return;
+  const btn_config_t *cfg = &g_buttons[btn - 1];
+  if (cfg->instance > 2 || cfg->channel > 7) return;
+
+  uint8_t data[1] = { cfg->channel };
+  uint32_t can_id;
+  switch ((module_type_t)cfg->module_type) {
+    case MOD_TORRENT:    can_id = TORRENT_TOGGLE_ID[cfg->instance];    break;
+    case MOD_SWITCHBACK: can_id = SWITCHBACK_TOGGLE_ID[cfg->instance]; break;
+    default:
+      ESP_LOGI(TAG, "button %d unmapped, ignoring press", btn);
+      return;
+  }
+  publish_can_frame(can_id, data, 1);
 }
 
 void action_change_desired_temperature(lv_event_t *e) {
@@ -437,4 +474,317 @@ static void brightness_slider_released(lv_event_t *e) {
 void init_brightness_slider(void) {
   lv_obj_add_event_cb(objects.slider_device_brightness_level,
                        brightness_slider_released, LV_EVENT_RELEASED, NULL);
+}
+
+/* ===========================================================================
+ * Button configuration UI — PageButtonEdit + PageDeviceAssign
+ * (ported from TrailCurrentMilepost/main/actions.c)
+ * ===========================================================================*/
+
+static int s_active_screen_id = 0; /* updated by navigate_* handlers */
+
+static bool s_cursor_visible = true;
+
+static void update_edit_text_display(void) {
+  const char *txt = get_var_edit_label_text();
+  if (!txt) txt = "";
+  char buf[BTN_LABEL_MAX + 2];
+  size_t n = strnlen(txt, BTN_LABEL_MAX - 1);
+  memcpy(buf, txt, n);
+  if (s_cursor_visible) buf[n++] = '|';
+  buf[n] = '\0';
+  if (objects.lbl_button_edit_text) {
+    lv_label_set_text(objects.lbl_button_edit_text, buf);
+  }
+}
+
+static void cursor_blink_cb(lv_timer_t *t) {
+  (void)t;
+  if (s_active_screen_id != SCREEN_ID_PAGE_BUTTON_EDIT) return;
+  s_cursor_visible = !s_cursor_visible;
+  update_edit_text_display();
+}
+
+static void start_cursor_blink(void) {
+  static lv_timer_t *s_cursor_timer = NULL;
+  if (s_cursor_timer == NULL) {
+    s_cursor_timer = lv_timer_create(cursor_blink_cb, 500, NULL);
+  }
+  s_cursor_visible = true;
+  update_edit_text_display();
+}
+
+static lv_obj_t *channel_dropdown(int ch) {
+  switch (ch) {
+    case 0: return objects.dd_channel0_button;
+    case 1: return objects.dd_channel1_button;
+    case 2: return objects.dd_channel2_button;
+    case 3: return objects.dd_channel3_button;
+    case 4: return objects.dd_channel4_button;
+    case 5: return objects.dd_channel5_button;
+    case 6: return objects.dd_channel6_button;
+    case 7: return objects.dd_channel7_button;
+    default: return NULL;
+  }
+}
+
+static lv_obj_t *instance_button(int inst) {
+  switch (inst) {
+    case 0: return objects.btn_device_instance0;
+    case 1: return objects.btn_device_instance1;
+    case 2: return objects.btn_device_instance2;
+    default: return NULL;
+  }
+}
+
+static void refresh_channel_dropdowns(void) {
+  module_type_t mod = (module_type_t)get_var_assign_module_type();
+  uint8_t inst = (uint8_t)get_var_assign_instance();
+  for (int ch = 0; ch < 8; ch++) {
+    lv_obj_t *dd = channel_dropdown(ch);
+    if (!dd) continue;
+    uint8_t btn = button_config_find(mod, inst, (uint8_t)ch);
+    lv_dropdown_set_selected(dd, btn);
+  }
+}
+
+static void highlight_active_instance(void) {
+  int active = get_var_assign_instance();
+  for (int i = 0; i < 3; i++) {
+    lv_obj_t *b = instance_button(i);
+    if (!b) continue;
+    if (i == active) lv_obj_add_state(b, LV_STATE_CHECKED);
+    else              lv_obj_clear_state(b, LV_STATE_CHECKED);
+  }
+}
+
+static lv_obj_t *icon_slot(int i) {
+  /* Indexed lookup via a static table saves ~300 lines of switch. */
+  static lv_obj_t **slots = NULL;
+  static lv_obj_t *table[NUM_CURATED_ICONS];
+  if (!slots) {
+    lv_obj_t **p = table;
+    *p++ = objects.btn_icon_slot00; *p++ = objects.btn_icon_slot01;
+    *p++ = objects.btn_icon_slot02; *p++ = objects.btn_icon_slot03;
+    *p++ = objects.btn_icon_slot04; *p++ = objects.btn_icon_slot05;
+    *p++ = objects.btn_icon_slot06; *p++ = objects.btn_icon_slot07;
+    *p++ = objects.btn_icon_slot08; *p++ = objects.btn_icon_slot09;
+    *p++ = objects.btn_icon_slot10; *p++ = objects.btn_icon_slot11;
+    *p++ = objects.btn_icon_slot12; *p++ = objects.btn_icon_slot13;
+    *p++ = objects.btn_icon_slot14; *p++ = objects.btn_icon_slot15;
+    *p++ = objects.btn_icon_slot16; *p++ = objects.btn_icon_slot17;
+    *p++ = objects.btn_icon_slot18; *p++ = objects.btn_icon_slot19;
+    *p++ = objects.btn_icon_slot20; *p++ = objects.btn_icon_slot21;
+    *p++ = objects.btn_icon_slot22; *p++ = objects.btn_icon_slot23;
+    *p++ = objects.btn_icon_slot24; *p++ = objects.btn_icon_slot25;
+    *p++ = objects.btn_icon_slot26; *p++ = objects.btn_icon_slot27;
+    *p++ = objects.btn_icon_slot28; *p++ = objects.btn_icon_slot29;
+    *p++ = objects.btn_icon_slot30; *p++ = objects.btn_icon_slot31;
+    *p++ = objects.btn_icon_slot32; *p++ = objects.btn_icon_slot33;
+    *p++ = objects.btn_icon_slot34; *p++ = objects.btn_icon_slot35;
+    *p++ = objects.btn_icon_slot36; *p++ = objects.btn_icon_slot37;
+    *p++ = objects.btn_icon_slot38; *p++ = objects.btn_icon_slot39;
+    *p++ = objects.btn_icon_slot40; *p++ = objects.btn_icon_slot41;
+    *p++ = objects.btn_icon_slot42; *p++ = objects.btn_icon_slot43;
+    *p++ = objects.btn_icon_slot44; *p++ = objects.btn_icon_slot45;
+    *p++ = objects.btn_icon_slot46; *p++ = objects.btn_icon_slot47;
+    *p++ = objects.btn_icon_slot48; *p++ = objects.btn_icon_slot49;
+    *p++ = objects.btn_icon_slot50; *p++ = objects.btn_icon_slot51;
+    *p++ = objects.btn_icon_slot52; *p++ = objects.btn_icon_slot53;
+    *p++ = objects.btn_icon_slot54; *p++ = objects.btn_icon_slot55;
+    *p++ = objects.btn_icon_slot56; *p++ = objects.btn_icon_slot57;
+    *p++ = objects.btn_icon_slot58; *p++ = objects.btn_icon_slot59;
+    *p++ = objects.btn_icon_slot60; *p++ = objects.btn_icon_slot61;
+    *p++ = objects.btn_icon_slot62; *p++ = objects.btn_icon_slot63;
+    *p++ = objects.btn_icon_slot64; *p++ = objects.btn_icon_slot65;
+    *p++ = objects.btn_icon_slot66; *p++ = objects.btn_icon_slot67;
+    *p++ = objects.btn_icon_slot68; *p++ = objects.btn_icon_slot69;
+    *p++ = objects.btn_icon_slot70; *p++ = objects.btn_icon_slot71;
+    *p++ = objects.btn_icon_slot72; *p++ = objects.btn_icon_slot73;
+    *p++ = objects.btn_icon_slot74; *p++ = objects.btn_icon_slot75;
+    *p++ = objects.btn_icon_slot76; *p++ = objects.btn_icon_slot77;
+    *p++ = objects.btn_icon_slot78; *p++ = objects.btn_icon_slot79;
+    *p++ = objects.btn_icon_slot80; *p++ = objects.btn_icon_slot81;
+    *p++ = objects.btn_icon_slot82; *p++ = objects.btn_icon_slot83;
+    slots = table;
+  }
+  return (i >= 0 && i < NUM_CURATED_ICONS) ? slots[i] : NULL;
+}
+
+static void highlight_selected_icon(uint16_t selected_cp) {
+  for (int i = 0; i < NUM_CURATED_ICONS; i++) {
+    lv_obj_t *slot = icon_slot(i);
+    if (!slot) continue;
+    if (CURATED_ICONS[i] == selected_cp) lv_obj_add_state(slot, LV_STATE_CHECKED);
+    else                                  lv_obj_clear_state(slot, LV_STATE_CHECKED);
+  }
+}
+
+void action_navigate_to_button_edit(lv_event_t *e) {
+  int btn = (int)(intptr_t)lv_event_get_user_data(e);
+  if (btn < 1 || btn > NUM_BUTTONS) return;
+
+  const btn_config_t *cfg = &g_buttons[btn - 1];
+  set_var_edit_btn_number(btn);
+  set_var_edit_label_text(cfg->label);
+  set_var_edit_icon_codepoint((int32_t)cfg->icon_codepoint);
+
+  if (objects.lbl_button_edit_header)
+    lv_label_set_text_fmt(objects.lbl_button_edit_header, "Button %d", btn);
+  highlight_selected_icon(cfg->icon_codepoint);
+
+  s_active_screen_id = SCREEN_ID_PAGE_BUTTON_EDIT;
+  lv_scr_load_anim(objects.page_button_edit, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
+  start_cursor_blink();
+}
+
+void action_navigate_to_device_assign(lv_event_t *e) {
+  int mod = (int)(intptr_t)lv_event_get_user_data(e);
+  if (mod != MOD_TORRENT && mod != MOD_SWITCHBACK) return;
+
+  set_var_assign_module_type(mod);
+  set_var_assign_instance(0);
+
+  const char *hdr = (mod == MOD_TORRENT) ? "Assign Torrent Channels"
+                                          : "Assign Switchback Relays";
+  if (objects.lbl_device_assign_header)
+    lv_label_set_text(objects.lbl_device_assign_header, hdr);
+
+  refresh_channel_dropdowns();
+  highlight_active_instance();
+
+  s_active_screen_id = SCREEN_ID_PAGE_DEVICE_ASSIGN;
+  lv_scr_load_anim(objects.page_device_assign, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
+}
+
+void action_select_button_icon(lv_event_t *e) {
+  uint32_t cp = (uint32_t)(intptr_t)lv_event_get_user_data(e);
+  if (cp == 0) return;
+  set_var_edit_icon_codepoint((int32_t)cp);
+  highlight_selected_icon((uint16_t)cp);
+}
+
+void action_save_button_appearance(lv_event_t *e) {
+  (void)e;
+  int btn = get_var_edit_btn_number();
+  const char *lbl = get_var_edit_label_text();
+  uint16_t icon = (uint16_t)get_var_edit_icon_codepoint();
+
+  if (btn >= 1 && btn <= NUM_BUTTONS) {
+    button_config_set_appearance((uint8_t)btn,
+                                 (lbl && lbl[0]) ? lbl : NULL, icon);
+    button_config_apply_to_ui();
+  }
+
+  s_active_screen_id = SCREEN_ID_PAGE_SETTINGS;
+  lv_scr_load_anim(objects.page_settings, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
+}
+
+void action_assign_channel(lv_event_t *e) {
+  int ch = (int)(intptr_t)lv_event_get_user_data(e);
+  if (ch < 0 || ch >= 8) return;
+
+  lv_obj_t *dd = channel_dropdown(ch);
+  if (!dd) return;
+  uint16_t sel = lv_dropdown_get_selected(dd); /* 0=None, 1..8=Button N */
+
+  module_type_t mod = (module_type_t)get_var_assign_module_type();
+  uint8_t inst = (uint8_t)get_var_assign_instance();
+
+  button_config_assign(mod, inst, (uint8_t)ch, (uint8_t)sel);
+  button_config_apply_to_ui();
+  refresh_channel_dropdowns();
+}
+
+void action_select_device_instance(lv_event_t *e) {
+  int inst = (int)(intptr_t)lv_event_get_user_data(e);
+  if (inst < 0 || inst > 2) return;
+  set_var_assign_instance(inst);
+  refresh_channel_dropdowns();
+  highlight_active_instance();
+}
+
+/* Keyboard event interceptor — drives EditLabelText buffer since
+ * PageButtonEdit has no textarea widget. Wired once from main after ui_init. */
+static void kb_button_edit_event_cb(lv_event_t *e) {
+  lv_event_code_t code = lv_event_get_code(e);
+  lv_obj_t *kb = lv_event_get_target(e);
+
+  if (code == LV_EVENT_READY) { action_save_button_appearance(NULL); return; }
+  if (code == LV_EVENT_CANCEL) {
+    s_active_screen_id = SCREEN_ID_PAGE_SETTINGS;
+    lv_scr_load_anim(objects.page_settings, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
+    return;
+  }
+  if (code != LV_EVENT_VALUE_CHANGED) return;
+
+  uint16_t btn_id = lv_btnmatrix_get_selected_btn(kb);
+  if (btn_id == LV_BTNMATRIX_BTN_NONE) return;
+  const char *txt = lv_btnmatrix_get_btn_text(kb, btn_id);
+  if (!txt) return;
+
+  if (strcmp(txt, "abc") == 0 || strcmp(txt, "ABC") == 0 ||
+      strcmp(txt, "1#") == 0  || strcmp(txt, "Abc") == 0) return;
+
+  char buf[BTN_LABEL_MAX];
+  const char *cur = get_var_edit_label_text();
+  strncpy(buf, cur ? cur : "", sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+  size_t len = strlen(buf);
+
+  if (strcmp(txt, LV_SYMBOL_BACKSPACE) == 0) {
+    if (len > 0) buf[len - 1] = '\0';
+  } else if (strcmp(txt, LV_SYMBOL_OK) == 0 ||
+             strcmp(txt, LV_SYMBOL_NEW_LINE) == 0) {
+    action_save_button_appearance(NULL);
+    return;
+  } else if (strcmp(txt, LV_SYMBOL_KEYBOARD) == 0) {
+    return;
+  } else {
+    size_t tl = strlen(txt);
+    if (len + tl < sizeof(buf)) {
+      memcpy(buf + len, txt, tl);
+      buf[len + tl] = '\0';
+    }
+  }
+  set_var_edit_label_text(buf);
+  s_cursor_visible = true;
+  update_edit_text_display();
+}
+
+void ui_bind_button_edit_keyboard(void) {
+  if (objects.kb_button_edit) {
+    lv_obj_add_event_cb(objects.kb_button_edit, kb_button_edit_event_cb,
+                        LV_EVENT_ALL, NULL);
+  }
+}
+
+void action_all_on_off(lv_event_t *e) {
+  (void)e;
+  static int64_t last_send_us = 0;
+  int64_t now = esp_timer_get_time();
+  if (now - last_send_us < 300000) return;
+  last_send_us = now;
+
+  bool any_on = false;
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    if (g_buttons[i].module_type != MOD_NONE && g_button_state[i] > 0) {
+      any_on = true; break;
+    }
+  }
+  bool want_off = any_on;
+
+  for (int i = 0; i < NUM_BUTTONS; i++) {
+    const btn_config_t *cfg = &g_buttons[i];
+    if (cfg->module_type == MOD_NONE) continue;
+    if (cfg->instance > 2 || cfg->channel > 7) continue;
+    bool is_on = g_button_state[i] > 0;
+    if (want_off != is_on) continue;
+    uint32_t can_id = (cfg->module_type == MOD_TORRENT)
+        ? TORRENT_TOGGLE_ID[cfg->instance]
+        : SWITCHBACK_TOGGLE_ID[cfg->instance];
+    uint8_t data[1] = { cfg->channel };
+    publish_can_frame(can_id, data, 1);
+    vTaskDelay(pdMS_TO_TICKS(30));
+  }
 }

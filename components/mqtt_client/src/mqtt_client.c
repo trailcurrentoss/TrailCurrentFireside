@@ -42,6 +42,26 @@ extern void set_var_satellite_count(int32_t value);
 extern void set_var_current_interior_temperature(int32_t value);
 extern void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);
 extern int32_t get_var_current_device_brightness_identifier(void);
+extern void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black);
+
+#include "button_config.h"
+
+/* Route a module/instance/channel status update to the configured button. */
+static void apply_module_status(module_type_t mod, uint8_t inst, uint8_t ch, int value) {
+    uint8_t btn = button_config_find(mod, inst, ch);
+    if (btn == 0) return;
+    if (btn >= 1 && btn <= NUM_BUTTONS) g_button_state[btn - 1] = (uint8_t)(value > 0);
+    switch (btn) {
+    case 1: set_var_device01_status(value); break;
+    case 2: set_var_device02_status(value); break;
+    case 3: set_var_device03_status(value); break;
+    case 4: set_var_device04_status(value); break;
+    case 5: set_var_device05_status(value); break;
+    case 6: set_var_device06_status(value); break;
+    case 7: set_var_device07_status(value); break;
+    case 8: set_var_device08_status(value); break;
+    }
+}
 
 static const char *TAG = "MQTT";
 
@@ -90,6 +110,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         esp_mqtt_client_subscribe(s_client, "local/gps/alt", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/details", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/time", 0);
+        esp_mqtt_client_subscribe(s_client, "local/water/status", 0);
+        esp_mqtt_client_subscribe(s_client, "local/relays/+/status", 0);
         ESP_LOGI(TAG, "Subscribed to all topics");
 
         bsp_display_lock(0);
@@ -326,14 +348,15 @@ static void process_message(const char *topic, const char *payload, int length) 
         return;
     }
 
-    /* local/lights/{id}/status */
+    /* local/lights/{id}/status — Torrent instance 0, channel id-1 */
     if (strncmp(topic, "local/lights/", 13) == 0) {
-        const char *id_str = topic + 13;
-        int id = atoi(id_str);
+        int id = atoi(topic + 13);
+        if (id < 1 || id > 8) { cJSON_Delete(doc); return; }
 
         /* Skip updates for the device whose brightness is being adjusted
          * by the user — avoids fighting with another controller. */
-        if (id == (int)get_var_current_device_brightness_identifier()) {
+        uint8_t btn_editing = (uint8_t)button_config_find(MOD_TORRENT, 0, (uint8_t)(id - 1));
+        if (btn_editing && btn_editing == (uint8_t)get_var_current_device_brightness_identifier()) {
             cJSON_Delete(doc);
             return;
         }
@@ -343,18 +366,15 @@ static void process_message(const char *topic, const char *payload, int length) 
         int state = state_j ? state_j->valueint : 0;
         int brightness = brightness_j ? brightness_j->valueint : 0;
         int value = (state > 0) ? ((brightness > 0) ? brightness : 1) : 0;
-
-        switch (id) {
-        case 1: set_var_device01_status(value); break;
-        case 2: set_var_device02_status(value); break;
-        case 3: set_var_device03_status(value); break;
-        case 4: set_var_device04_status(value); break;
-        case 5: set_var_device05_status(value); break;
-        case 6: set_var_device06_status(value); break;
-        case 7: set_var_device07_status(value); break;
-        case 8: set_var_device08_status(value); break;
-        default: ESP_LOGW(TAG, "Unknown light id: %d", id); break;
-        }
+        apply_module_status(MOD_TORRENT, 0, (uint8_t)(id - 1), value);
+    }
+    /* local/relays/{id}/status — Switchback instance 0, channel id-1 */
+    else if (strncmp(topic, "local/relays/", 13) == 0) {
+        int id = atoi(topic + 13);
+        if (id < 1 || id > 8) { cJSON_Delete(doc); return; }
+        cJSON *state_j = cJSON_GetObjectItem(doc, "state");
+        int state = state_j ? state_j->valueint : 0;
+        apply_module_status(MOD_SWITCHBACK, 0, (uint8_t)(id - 1), state);
     }
     /* local/energy/status */
     else if (strcmp(topic, "local/energy/status") == 0) {
@@ -431,6 +451,16 @@ static void process_message(const char *topic, const char *payload, int length) 
             set_var_gps_time(yr->valueint, mo->valueint, dy->valueint,
                              hr->valueint, mn->valueint, sc->valueint);
         }
+    }
+    /* local/water/status — tank levels (0-100%) from Reservoir via can-bridge */
+    else if (strcmp(topic, "local/water/status") == 0) {
+        cJSON *fresh = cJSON_GetObjectItem(doc, "fresh");
+        cJSON *grey  = cJSON_GetObjectItem(doc, "grey");
+        cJSON *black = cJSON_GetObjectItem(doc, "black");
+        set_var_water_levels(
+            fresh ? (int32_t)fresh->valuedouble : 0,
+            grey  ? (int32_t)grey->valuedouble  : 0,
+            black ? (int32_t)black->valuedouble : 0);
     }
     else {
         ESP_LOGD(TAG, "Unhandled topic: %s", topic);

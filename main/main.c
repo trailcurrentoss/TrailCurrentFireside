@@ -8,6 +8,8 @@
 #include "esp_memory_utils.h"
 #include "esp_netif.h"
 #include "esp_event.h"
+#include "esp_app_desc.h"
+#include "esp_mac.h"
 #include "lvgl.h"
 #include "screens.h"
 #include "ui.h"
@@ -17,6 +19,7 @@
 #include "mqtt_vars.h"
 #include "sd_config.h"
 #include "app_mqtt.h"
+#include "button_config.h"
 
 /* Check if WiFi is enabled (ESP-Hosted for ESP32-P4 via ESP-WIFI-REMOTE) */
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
@@ -32,6 +35,7 @@ extern void wifi_event_handler_init(void);
 /* Nav button lookup table init from actions.c */
 extern void init_nav_lookup(void);
 extern void init_brightness_slider(void);
+extern void ui_bind_button_edit_keyboard(void);
 
 static const char *TAG = "MAIN";
 
@@ -167,10 +171,31 @@ void app_main(void)
         set_var_rotation_degrees(180);
     }
 
+    /* Load persisted button mappings before UI creation so first paint
+     * already reflects user's labels/icons. */
+    button_config_init();
+
     bsp_display_lock(0);
     ui_init();
     init_nav_lookup();
     init_brightness_slider();
+    ui_bind_button_edit_keyboard();
+    button_config_apply_to_ui();
+
+    /* About screen: firmware version + base MAC */
+    const esp_app_desc_t *app = esp_app_get_description();
+    if (app && objects.label_version_number) {
+        lv_label_set_text(objects.label_version_number, app->version);
+    }
+    uint8_t about_mac[6] = {0};
+    if (esp_read_mac(about_mac, ESP_MAC_WIFI_STA) == ESP_OK) {
+        char buf[18];
+        snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 about_mac[0], about_mac[1], about_mac[2],
+                 about_mac[3], about_mac[4], about_mac[5]);
+        extern void set_var_mcu_mac_address(const char *value);
+        set_var_mcu_mac_address(buf);
+    }
 
     /* Restore persisted user settings (theme, brightness, timeout, timezone) */
     extern void restore_user_settings(void);

@@ -15,7 +15,7 @@ idf_component_register(
         "actions.c"
         "vars.c"
     INCLUDE_DIRS . ./ui
-    REQUIRES esp_wifi mqtt_client sd_config json nvs_flash waveshare__esp32_p4_wifi6_touch_lcd_7b)
+    REQUIRES esp_wifi esp_app_format mqtt_client sd_config button_config json nvs_flash waveshare__esp32_p4_wifi6_touch_lcd_7b)
 
 idf_component_get_property(LVGL_LIB lvgl__lvgl COMPONENT_LIB)
 target_compile_options(

@@ -52,6 +52,9 @@ void set_var_gps_time(int year, int month, int day, int hour, int minute, int se
 /* Clock display update (call periodically from main loop with display lock held) */
 void update_clock_display(void);
 
+/* Water tank levels (0-100 percentage, from local/water/status) */
+void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black);
+
 /* Connection status */
 void set_var_mqtt_connected(bool connected);
 

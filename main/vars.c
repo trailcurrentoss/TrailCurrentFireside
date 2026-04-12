@@ -1,5 +1,6 @@
 #include "vars.h"
 #include "mqtt_vars.h"
+#include "button_config.h"
 #include "bsp/display.h"
 #include "bsp/esp-bsp.h"
 #include "esp_log.h"
@@ -572,6 +573,83 @@ void set_var_time_remaining(int32_t minutes) {
         lv_label_set_text(objects.label_power_remaining_time_to_go_value, value_buf);
     if (objects.label_time_to_go_measurement_type)
         lv_label_set_text(objects.label_time_to_go_measurement_type, unit);
+}
+
+/* Button edit / device assign vars — backing storage for ui/vars.h accessors. */
+static int32_t s_edit_btn_number;
+int32_t get_var_edit_btn_number(void)           { return s_edit_btn_number; }
+void    set_var_edit_btn_number(int32_t v)      { s_edit_btn_number = v; }
+
+static char s_edit_label_text[BTN_LABEL_MAX];
+const char *get_var_edit_label_text(void)       { return s_edit_label_text; }
+void set_var_edit_label_text(const char *v) {
+    strncpy(s_edit_label_text, v ? v : "", sizeof(s_edit_label_text) - 1);
+    s_edit_label_text[sizeof(s_edit_label_text) - 1] = '\0';
+}
+
+static int32_t s_edit_icon_codepoint;
+int32_t get_var_edit_icon_codepoint(void)       { return s_edit_icon_codepoint; }
+void    set_var_edit_icon_codepoint(int32_t v)  { s_edit_icon_codepoint = v; }
+
+static int32_t s_assign_module_type;
+int32_t get_var_assign_module_type(void)        { return s_assign_module_type; }
+void    set_var_assign_module_type(int32_t v)   { s_assign_module_type = v; }
+
+static int32_t s_assign_instance;
+int32_t get_var_assign_instance(void)           { return s_assign_instance; }
+void    set_var_assign_instance(int32_t v)      { s_assign_instance = v; }
+
+/* Replace spaces with newlines so "Kitchen Lights" stacks on the 120×120 btn. */
+static void apply_linebreaks(const char *src, char *dst, size_t dst_sz) {
+    if (!src || !dst || dst_sz == 0) return;
+    size_t i = 0;
+    for (; src[i] != '\0' && i < dst_sz - 1; i++) {
+        dst[i] = (src[i] == ' ') ? '\n' : src[i];
+    }
+    dst[i] = '\0';
+}
+
+void button_config_apply_to_ui(void) {
+    lv_obj_t *home_labels[NUM_BUTTONS] = {
+        objects.lbl_device01_label, objects.lbl_device02_label,
+        objects.lbl_device03_label, objects.lbl_device04_label,
+        objects.lbl_device05_label, objects.lbl_device06_label,
+        objects.lbl_device07_label, objects.lbl_device08_label,
+    };
+    lv_obj_t *home_icons[NUM_BUTTONS] = {
+        objects.lbl_device01_status_ind, objects.lbl_device02_status_ind,
+        objects.lbl_device03_status_ind, objects.lbl_device04_status_ind,
+        objects.lbl_device05_status_ind, objects.lbl_device06_status_ind,
+        objects.lbl_device07_status_ind, objects.lbl_device08_status_ind,
+    };
+    char icon_buf[5];
+    char lbl_buf[BTN_LABEL_MAX];
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        apply_linebreaks(g_buttons[i].label, lbl_buf, sizeof(lbl_buf));
+        const char *icon = utf8_encode(g_buttons[i].icon_codepoint, icon_buf);
+        if (home_labels[i]) lv_label_set_text(home_labels[i], lbl_buf);
+        if (home_icons[i])  lv_label_set_text(home_icons[i],  icon);
+    }
+}
+
+/* Water tank levels (0-100 %). Grey/black widgets may not exist yet in the
+ * EEZ export — guarded on NULL so it becomes live automatically once added. */
+static void update_water_tank(lv_obj_t *bar, lv_obj_t *label, int32_t percent) {
+    if (percent < 0) percent = 0;
+    if (percent > 100) percent = 100;
+    if (bar) lv_bar_set_value(bar, percent, LV_ANIM_ON);
+    if (label) {
+        char buf[8];
+        sprintf(buf, "%d%%", (int)percent);
+        lv_label_set_text(label, buf);
+    }
+}
+
+void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black) {
+    update_water_tank(objects.bar_fresh_water_value,
+                      objects.label_fresh_water_value, fresh);
+    update_water_tank(objects.bar_grey_water_level, NULL, grey);
+    update_water_tank(objects.bar_black_water_level, NULL, black);
 }
 
 /* MQTT connected status */
