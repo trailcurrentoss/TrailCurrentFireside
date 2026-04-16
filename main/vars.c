@@ -658,3 +658,28 @@ void set_var_mqtt_connected(bool connected) {
     mqtt_connected = connected;
     ESP_LOGI(TAG, "MQTT %s", connected ? "connected" : "disconnected");
 }
+
+/* WiFi RSSI — sentinel -100 means disconnected */
+static int32_t s_wifi_rssi = -100;
+
+int32_t get_var_wifi_rssi(void) { return s_wifi_rssi; }
+
+void set_var_wifi_rssi(int32_t rssi) {
+    s_wifi_rssi = rssi;
+    if (!objects.lbl_wifi_icon) return;
+    if (rssi <= -100) {
+        lv_obj_clear_state(objects.lbl_wifi_icon, LV_STATE_CHECKED);
+        if (objects.lbl_wifi_strength) {
+            lv_obj_clear_state(objects.lbl_wifi_strength, LV_STATE_CHECKED);
+            lv_label_set_text(objects.lbl_wifi_strength, "");
+        }
+    } else {
+        lv_obj_add_state(objects.lbl_wifi_icon, LV_STATE_CHECKED);
+        if (objects.lbl_wifi_strength) {
+            lv_obj_add_state(objects.lbl_wifi_strength, LV_STATE_CHECKED);
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%d", (int)rssi);
+            lv_label_set_text(objects.lbl_wifi_strength, buf);
+        }
+    }
+}

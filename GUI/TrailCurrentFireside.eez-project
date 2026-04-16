@@ -368,8 +368,16 @@
         "name": "EditChannel",
         "type": "integer",
         "defaultValue": "0",
-        "native": false,
-        "persistent": false
+        "persistent": false,
+        "native": false
+      },
+      {
+        "objID": "bc7e4719-76e1-4878-ba74-eccd5e902d93",
+        "name": "WifiRssi",
+        "type": "integer",
+        "defaultValue": "-100",
+        "persistent": false,
+        "native": true
       }
     ],
     "structures": [],
@@ -3372,6 +3380,118 @@
               },
               "group": "",
               "groupIndex": 0
+            },
+            {
+              "objID": "e9110ad4-87a8-49a9-bed5-894d803915a7",
+              "type": "LVGLLabelWidget",
+              "left": -477,
+              "top": 16,
+              "width": 50,
+              "height": 32,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "012c6c72-2ed2-4933-b48e-eb10a1ef1fcf",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "identifier": "lbl_wifi_icon",
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "px",
+              "heightUnit": "px",
+              "children": [],
+              "widgetFlags": "",
+              "hiddenFlagType": "literal",
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedState": false,
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "useStyle": "LabelFa32Icon",
+              "localStyles": {
+                "objID": "9d3076a7-eb98-41f3-8667-daf0b3ddb11a",
+                "definition": {
+                  "MAIN": {
+                    "DEFAULT": {
+                      "text_color": "SecondaryTextColor"
+                    },
+                    "CHECKED": {
+                      "text_color": "AccentColor"
+                    }
+                  }
+                }
+              },
+              "group": "",
+              "groupIndex": 0,
+              "text": "\\uf1eb",
+              "textType": "literal",
+              "longMode": "WRAP",
+              "recolor": false
+            },
+            {
+              "objID": "418e3d01-85a7-41f2-b574-4b3002a9ae5b",
+              "type": "LVGLLabelWidget",
+              "left": 78,
+              "top": 16,
+              "width": 46,
+              "height": 20,
+              "customInputs": [],
+              "customOutputs": [],
+              "style": {
+                "objID": "157233b7-cd94-47ec-aeae-d69bbd938410",
+                "useStyle": "default",
+                "conditionalStyles": [],
+                "childStyles": []
+              },
+              "timeline": [],
+              "eventHandlers": [],
+              "identifier": "lbl_wifi_strength",
+              "leftUnit": "px",
+              "topUnit": "px",
+              "widthUnit": "px",
+              "heightUnit": "px",
+              "children": [],
+              "widgetFlags": "",
+              "hiddenFlagType": "literal",
+              "clickableFlagType": "literal",
+              "flagScrollbarMode": "",
+              "flagScrollDirection": "",
+              "scrollSnapX": "",
+              "scrollSnapY": "",
+              "checkedState": false,
+              "checkedStateType": "literal",
+              "disabledStateType": "literal",
+              "states": "",
+              "useStyle": "LabelDefault",
+              "localStyles": {
+                "objID": "52d09eec-f83f-4564-bc40-c1a9a534f43c",
+                "definition": {
+                  "MAIN": {
+                    "DEFAULT": {
+                      "text_color": "SecondaryTextColor",
+                      "text_align": "CENTER"
+                    },
+                    "CHECKED": {
+                      "text_color": "PrimaryTextColor",
+                      "text_align": "CENTER"
+                    }
+                  }
+                }
+              },
+              "group": "",
+              "groupIndex": 0,
+              "text": "",
+              "textType": "literal",
+              "longMode": "WRAP",
+              "recolor": false
             }
           ],
           "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE|SCROLLABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER",

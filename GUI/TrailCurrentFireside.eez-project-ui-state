@@ -1,7 +1,7 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/5",
-    "selectedFontObject": "[TrailCurrentFireside.eez-project]:/fonts/1",
+    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/0",
+    "selectedFontObject": "[TrailCurrentFireside.eez-project]:/fonts/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -192,10 +192,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 53.25230213986889,
-              "selected": 1,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#bd7e4903-a8cf-421c-9f9a-471dc483fad7",
+                  "name": "fa16",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/fonts/0",
+                    "permanent": true
+                  },
+                  "icon": "material:font_download"
+                },
                 {
                   "type": "tab",
                   "id": "#68c81e8f-f83d-4f25-8698-ca44094592c9",
@@ -210,10 +221,10 @@
                 {
                   "type": "tab",
                   "id": "#271b3acc-df77-4a33-8902-368be5704fae",
-                  "name": "PageSettings",
+                  "name": "PageHome",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/5",
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1231,7 +1242,13 @@
       "14": {}
     },
     "[TrailCurrentFireside.eez-project]:/userPages/0[flow-state]": {
-      "selection": {},
+      "selection": {
+        "0": {
+          "6": {
+            "$selected": true
+          }
+        }
+      },
       "transform": {
         "translate": {
           "x": -512,

@@ -67,6 +67,8 @@ typedef struct _objects_t {
     lv_obj_t *container_modal_background;
     lv_obj_t *panel_device_brighness_level;
     lv_obj_t *slider_device_brightness_level;
+    lv_obj_t *lbl_wifi_icon;
+    lv_obj_t *lbl_wifi_strength;
     lv_obj_t *widget_trailer_page_bottom_nav_bar;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_home;
     lv_obj_t *widget_trailer_page_bottom_nav_bar__bottom_nav_bar_button_trailer;

@@ -109,6 +109,8 @@ extern int32_t get_var_assign_instance();
 extern void set_var_assign_instance(int32_t value);
 extern int32_t get_var_edit_channel();
 extern void set_var_edit_channel(int32_t value);
+extern int32_t get_var_wifi_rssi();
+extern void set_var_wifi_rssi(int32_t value);
 
 
 #ifdef __cplusplus

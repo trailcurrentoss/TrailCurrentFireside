@@ -37,6 +37,45 @@
 static char wifi_connected_ip[20] = {0};
 static int wifi_retry_count = 0;
 #define WIFI_MAX_RETRIES 5
+static esp_timer_handle_t s_rssi_timer = NULL;
+
+static void rssi_poll_cb(void *arg) {
+  wifi_ap_record_t ap;
+  if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
+    bsp_display_lock(0);
+    set_var_wifi_rssi((int32_t)ap.rssi);
+    bsp_display_unlock();
+  }
+}
+
+static void start_rssi_polling(void) {
+  wifi_ap_record_t ap;
+  int32_t initial_rssi = -50;
+  if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
+    initial_rssi = (int32_t)ap.rssi;
+  }
+  bsp_display_lock(0);
+  set_var_wifi_rssi(initial_rssi);
+  bsp_display_unlock();
+
+  if (s_rssi_timer == NULL) {
+    esp_timer_create_args_t args = {
+      .callback = rssi_poll_cb,
+      .name = "rssi_poll"
+    };
+    esp_timer_create(&args, &s_rssi_timer);
+  }
+  esp_timer_start_periodic(s_rssi_timer, 10ULL * 1000000ULL);
+}
+
+static void stop_rssi_polling(void) {
+  if (s_rssi_timer) {
+    esp_timer_stop(s_rssi_timer);
+  }
+  bsp_display_lock(0);
+  set_var_wifi_rssi(-100);
+  bsp_display_unlock();
+}
 
 /**
  * @brief WiFi event handler to update UI on connection status changes
@@ -55,6 +94,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
       case WIFI_EVENT_STA_DISCONNECTED: {
         wifi_event_sta_disconnected_t *disconn = (wifi_event_sta_disconnected_t *)event_data;
         ESP_LOGW("WIFI_EVENT", "Disconnected from AP, reason: %d", disconn->reason);
+        stop_rssi_polling();
         if (wifi_retry_count < WIFI_MAX_RETRIES) {
           wifi_retry_count++;
           ESP_LOGI("WIFI_EVENT", "Retrying connection (%d/%d)...", wifi_retry_count, WIFI_MAX_RETRIES);
@@ -85,6 +125,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
       bsp_display_lock(0);
       lv_label_set_text(objects.label_wifi_connection_status, status_msg);
       bsp_display_unlock();
+      start_rssi_polling();
       /* Start mDNS (enables .local resolution) then connect MQTT */
       discovery_mdns_init();
       mqtt_client_connect();
