@@ -170,6 +170,34 @@ void button_config_assign(module_type_t module, uint8_t instance,
     button_config_save();
 }
 
+void button_config_reset_all(void)
+{
+    load_defaults();
+    button_config_save();
+}
+
+void button_config_clear(uint8_t btn_number)
+{
+    if (btn_number < 1 || btn_number > NUM_BUTTONS) return;
+    btn_config_t *b = &g_buttons[btn_number - 1];
+    memset(b, 0, sizeof(*b));
+    b->module_type    = MOD_NONE;
+    b->icon_codepoint = DEFAULT_ICON_CP;
+    g_button_state[btn_number - 1] = 0;
+    button_config_save();
+}
+
+void button_config_set_mapping(uint8_t btn_number, module_type_t module,
+                               uint8_t instance, uint8_t channel)
+{
+    if (btn_number < 1 || btn_number > NUM_BUTTONS) return;
+    btn_config_t *b = &g_buttons[btn_number - 1];
+    b->module_type = (uint8_t)module;
+    b->instance    = instance;
+    b->channel     = channel;
+    button_config_save();
+}
+
 void button_config_set_appearance(uint8_t btn_number, const char *label, uint16_t icon_cp)
 {
     if (btn_number < 1 || btn_number > NUM_BUTTONS) return;

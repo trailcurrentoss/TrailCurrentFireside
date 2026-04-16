@@ -37,7 +37,8 @@ enum FlowGlobalVariables {
     FLOW_GLOBAL_VARIABLE_EDIT_LABEL_TEXT = 17,
     FLOW_GLOBAL_VARIABLE_EDIT_ICON_CODEPOINT = 18,
     FLOW_GLOBAL_VARIABLE_ASSIGN_MODULE_TYPE = 19,
-    FLOW_GLOBAL_VARIABLE_ASSIGN_INSTANCE = 20
+    FLOW_GLOBAL_VARIABLE_ASSIGN_INSTANCE = 20,
+    FLOW_GLOBAL_VARIABLE_EDIT_CHANNEL = 21
 };
 
 // Native global variables
@@ -106,6 +107,8 @@ extern int32_t get_var_assign_module_type();
 extern void set_var_assign_module_type(int32_t value);
 extern int32_t get_var_assign_instance();
 extern void set_var_assign_instance(int32_t value);
+extern int32_t get_var_edit_channel();
+extern void set_var_edit_channel(int32_t value);
 
 
 #ifdef __cplusplus

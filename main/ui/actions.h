@@ -28,6 +28,11 @@ extern void action_select_button_icon(lv_event_t * e);
 extern void action_save_button_appearance(lv_event_t * e);
 extern void action_assign_channel(lv_event_t * e);
 extern void action_select_device_instance(lv_event_t * e);
+extern void action_select_edit_device_type(lv_event_t * e);
+extern void action_select_edit_address(lv_event_t * e);
+extern void action_select_edit_channel(lv_event_t * e);
+extern void action_clear_button(lv_event_t * e);
+extern void action_reset_all_buttons(lv_event_t * e);
 
 
 #ifdef __cplusplus

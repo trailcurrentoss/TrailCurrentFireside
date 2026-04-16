@@ -45,6 +45,10 @@ uint8_t button_config_find(module_type_t module, uint8_t instance, uint8_t chann
 void    button_config_assign(module_type_t module, uint8_t instance,
                               uint8_t channel, uint8_t btn_number);
 
+void button_config_reset_all(void);
+void button_config_clear(uint8_t btn_number);
+void button_config_set_mapping(uint8_t btn_number, module_type_t module,
+                               uint8_t instance, uint8_t channel);
 void button_config_set_appearance(uint8_t btn_number, const char *label, uint16_t icon_cp);
 
 const char *utf8_encode(uint16_t codepoint, char out[5]);

@@ -2647,60 +2647,24 @@ void create_screen_page_settings() {
                                         }
                                     }
                                 }
-                            }
-                        }
-                        {
-                            lv_obj_t *obj = lv_tabview_add_tab(lv_obj_get_parent(parent_obj), "Devices");
-                            add_style_tab_default(obj);
-                            {
-                                lv_obj_t *parent_obj = obj;
                                 {
-                                    lv_obj_t *obj = lv_label_create(parent_obj);
-                                    lv_obj_set_pos(obj, 20, 20);
-                                    lv_obj_set_size(obj, 600, 40);
-                                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
-                                    add_style_label_default(obj);
-                                    lv_label_set_text(obj, "Assign Device Channels");
-                                }
-                                {
-                                    // BtnAssignTorrent
+                                    // BtnResetAllButtons
                                     lv_obj_t *obj = lv_btn_create(parent_obj);
-                                    objects.btn_assign_torrent = obj;
-                                    lv_obj_set_pos(obj, 20, 90);
-                                    lv_obj_set_size(obj, 320, 60);
-                                    lv_obj_add_event_cb(obj, action_navigate_to_device_assign, LV_EVENT_SHORT_CLICKED, (void *)1);
+                                    objects.btn_reset_all_buttons = obj;
+                                    lv_obj_set_pos(obj, 614, 6);
+                                    lv_obj_set_size(obj, 150, 44);
+                                    lv_obj_add_event_cb(obj, action_reset_all_buttons, LV_EVENT_SHORT_CLICKED, (void *)0);
                                     add_style_style_button_default(obj);
                                     {
                                         lv_obj_t *parent_obj = obj;
                                         {
                                             lv_obj_t *obj = lv_label_create(parent_obj);
-                                            lv_obj_set_pos(obj, 20, 0);
-                                            lv_obj_set_size(obj, 200, 30);
+                                            lv_obj_set_pos(obj, 0, 0);
+                                            lv_obj_set_size(obj, 140, 30);
                                             lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
                                             add_style_label_default(obj);
-                                            lv_obj_set_style_align(obj, LV_ALIGN_LEFT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text(obj, "Torrent");
-                                        }
-                                    }
-                                }
-                                {
-                                    // BtnAssignSwitchback
-                                    lv_obj_t *obj = lv_btn_create(parent_obj);
-                                    objects.btn_assign_switchback = obj;
-                                    lv_obj_set_pos(obj, 20, 170);
-                                    lv_obj_set_size(obj, 320, 60);
-                                    lv_obj_add_event_cb(obj, action_navigate_to_device_assign, LV_EVENT_SHORT_CLICKED, (void *)2);
-                                    add_style_style_button_default(obj);
-                                    {
-                                        lv_obj_t *parent_obj = obj;
-                                        {
-                                            lv_obj_t *obj = lv_label_create(parent_obj);
-                                            lv_obj_set_pos(obj, 20, 0);
-                                            lv_obj_set_size(obj, 240, 30);
-                                            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
-                                            add_style_label_default(obj);
-                                            lv_obj_set_style_align(obj, LV_ALIGN_LEFT_MID, LV_PART_MAIN | LV_STATE_DEFAULT);
-                                            lv_label_set_text(obj, "Switchback");
+                                            lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                                            lv_label_set_text(obj, "Reset All");
                                         }
                                     }
                                 }
@@ -2836,17 +2800,9 @@ void create_screen_page_button_edit() {
             lv_label_set_text(obj, "Type on keyboard...");
         }
         {
-            lv_obj_t *obj = lv_label_create(parent_obj);
-            lv_obj_set_pos(obj, 30, 115);
-            lv_obj_set_size(obj, 120, 30);
-            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
-            add_style_label_secondary(obj);
-            lv_label_set_text(obj, "Icon:");
-        }
-        {
             lv_obj_t *obj = lv_obj_create(parent_obj);
-            lv_obj_set_pos(obj, 30, 150);
-            lv_obj_set_size(obj, 960, 196);
+            lv_obj_set_pos(obj, 30, 115);
+            lv_obj_set_size(obj, 960, 152);
             lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_PRESS_LOCK|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
             lv_obj_set_scroll_dir(obj, LV_DIR_VER);
             add_style_style_panel_default(obj);
@@ -2856,7 +2812,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot00
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot00 = obj;
-                    lv_obj_set_pos(obj, 28, 8);
+                    lv_obj_set_pos(obj, 4, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63414);
                     add_style_style_button_default(obj);
@@ -2877,7 +2833,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot01
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot01 = obj;
-                    lv_obj_set_pos(obj, 104, 8);
+                    lv_obj_set_pos(obj, 80, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61675);
                     add_style_style_button_default(obj);
@@ -2898,7 +2854,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot02
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot02 = obj;
-                    lv_obj_set_pos(obj, 180, 8);
+                    lv_obj_set_pos(obj, 156, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61829);
                     add_style_style_button_default(obj);
@@ -2919,7 +2875,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot03
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot03 = obj;
-                    lv_obj_set_pos(obj, 256, 8);
+                    lv_obj_set_pos(obj, 232, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61830);
                     add_style_style_button_default(obj);
@@ -2940,7 +2896,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot04
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot04 = obj;
-                    lv_obj_set_pos(obj, 332, 8);
+                    lv_obj_set_pos(obj, 308, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61671);
                     add_style_style_button_default(obj);
@@ -2961,7 +2917,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot05
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot05 = obj;
-                    lv_obj_set_pos(obj, 408, 8);
+                    lv_obj_set_pos(obj, 384, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61926);
                     add_style_style_button_default(obj);
@@ -2982,7 +2938,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot06
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot06 = obj;
-                    lv_obj_set_pos(obj, 484, 8);
+                    lv_obj_set_pos(obj, 460, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62016);
                     add_style_style_button_default(obj);
@@ -3003,7 +2959,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot07
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot07 = obj;
-                    lv_obj_set_pos(obj, 560, 8);
+                    lv_obj_set_pos(obj, 536, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62172);
                     add_style_style_button_default(obj);
@@ -3024,7 +2980,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot08
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot08 = obj;
-                    lv_obj_set_pos(obj, 636, 8);
+                    lv_obj_set_pos(obj, 612, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61549);
                     add_style_style_button_default(obj);
@@ -3045,7 +3001,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot09
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot09 = obj;
-                    lv_obj_set_pos(obj, 712, 8);
+                    lv_obj_set_pos(obj, 688, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62183);
                     add_style_style_button_default(obj);
@@ -3066,7 +3022,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot10
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot10 = obj;
-                    lv_obj_set_pos(obj, 788, 8);
+                    lv_obj_set_pos(obj, 764, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63228);
                     add_style_style_button_default(obj);
@@ -3087,7 +3043,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot11
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot11 = obj;
-                    lv_obj_set_pos(obj, 864, 8);
+                    lv_obj_set_pos(obj, 840, 4);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62951);
                     add_style_style_button_default(obj);
@@ -3108,7 +3064,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot12
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot12 = obj;
-                    lv_obj_set_pos(obj, 28, 84);
+                    lv_obj_set_pos(obj, 4, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61634);
                     add_style_style_button_default(obj);
@@ -3129,7 +3085,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot13
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot13 = obj;
-                    lv_obj_set_pos(obj, 104, 84);
+                    lv_obj_set_pos(obj, 80, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63424);
                     add_style_style_button_default(obj);
@@ -3150,7 +3106,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot14
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot14 = obj;
-                    lv_obj_set_pos(obj, 180, 84);
+                    lv_obj_set_pos(obj, 156, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63460);
                     add_style_style_button_default(obj);
@@ -3171,7 +3127,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot15
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot15 = obj;
-                    lv_obj_set_pos(obj, 256, 84);
+                    lv_obj_set_pos(obj, 232, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62890);
                     add_style_style_button_default(obj);
@@ -3192,7 +3148,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot16
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot16 = obj;
-                    lv_obj_set_pos(obj, 332, 84);
+                    lv_obj_set_pos(obj, 308, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63587);
                     add_style_style_button_default(obj);
@@ -3213,7 +3169,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot17
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot17 = obj;
-                    lv_obj_set_pos(obj, 408, 84);
+                    lv_obj_set_pos(obj, 384, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62799);
                     add_style_style_button_default(obj);
@@ -3234,7 +3190,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot18
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot18 = obj;
-                    lv_obj_set_pos(obj, 484, 84);
+                    lv_obj_set_pos(obj, 460, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61684);
                     add_style_style_button_default(obj);
@@ -3255,7 +3211,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot19
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot19 = obj;
-                    lv_obj_set_pos(obj, 560, 84);
+                    lv_obj_set_pos(obj, 536, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61461);
                     add_style_style_button_default(obj);
@@ -3276,7 +3232,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot20
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot20 = obj;
-                    lv_obj_set_pos(obj, 636, 84);
+                    lv_obj_set_pos(obj, 612, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61869);
                     add_style_style_button_default(obj);
@@ -3297,7 +3253,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot21
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot21 = obj;
-                    lv_obj_set_pos(obj, 712, 84);
+                    lv_obj_set_pos(obj, 688, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62762);
                     add_style_style_button_default(obj);
@@ -3318,7 +3274,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot22
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot22 = obj;
-                    lv_obj_set_pos(obj, 788, 84);
+                    lv_obj_set_pos(obj, 764, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62198);
                     add_style_style_button_default(obj);
@@ -3339,7 +3295,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot23
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot23 = obj;
-                    lv_obj_set_pos(obj, 864, 84);
+                    lv_obj_set_pos(obj, 840, 80);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61475);
                     add_style_style_button_default(obj);
@@ -3360,7 +3316,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot24
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot24 = obj;
-                    lv_obj_set_pos(obj, 28, 160);
+                    lv_obj_set_pos(obj, 4, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61572);
                     add_style_style_button_default(obj);
@@ -3381,7 +3337,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot25
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot25 = obj;
-                    lv_obj_set_pos(obj, 104, 160);
+                    lv_obj_set_pos(obj, 80, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61883);
                     add_style_style_button_default(obj);
@@ -3402,7 +3358,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot26
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot26 = obj;
-                    lv_obj_set_pos(obj, 180, 160);
+                    lv_obj_set_pos(obj, 156, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62973);
                     add_style_style_button_default(obj);
@@ -3423,7 +3379,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot27
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot27 = obj;
-                    lv_obj_set_pos(obj, 256, 160);
+                    lv_obj_set_pos(obj, 232, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61649);
                     add_style_style_button_default(obj);
@@ -3444,7 +3400,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot28
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot28 = obj;
-                    lv_obj_set_pos(obj, 332, 160);
+                    lv_obj_set_pos(obj, 308, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62612);
                     add_style_style_button_default(obj);
@@ -3465,7 +3421,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot29
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot29 = obj;
-                    lv_obj_set_pos(obj, 408, 160);
+                    lv_obj_set_pos(obj, 384, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61881);
                     add_style_style_button_default(obj);
@@ -3486,7 +3442,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot30
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot30 = obj;
-                    lv_obj_set_pos(obj, 484, 160);
+                    lv_obj_set_pos(obj, 460, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61958);
                     add_style_style_button_default(obj);
@@ -3507,7 +3463,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot31
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot31 = obj;
-                    lv_obj_set_pos(obj, 560, 160);
+                    lv_obj_set_pos(obj, 536, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61548);
                     add_style_style_button_default(obj);
@@ -3528,7 +3484,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot32
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot32 = obj;
-                    lv_obj_set_pos(obj, 636, 160);
+                    lv_obj_set_pos(obj, 612, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61612);
                     add_style_style_button_default(obj);
@@ -3549,7 +3505,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot33
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot33 = obj;
-                    lv_obj_set_pos(obj, 712, 160);
+                    lv_obj_set_pos(obj, 688, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61673);
                     add_style_style_button_default(obj);
@@ -3570,7 +3526,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot34
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot34 = obj;
-                    lv_obj_set_pos(obj, 788, 160);
+                    lv_obj_set_pos(obj, 764, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61571);
                     add_style_style_button_default(obj);
@@ -3591,7 +3547,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot35
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot35 = obj;
-                    lv_obj_set_pos(obj, 864, 160);
+                    lv_obj_set_pos(obj, 840, 156);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61448);
                     add_style_style_button_default(obj);
@@ -3612,7 +3568,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot36
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot36 = obj;
-                    lv_obj_set_pos(obj, 28, 236);
+                    lv_obj_set_pos(obj, 4, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61441);
                     add_style_style_button_default(obj);
@@ -3633,7 +3589,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot37
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot37 = obj;
-                    lv_obj_set_pos(obj, 104, 236);
+                    lv_obj_set_pos(obj, 80, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61477);
                     add_style_style_button_default(obj);
@@ -3654,7 +3610,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot38
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot38 = obj;
-                    lv_obj_set_pos(obj, 180, 236);
+                    lv_obj_set_pos(obj, 156, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61515);
                     add_style_style_button_default(obj);
@@ -3675,7 +3631,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot39
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot39 = obj;
-                    lv_obj_set_pos(obj, 256, 236);
+                    lv_obj_set_pos(obj, 232, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61514);
                     add_style_style_button_default(obj);
@@ -3696,7 +3652,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot40
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot40 = obj;
-                    lv_obj_set_pos(obj, 332, 236);
+                    lv_obj_set_pos(obj, 308, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61517);
                     add_style_style_button_default(obj);
@@ -3717,7 +3673,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot41
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot41 = obj;
-                    lv_obj_set_pos(obj, 408, 236);
+                    lv_obj_set_pos(obj, 384, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61723);
                     add_style_style_button_default(obj);
@@ -3738,7 +3694,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot42
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot42 = obj;
-                    lv_obj_set_pos(obj, 484, 236);
+                    lv_obj_set_pos(obj, 460, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61589);
                     add_style_style_button_default(obj);
@@ -3759,7 +3715,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot43
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot43 = obj;
-                    lv_obj_set_pos(obj, 560, 236);
+                    lv_obj_set_pos(obj, 536, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61632);
                     add_style_style_button_default(obj);
@@ -3780,7 +3736,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot44
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot44 = obj;
-                    lv_obj_set_pos(obj, 636, 236);
+                    lv_obj_set_pos(obj, 612, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61447);
                     add_style_style_button_default(obj);
@@ -3801,7 +3757,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot45
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot45 = obj;
-                    lv_obj_set_pos(obj, 712, 236);
+                    lv_obj_set_pos(obj, 688, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61827);
                     add_style_style_button_default(obj);
@@ -3822,7 +3778,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot46
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot46 = obj;
-                    lv_obj_set_pos(obj, 788, 236);
+                    lv_obj_set_pos(obj, 764, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61683);
                     add_style_style_button_default(obj);
@@ -3843,7 +3799,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot47
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot47 = obj;
-                    lv_obj_set_pos(obj, 864, 236);
+                    lv_obj_set_pos(obj, 840, 232);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61557);
                     add_style_style_button_default(obj);
@@ -3864,7 +3820,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot48
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot48 = obj;
-                    lv_obj_set_pos(obj, 28, 312);
+                    lv_obj_set_pos(obj, 4, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61459);
                     add_style_style_button_default(obj);
@@ -3885,7 +3841,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot49
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot49 = obj;
-                    lv_obj_set_pos(obj, 104, 312);
+                    lv_obj_set_pos(obj, 80, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61918);
                     add_style_style_button_default(obj);
@@ -3906,7 +3862,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot50
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot50 = obj;
-                    lv_obj_set_pos(obj, 180, 312);
+                    lv_obj_set_pos(obj, 156, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61444);
                     add_style_style_button_default(obj);
@@ -3927,7 +3883,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot51
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot51 = obj;
-                    lv_obj_set_pos(obj, 256, 312);
+                    lv_obj_set_pos(obj, 232, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61445);
                     add_style_style_button_default(obj);
@@ -3948,7 +3904,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot52
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot52 = obj;
-                    lv_obj_set_pos(obj, 332, 312);
+                    lv_obj_set_pos(obj, 308, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61796);
                     add_style_style_button_default(obj);
@@ -3969,7 +3925,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot53
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot53 = obj;
-                    lv_obj_set_pos(obj, 408, 312);
+                    lv_obj_set_pos(obj, 384, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61463);
                     add_style_style_button_default(obj);
@@ -3990,7 +3946,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot54
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot54 = obj;
-                    lv_obj_set_pos(obj, 484, 312);
+                    lv_obj_set_pos(obj, 460, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61747);
                     add_style_style_button_default(obj);
@@ -4011,7 +3967,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot55
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot55 = obj;
-                    lv_obj_set_pos(obj, 560, 312);
+                    lv_obj_set_pos(obj, 536, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61555);
                     add_style_style_button_default(obj);
@@ -4032,7 +3988,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot56
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot56 = obj;
-                    lv_obj_set_pos(obj, 636, 312);
+                    lv_obj_set_pos(obj, 612, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61442);
                     add_style_style_button_default(obj);
@@ -4053,7 +4009,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot57
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot57 = obj;
-                    lv_obj_set_pos(obj, 712, 312);
+                    lv_obj_set_pos(obj, 688, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61530);
                     add_style_style_button_default(obj);
@@ -4074,7 +4030,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot58
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot58 = obj;
-                    lv_obj_set_pos(obj, 788, 312);
+                    lv_obj_set_pos(obj, 764, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61597);
                     add_style_style_button_default(obj);
@@ -4095,7 +4051,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot59
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot59 = obj;
-                    lv_obj_set_pos(obj, 864, 312);
+                    lv_obj_set_pos(obj, 840, 308);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61617);
                     add_style_style_button_default(obj);
@@ -4116,7 +4072,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot60
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot60 = obj;
-                    lv_obj_set_pos(obj, 28, 388);
+                    lv_obj_set_pos(obj, 4, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61638);
                     add_style_style_button_default(obj);
@@ -4137,7 +4093,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot61
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot61 = obj;
-                    lv_obj_set_pos(obj, 104, 388);
+                    lv_obj_set_pos(obj, 80, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61485);
                     add_style_style_button_default(obj);
@@ -4158,7 +4114,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot62
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot62 = obj;
-                    lv_obj_set_pos(obj, 180, 388);
+                    lv_obj_set_pos(obj, 156, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62006);
                     add_style_style_button_default(obj);
@@ -4179,7 +4135,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot63
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot63 = obj;
-                    lv_obj_set_pos(obj, 256, 388);
+                    lv_obj_set_pos(obj, 232, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62157);
                     add_style_style_button_default(obj);
@@ -4200,7 +4156,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot64
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot64 = obj;
-                    lv_obj_set_pos(obj, 332, 388);
+                    lv_obj_set_pos(obj, 308, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62803);
                     add_style_style_button_default(obj);
@@ -4221,7 +4177,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot65
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot65 = obj;
-                    lv_obj_set_pos(obj, 408, 388);
+                    lv_obj_set_pos(obj, 384, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63380);
                     add_style_style_button_default(obj);
@@ -4242,7 +4198,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot66
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot66 = obj;
-                    lv_obj_set_pos(obj, 484, 388);
+                    lv_obj_set_pos(obj, 460, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62096);
                     add_style_style_button_default(obj);
@@ -4263,7 +4219,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot67
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot67 = obj;
-                    lv_obj_set_pos(obj, 560, 388);
+                    lv_obj_set_pos(obj, 536, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61681);
                     add_style_style_button_default(obj);
@@ -4284,7 +4240,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot68
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot68 = obj;
-                    lv_obj_set_pos(obj, 636, 388);
+                    lv_obj_set_pos(obj, 612, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61979);
                     add_style_style_button_default(obj);
@@ -4305,7 +4261,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot69
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot69 = obj;
-                    lv_obj_set_pos(obj, 712, 388);
+                    lv_obj_set_pos(obj, 688, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61550);
                     add_style_style_button_default(obj);
@@ -4326,7 +4282,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot70
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot70 = obj;
-                    lv_obj_set_pos(obj, 788, 388);
+                    lv_obj_set_pos(obj, 764, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61746);
                     add_style_style_button_default(obj);
@@ -4347,7 +4303,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot71
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot71 = obj;
-                    lv_obj_set_pos(obj, 864, 388);
+                    lv_obj_set_pos(obj, 840, 384);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)62405);
                     add_style_style_button_default(obj);
@@ -4368,7 +4324,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot72
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot72 = obj;
-                    lv_obj_set_pos(obj, 28, 464);
+                    lv_obj_set_pos(obj, 4, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61505);
                     add_style_style_button_default(obj);
@@ -4389,7 +4345,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot73
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot73 = obj;
-                    lv_obj_set_pos(obj, 104, 464);
+                    lv_obj_set_pos(obj, 80, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61554);
                     add_style_style_button_default(obj);
@@ -4410,7 +4366,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot74
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot74 = obj;
-                    lv_obj_set_pos(obj, 180, 464);
+                    lv_obj_set_pos(obj, 156, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61749);
                     add_style_style_button_default(obj);
@@ -4431,7 +4387,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot75
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot75 = obj;
-                    lv_obj_set_pos(obj, 256, 464);
+                    lv_obj_set_pos(obj, 232, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61678);
                     add_style_style_button_default(obj);
@@ -4452,7 +4408,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot76
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot76 = obj;
-                    lv_obj_set_pos(obj, 332, 464);
+                    lv_obj_set_pos(obj, 308, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61547);
                     add_style_style_button_default(obj);
@@ -4473,7 +4429,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot77
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot77 = obj;
-                    lv_obj_set_pos(obj, 408, 464);
+                    lv_obj_set_pos(obj, 384, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61944);
                     add_style_style_button_default(obj);
@@ -4494,7 +4450,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot78
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot78 = obj;
-                    lv_obj_set_pos(obj, 484, 464);
+                    lv_obj_set_pos(obj, 460, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61541);
                     add_style_style_button_default(obj);
@@ -4515,7 +4471,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot79
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot79 = obj;
-                    lv_obj_set_pos(obj, 560, 464);
+                    lv_obj_set_pos(obj, 536, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61931);
                     add_style_style_button_default(obj);
@@ -4536,7 +4492,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot80
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot80 = obj;
-                    lv_obj_set_pos(obj, 636, 464);
+                    lv_obj_set_pos(obj, 612, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)61507);
                     add_style_style_button_default(obj);
@@ -4557,7 +4513,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot81
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot81 = obj;
-                    lv_obj_set_pos(obj, 712, 464);
+                    lv_obj_set_pos(obj, 688, 460);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)57349);
                     add_style_style_button_default(obj);
@@ -4578,7 +4534,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot82
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot82 = obj;
-                    lv_obj_set_pos(obj, 28, 540);
+                    lv_obj_set_pos(obj, 4, 536);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63743);
                     add_style_style_button_default(obj);
@@ -4599,7 +4555,7 @@ void create_screen_page_button_edit() {
                     // BtnIconSlot83
                     lv_obj_t *obj = lv_btn_create(parent_obj);
                     objects.btn_icon_slot83 = obj;
-                    lv_obj_set_pos(obj, 104, 540);
+                    lv_obj_set_pos(obj, 80, 536);
                     lv_obj_set_size(obj, 68, 68);
                     lv_obj_add_event_cb(obj, action_select_button_icon, LV_EVENT_SHORT_CLICKED, (void *)63347);
                     add_style_style_button_default(obj);
@@ -4622,10 +4578,349 @@ void create_screen_page_button_edit() {
             // KbButtonEdit
             lv_obj_t *obj = lv_keyboard_create(parent_obj);
             objects.kb_button_edit = obj;
-            lv_obj_set_pos(obj, 0, 385);
+            lv_obj_set_pos(obj, 0, 368);
             lv_obj_set_size(obj, 1024, 215);
             add_style_keyboard_default(obj);
             lv_obj_set_style_align(obj, LV_ALIGN_DEFAULT, LV_PART_MAIN | LV_STATE_DEFAULT);
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 30, 278);
+            lv_obj_set_size(obj, 85, 28);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+            add_style_label_default(obj);
+            lv_label_set_text(obj, "Device:");
+        }
+        {
+            // BtnEditDeviceNone
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_device_none = obj;
+            lv_obj_set_pos(obj, 120, 270);
+            lv_obj_set_size(obj, 110, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_device_type, LV_EVENT_SHORT_CLICKED, (void *)0);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 90, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "None");
+                }
+            }
+        }
+        {
+            // BtnEditDeviceTorrent
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_device_torrent = obj;
+            lv_obj_set_pos(obj, 240, 270);
+            lv_obj_set_size(obj, 130, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_device_type, LV_EVENT_SHORT_CLICKED, (void *)1);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 110, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "Torrent");
+                }
+            }
+        }
+        {
+            // BtnEditDeviceSwitchback
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_device_switchback = obj;
+            lv_obj_set_pos(obj, 380, 270);
+            lv_obj_set_size(obj, 155, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_device_type, LV_EVENT_SHORT_CLICKED, (void *)2);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 135, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "Switchback");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 562, 278);
+            lv_obj_set_size(obj, 60, 28);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+            add_style_label_default(obj);
+            lv_label_set_text(obj, "Addr:");
+        }
+        {
+            // BtnEditAddr0
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_addr0 = obj;
+            lv_obj_set_pos(obj, 630, 270);
+            lv_obj_set_size(obj, 100, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_address, LV_EVENT_SHORT_CLICKED, (void *)0);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 80, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "0");
+                }
+            }
+        }
+        {
+            // BtnEditAddr1
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_addr1 = obj;
+            lv_obj_set_pos(obj, 740, 270);
+            lv_obj_set_size(obj, 100, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_address, LV_EVENT_SHORT_CLICKED, (void *)1);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 80, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "1");
+                }
+            }
+        }
+        {
+            // BtnEditAddr2
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_addr2 = obj;
+            lv_obj_set_pos(obj, 850, 270);
+            lv_obj_set_size(obj, 100, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_address, LV_EVENT_SHORT_CLICKED, (void *)2);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 80, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "2");
+                }
+            }
+        }
+        {
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            lv_obj_set_pos(obj, 30, 329);
+            lv_obj_set_size(obj, 62, 28);
+            lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+            add_style_label_default(obj);
+            lv_label_set_text(obj, "Chan:");
+        }
+        {
+            // BtnEditCh0
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch0 = obj;
+            lv_obj_set_pos(obj, 100, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)0);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "0");
+                }
+            }
+        }
+        {
+            // BtnEditCh1
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch1 = obj;
+            lv_obj_set_pos(obj, 213, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)1);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "1");
+                }
+            }
+        }
+        {
+            // BtnEditCh2
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch2 = obj;
+            lv_obj_set_pos(obj, 326, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)2);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "2");
+                }
+            }
+        }
+        {
+            // BtnEditCh3
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch3 = obj;
+            lv_obj_set_pos(obj, 439, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)3);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "3");
+                }
+            }
+        }
+        {
+            // BtnEditCh4
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch4 = obj;
+            lv_obj_set_pos(obj, 552, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)4);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "4");
+                }
+            }
+        }
+        {
+            // BtnEditCh5
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch5 = obj;
+            lv_obj_set_pos(obj, 665, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)5);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "5");
+                }
+            }
+        }
+        {
+            // BtnEditCh6
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch6 = obj;
+            lv_obj_set_pos(obj, 778, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)6);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "6");
+                }
+            }
+        }
+        {
+            // BtnEditCh7
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_edit_ch7 = obj;
+            lv_obj_set_pos(obj, 891, 320);
+            lv_obj_set_size(obj, 108, 44);
+            lv_obj_add_event_cb(obj, action_select_edit_channel, LV_EVENT_SHORT_CLICKED, (void *)7);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 98, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "7");
+                }
+            }
+        }
+        {
+            // BtnButtonEditClear
+            lv_obj_t *obj = lv_btn_create(parent_obj);
+            objects.btn_button_edit_clear = obj;
+            lv_obj_set_pos(obj, 700, 10);
+            lv_obj_set_size(obj, 140, 48);
+            lv_obj_add_event_cb(obj, action_clear_button, LV_EVENT_SHORT_CLICKED, (void *)0);
+            add_style_style_button_default(obj);
+            {
+                lv_obj_t *parent_obj = obj;
+                {
+                    lv_obj_t *obj = lv_label_create(parent_obj);
+                    lv_obj_set_pos(obj, 0, 0);
+                    lv_obj_set_size(obj, 130, 30);
+                    lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
+                    add_style_label_default(obj);
+                    lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "Clear");
+                }
+            }
         }
     }
     

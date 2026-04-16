@@ -577,6 +577,10 @@ static int32_t s_assign_instance;
 int32_t get_var_assign_instance(void)           { return s_assign_instance; }
 void    set_var_assign_instance(int32_t v)      { s_assign_instance = v; }
 
+static int32_t s_edit_channel;
+int32_t get_var_edit_channel(void)              { return s_edit_channel; }
+void    set_var_edit_channel(int32_t v)         { s_edit_channel = v; }
+
 /* Replace spaces with newlines so "Kitchen Lights" stacks on the 120×120 btn. */
 static void apply_linebreaks(const char *src, char *dst, size_t dst_sz) {
     if (!src || !dst || dst_sz == 0) return;
@@ -600,13 +604,31 @@ void button_config_apply_to_ui(void) {
         objects.lbl_device05_status_ind, objects.lbl_device06_status_ind,
         objects.lbl_device07_status_ind, objects.lbl_device08_status_ind,
     };
+    lv_obj_t *edit_labels[NUM_BUTTONS] = {
+        objects.lbl_edit_btn01_label, objects.lbl_edit_btn02_label,
+        objects.lbl_edit_btn03_label, objects.lbl_edit_btn04_label,
+        objects.lbl_edit_btn05_label, objects.lbl_edit_btn06_label,
+        objects.lbl_edit_btn07_label, objects.lbl_edit_btn08_label,
+    };
+    lv_obj_t *edit_icons[NUM_BUTTONS] = {
+        objects.lbl_edit_btn01_icon, objects.lbl_edit_btn02_icon,
+        objects.lbl_edit_btn03_icon, objects.lbl_edit_btn04_icon,
+        objects.lbl_edit_btn05_icon, objects.lbl_edit_btn06_icon,
+        objects.lbl_edit_btn07_icon, objects.lbl_edit_btn08_icon,
+    };
     char icon_buf[5];
     char lbl_buf[BTN_LABEL_MAX];
     for (int i = 0; i < NUM_BUTTONS; i++) {
-        apply_linebreaks(g_buttons[i].label, lbl_buf, sizeof(lbl_buf));
         const char *icon = utf8_encode(g_buttons[i].icon_codepoint, icon_buf);
+        const char *raw_label = g_buttons[i].label;
+        const char *display_label = (raw_label && raw_label[0]) ? raw_label : "Unset";
+
+        apply_linebreaks(raw_label, lbl_buf, sizeof(lbl_buf));
         if (home_labels[i]) lv_label_set_text(home_labels[i], lbl_buf);
         if (home_icons[i])  lv_label_set_text(home_icons[i],  icon);
+
+        if (edit_labels[i]) lv_label_set_text(edit_labels[i], display_label);
+        if (edit_icons[i])  lv_label_set_text(edit_icons[i],  icon);
     }
 }
 

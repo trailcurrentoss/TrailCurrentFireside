@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/2",
+    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/5",
     "selectedFontObject": "[TrailCurrentFireside.eez-project]:/fonts/1",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
@@ -210,10 +210,10 @@
                 {
                   "type": "tab",
                   "id": "#271b3acc-df77-4a33-8902-368be5704fae",
-                  "name": "PagePowerManagement",
+                  "name": "PageSettings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/2",
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/5",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1344,11 +1344,7 @@
       "selection": {
         "0": {
           "1": {
-            "0": {
-              "5": {
-                "$selected": true
-              }
-            }
+            "0": {}
           }
         }
       },
@@ -1356,6 +1352,38 @@
         "translate": {
           "x": -512,
           "y": -180
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/7[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/6[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -300
         },
         "scale": 0.75
       },

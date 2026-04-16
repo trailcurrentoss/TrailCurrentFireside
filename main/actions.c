@@ -560,6 +560,65 @@ static void highlight_active_instance(void) {
   }
 }
 
+static lv_obj_t *edit_device_button(int mod) {
+  switch (mod) {
+    case MOD_NONE:       return objects.btn_edit_device_none;
+    case MOD_TORRENT:    return objects.btn_edit_device_torrent;
+    case MOD_SWITCHBACK: return objects.btn_edit_device_switchback;
+    default:             return NULL;
+  }
+}
+
+static lv_obj_t *edit_addr_button(int addr) {
+  switch (addr) {
+    case 0: return objects.btn_edit_addr0;
+    case 1: return objects.btn_edit_addr1;
+    case 2: return objects.btn_edit_addr2;
+    default: return NULL;
+  }
+}
+
+static void highlight_edit_device_type(int mod) {
+  for (int m = MOD_NONE; m <= MOD_SWITCHBACK; m++) {
+    lv_obj_t *b = edit_device_button(m);
+    if (!b) continue;
+    if (m == mod) lv_obj_add_state(b, LV_STATE_CHECKED);
+    else          lv_obj_clear_state(b, LV_STATE_CHECKED);
+  }
+}
+
+static void highlight_edit_address(int addr) {
+  for (int i = 0; i < 3; i++) {
+    lv_obj_t *b = edit_addr_button(i);
+    if (!b) continue;
+    if (i == addr) lv_obj_add_state(b, LV_STATE_CHECKED);
+    else           lv_obj_clear_state(b, LV_STATE_CHECKED);
+  }
+}
+
+static lv_obj_t *edit_ch_button(int ch) {
+  switch (ch) {
+    case 0: return objects.btn_edit_ch0;
+    case 1: return objects.btn_edit_ch1;
+    case 2: return objects.btn_edit_ch2;
+    case 3: return objects.btn_edit_ch3;
+    case 4: return objects.btn_edit_ch4;
+    case 5: return objects.btn_edit_ch5;
+    case 6: return objects.btn_edit_ch6;
+    case 7: return objects.btn_edit_ch7;
+    default: return NULL;
+  }
+}
+
+static void highlight_edit_channel(int ch) {
+  for (int i = 0; i < 8; i++) {
+    lv_obj_t *b = edit_ch_button(i);
+    if (!b) continue;
+    if (i == ch) lv_obj_add_state(b, LV_STATE_CHECKED);
+    else         lv_obj_clear_state(b, LV_STATE_CHECKED);
+  }
+}
+
 static lv_obj_t *icon_slot(int i) {
   /* Indexed lookup via a static table saves ~300 lines of switch. */
   static lv_obj_t **slots = NULL;
@@ -630,10 +689,16 @@ void action_navigate_to_button_edit(lv_event_t *e) {
   set_var_edit_btn_number(btn);
   set_var_edit_label_text(cfg->label);
   set_var_edit_icon_codepoint((int32_t)cfg->icon_codepoint);
+  set_var_assign_module_type((int32_t)cfg->module_type);
+  set_var_assign_instance((int32_t)cfg->instance);
+  set_var_edit_channel((int32_t)cfg->channel);
 
   if (objects.lbl_button_edit_header)
     lv_label_set_text_fmt(objects.lbl_button_edit_header, "Button %d", btn);
   highlight_selected_icon(cfg->icon_codepoint);
+  highlight_edit_device_type((int)cfg->module_type);
+  highlight_edit_address((int)cfg->instance);
+  highlight_edit_channel((int)cfg->channel);
 
   s_active_screen_id = SCREEN_ID_PAGE_BUTTON_EDIT;
   lv_scr_load_anim(objects.page_button_edit, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
@@ -673,8 +738,12 @@ void action_save_button_appearance(lv_event_t *e) {
   uint16_t icon = (uint16_t)get_var_edit_icon_codepoint();
 
   if (btn >= 1 && btn <= NUM_BUTTONS) {
+    module_type_t mod = (module_type_t)get_var_assign_module_type();
+    uint8_t inst = (uint8_t)get_var_assign_instance();
     button_config_set_appearance((uint8_t)btn,
                                  (lbl && lbl[0]) ? lbl : NULL, icon);
+    uint8_t ch = (uint8_t)get_var_edit_channel();
+    button_config_set_mapping((uint8_t)btn, mod, inst, ch);
     button_config_apply_to_ui();
   }
 
@@ -704,6 +773,44 @@ void action_select_device_instance(lv_event_t *e) {
   set_var_assign_instance(inst);
   refresh_channel_dropdowns();
   highlight_active_instance();
+}
+
+void action_reset_all_buttons(lv_event_t *e) {
+  (void)e;
+  button_config_reset_all();
+  button_config_apply_to_ui();
+}
+
+void action_clear_button(lv_event_t *e) {
+  (void)e;
+  int btn = get_var_edit_btn_number();
+  if (btn >= 1 && btn <= NUM_BUTTONS) {
+    button_config_clear((uint8_t)btn);
+    button_config_apply_to_ui();
+  }
+  s_active_screen_id = SCREEN_ID_PAGE_SETTINGS;
+  lv_scr_load_anim(objects.page_settings, LV_SCR_LOAD_ANIM_FADE_ON, 150, 0, false);
+}
+
+void action_select_edit_device_type(lv_event_t *e) {
+  int mod = (int)(intptr_t)lv_event_get_user_data(e);
+  if (mod < MOD_NONE || mod > MOD_SWITCHBACK) return;
+  set_var_assign_module_type(mod);
+  highlight_edit_device_type(mod);
+}
+
+void action_select_edit_address(lv_event_t *e) {
+  int addr = (int)(intptr_t)lv_event_get_user_data(e);
+  if (addr < 0 || addr > 2) return;
+  set_var_assign_instance(addr);
+  highlight_edit_address(addr);
+}
+
+void action_select_edit_channel(lv_event_t *e) {
+  int ch = (int)(intptr_t)lv_event_get_user_data(e);
+  if (ch < 0 || ch > 7) return;
+  set_var_edit_channel(ch);
+  highlight_edit_channel(ch);
 }
 
 /* Keyboard event interceptor — drives EditLabelText buffer since
