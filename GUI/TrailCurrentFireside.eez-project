@@ -6375,7 +6375,7 @@
                       },
                       "timeline": [],
                       "eventHandlers": [],
-                      "identifier": "PowerArcRemainingHours",
+                      "identifier": "PowerArcCurrentConsumption",
                       "leftUnit": "px",
                       "topUnit": "px",
                       "widthUnit": "px",
@@ -6487,59 +6487,6 @@
                       },
                       "group": "",
                       "groupIndex": 0
-                    },
-                    {
-                      "objID": "31d7d443-98b6-4e05-a1ff-3eac87f28f02",
-                      "type": "LVGLLabelWidget",
-                      "left": -80,
-                      "top": 0,
-                      "width": 55,
-                      "height": 35,
-                      "customInputs": [],
-                      "customOutputs": [],
-                      "style": {
-                        "objID": "e725c463-54fd-4d44-8274-6f960f4e5e60",
-                        "useStyle": "default",
-                        "conditionalStyles": [],
-                        "childStyles": []
-                      },
-                      "timeline": [],
-                      "eventHandlers": [],
-                      "identifier": "LabelTimeToGoMeasurementType",
-                      "leftUnit": "px",
-                      "topUnit": "px",
-                      "widthUnit": "content",
-                      "heightUnit": "content",
-                      "children": [],
-                      "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-                      "hiddenFlagType": "literal",
-                      "clickableFlagType": "literal",
-                      "flagScrollbarMode": "",
-                      "flagScrollDirection": "",
-                      "scrollSnapX": "",
-                      "scrollSnapY": "",
-                      "checkedStateType": "literal",
-                      "disabledStateType": "literal",
-                      "states": "",
-                      "useStyle": "LabelNavTextAlternate",
-                      "localStyles": {
-                        "objID": "3f17b8e8-b8e4-4c85-e968-5106004a6fa5",
-                        "definition": {
-                          "MAIN": {
-                            "DEFAULT": {
-                              "align": "RIGHT_MID",
-                              "text_font": "MONTSERRAT_32"
-                            }
-                          }
-                        }
-                      },
-                      "group": "",
-                      "groupIndex": 0,
-                      "text": "Hrs",
-                      "textType": "literal",
-                      "longMode": "WRAP",
-                      "recolor": false,
-                      "previewValue": "hrs"
                     },
                     {
                       "objID": "cc8cc4fd-2ec3-4949-875f-6ecfa2323801",

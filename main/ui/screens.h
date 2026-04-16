@@ -124,9 +124,8 @@ typedef struct _objects_t {
     lv_obj_t *panel_power_remaining_time;
     lv_obj_t *label_power_remaining_cacpity;
     lv_obj_t *power_remaining_arc_group;
-    lv_obj_t *power_arc_remaining_hours;
+    lv_obj_t *power_arc_current_consumption;
     lv_obj_t *panel_power_remaining_center;
-    lv_obj_t *label_time_to_go_measurement_type;
     lv_obj_t *label_power_remaining_time_to_go_value;
     lv_obj_t *label_power_remaining;
     lv_obj_t *label_power_consumption_wattage_value;

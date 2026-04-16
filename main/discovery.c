@@ -21,13 +21,19 @@ static const char *TAG = "discovery";
 static volatile bool s_confirmed = false;
 static volatile bool s_discovery_running = false;
 
-static void discovery_mdns_start(const char *hostname)
+void discovery_mdns_init(void)
 {
-    const esp_app_desc_t *app = esp_app_get_description();
-
+    char hostname[16];
+    mqtt_client_hostname(hostname, sizeof(hostname));
     mdns_init();
     mdns_hostname_set(hostname);
-    mdns_instance_name_set("TrailCurrent Module");
+    mdns_instance_name_set("TrailCurrent Fireside");
+    ESP_LOGI(TAG, "mDNS resolver started — device is %s.local", hostname);
+}
+
+static void discovery_mdns_advertise(void)
+{
+    const esp_app_desc_t *app = esp_app_get_description();
 
     mdns_txt_item_t txt[] = {
         { "type", MODULE_TYPE },
@@ -37,6 +43,8 @@ static void discovery_mdns_start(const char *hostname)
     mdns_service_add("TrailCurrent Discovery", "_trailcurrent", "_tcp",
                      80, txt, sizeof(txt) / sizeof(txt[0]));
 
+    char hostname[16];
+    mqtt_client_hostname(hostname, sizeof(hostname));
     ESP_LOGI(TAG, "mDNS discovery: %s.local type=%s fw=%s",
              hostname, MODULE_TYPE, app->version);
 }
@@ -73,13 +81,10 @@ static void discovery_task_fn(void *arg)
 {
     ESP_LOGI(TAG, "=== Entering discovery mode ===");
 
-    char hostname[16];
-    mqtt_client_hostname(hostname, sizeof(hostname));
-
     /* Free broker sockets so the HTTP server can bind port 80 cleanly. */
     mqtt_client_stop();
 
-    discovery_mdns_start(hostname);
+    discovery_mdns_advertise();
     httpd_handle_t server = discovery_start_server();
 
     s_confirmed = false;
@@ -95,7 +100,7 @@ static void discovery_task_fn(void *arg)
     }
 
     if (server) httpd_stop(server);
-    mdns_free();
+    mdns_service_remove("_trailcurrent", "_tcp");
 
     /* Return to normal operation regardless of confirm / timeout. */
     mqtt_client_connect();

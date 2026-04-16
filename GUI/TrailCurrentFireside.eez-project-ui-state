@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/5",
+    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/2",
     "selectedFontObject": "[TrailCurrentFireside.eez-project]:/fonts/1",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
@@ -126,7 +126,6 @@
                   "type": "tabset",
                   "id": "#18f6b82f-d4f0-4c3f-a7f7-6b37f7e33a5c",
                   "weight": 1,
-                  "selected": 2,
                   "enableClose": false,
                   "children": [
                     {
@@ -211,10 +210,10 @@
                 {
                   "type": "tab",
                   "id": "#271b3acc-df77-4a33-8902-368be5704fae",
-                  "name": "PageSettings",
+                  "name": "PagePowerManagement",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/5",
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/2",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1268,10 +1267,11 @@
         "0": {
           "4": {
             "1": {
-              "1": {
-                "$selected": true
-              }
+              "1": {}
             }
+          },
+          "5": {
+            "1": {}
           }
         }
       },

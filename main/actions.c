@@ -10,6 +10,7 @@
 #include "ui.h"
 #include "vars.h"
 #include "app_mqtt.h"
+#include "discovery.h"
 #include "button_config.h"
 #include "mqtt_vars.h"
 #include "nvs.h"
@@ -84,7 +85,8 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
       bsp_display_lock(0);
       lv_label_set_text(objects.label_wifi_connection_status, status_msg);
       bsp_display_unlock();
-      /* Connect MQTT now that we have network */
+      /* Start mDNS (enables .local resolution) then connect MQTT */
+      discovery_mdns_init();
       mqtt_client_connect();
     }
   }

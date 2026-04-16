@@ -325,7 +325,7 @@ void set_var_battery_soc(int32_t percent) {
         lv_bar_set_value(objects.bar_battery_soc, percent, LV_ANIM_ON);
     if (objects.label_power_battery_percentage_value) {
         char buf[16];
-        sprintf(buf, "%d%%", (int)percent);
+        sprintf(buf, "%d", (int)percent);
         lv_label_set_text(objects.label_power_battery_percentage_value, buf);
     }
 }
@@ -336,7 +336,7 @@ void set_var_battery_voltage(float volts) {
     battery_voltage_val = volts;
     if (objects.label_battery_voltage_value) {
         char buf[16];
-        sprintf(buf, "%.1fV", volts);
+        sprintf(buf, "%.1f", volts);
         lv_label_set_text(objects.label_battery_voltage_value, buf);
     }
 }
@@ -520,59 +520,37 @@ void set_var_consumption_watts(int32_t watts) {
         sprintf(buf, "%d", (int)watts);
         lv_label_set_text(objects.label_power_consumption_wattage_value, buf);
     }
+    if (objects.power_arc_current_consumption) {
+        lv_arc_set_range(objects.power_arc_current_consumption, 0, 2000);
+        lv_arc_set_value(objects.power_arc_current_consumption, watts < 0 ? 0 : (watts > 2000 ? 2000 : watts));
+    }
 }
 
 /* Battery time-to-go (from Victron BMV TTG, arrives as minutes).
  * 0 or 0xFFFF from the shunt = no valid data. */
 void set_var_time_remaining(int32_t minutes) {
     if (minutes <= 0 || minutes >= 0xFFFF) {
-        /* No valid TTG data */
         if (objects.label_power_remaining_time_to_go_value)
             lv_label_set_text(objects.label_power_remaining_time_to_go_value, "-");
-        if (objects.label_time_to_go_measurement_type)
-            lv_label_set_text(objects.label_time_to_go_measurement_type, "");
-        if (objects.power_arc_remaining_hours)
-            lv_arc_set_value(objects.power_arc_remaining_hours, 0);
         return;
     }
 
     char value_buf[16];
-    const char *unit;
 
     if (minutes >= 1440) {
-        /* > 1 day: show days */
         int days = minutes / 1440;
         int hrs  = (minutes % 1440) / 60;
         snprintf(value_buf, sizeof(value_buf), "%dd %dh", days, hrs);
-        unit = "Days";
-        if (objects.power_arc_remaining_hours) {
-            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 30);
-            lv_arc_set_value(objects.power_arc_remaining_hours, days > 30 ? 30 : days);
-        }
     } else if (minutes >= 60) {
-        /* > 1 hour: show hours */
         int hrs  = minutes / 60;
         int mins = minutes % 60;
         snprintf(value_buf, sizeof(value_buf), "%d:%02d", hrs, mins);
-        unit = "Hrs";
-        if (objects.power_arc_remaining_hours) {
-            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 24);
-            lv_arc_set_value(objects.power_arc_remaining_hours, hrs);
-        }
     } else {
-        /* < 1 hour: show minutes */
-        snprintf(value_buf, sizeof(value_buf), "%d", (int)minutes);
-        unit = "Min";
-        if (objects.power_arc_remaining_hours) {
-            lv_arc_set_range(objects.power_arc_remaining_hours, 0, 60);
-            lv_arc_set_value(objects.power_arc_remaining_hours, minutes);
-        }
+        snprintf(value_buf, sizeof(value_buf), "%dm", (int)minutes);
     }
 
     if (objects.label_power_remaining_time_to_go_value)
         lv_label_set_text(objects.label_power_remaining_time_to_go_value, value_buf);
-    if (objects.label_time_to_go_measurement_type)
-        lv_label_set_text(objects.label_time_to_go_measurement_type, unit);
 }
 
 /* Button edit / device assign vars — backing storage for ui/vars.h accessors. */
