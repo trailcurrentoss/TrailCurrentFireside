@@ -320,6 +320,7 @@ void set_var_device08_status(int32_t value) {
 /* Battery SOC */
 static int32_t battery_soc = 0;
 void set_var_battery_soc(int32_t percent) {
+    if (percent == battery_soc) return;
     battery_soc = percent;
     if (objects.bar_battery_soc)
         lv_bar_set_value(objects.bar_battery_soc, percent, LV_ANIM_ON);
@@ -650,6 +651,75 @@ void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black) {
                       objects.label_fresh_water_value, fresh);
     update_water_tank(objects.bar_grey_water_level, NULL, grey);
     update_water_tank(objects.bar_black_water_level, NULL, black);
+}
+
+/* Module watchdog clear functions — called with display lock held when a module
+ * stops reporting. Regular set_var_* calls restore values on recovery automatically. */
+
+void clear_var_energy(void) {
+    battery_soc = 0;
+    if (objects.bar_battery_soc)
+        lv_bar_set_value(objects.bar_battery_soc, 0, LV_ANIM_OFF);
+    if (objects.label_power_battery_percentage_value)
+        lv_label_set_text(objects.label_power_battery_percentage_value, "--");
+    if (objects.label_battery_voltage_value)
+        lv_label_set_text(objects.label_battery_voltage_value, "--");
+    if (objects.label_solar_power_wattage_value)
+        lv_label_set_text(objects.label_solar_power_wattage_value, "--");
+    if (objects.label_charge_status_value_s)
+        lv_label_set_text(objects.label_charge_status_value_s, "--");
+    if (objects.label_power_consumption_wattage_value)
+        lv_label_set_text(objects.label_power_consumption_wattage_value, "--");
+    if (objects.power_arc_current_consumption)
+        lv_arc_set_value(objects.power_arc_current_consumption, 0);
+    if (objects.label_power_remaining_time_to_go_value)
+        lv_label_set_text(objects.label_power_remaining_time_to_go_value, "--");
+}
+
+void clear_var_airquality(void) {
+    current_interior_temperature = 0;
+    if (objects.label_current_interior_temperature)
+        lv_label_set_text(objects.label_current_interior_temperature, "--");
+    if (objects.label_air_quality_temperature_value)
+        lv_label_set_text(objects.label_air_quality_temperature_value, "--");
+    if (objects.label_air_quality_humdity_value)
+        lv_label_set_text(objects.label_air_quality_humdity_value, "--");
+    if (objects.label_air_quality_co2_value)
+        lv_label_set_text(objects.label_air_quality_co2_value, "--");
+    if (objects.label_air_quality_tvoc_value)
+        lv_label_set_text(objects.label_air_quality_tvoc_value, "--");
+    /* Thermostat: neutral state — can't compare desired vs unknown current temp */
+    if (objects.label_heat_activated_icon)
+        lv_obj_clear_state(objects.label_heat_activated_icon, LV_STATE_CHECKED);
+    if (objects.label_ac_activated_icon)
+        lv_obj_clear_state(objects.label_ac_activated_icon, LV_STATE_CHECKED);
+    if (objects.arc_thermostat)
+        lv_obj_clear_state(objects.arc_thermostat, LV_STATE_CHECKED);
+}
+
+void clear_var_gps(void) {
+    /* Clock intentionally NOT cleared — system RTC keeps running after initial GPS sync. */
+    if (objects.label_latitude_value)
+        lv_label_set_text(objects.label_latitude_value, "--");
+    if (objects.label_longitude_value)
+        lv_label_set_text(objects.label_longitude_value, "--");
+    if (objects.label_gnss_elevation_value)
+        lv_label_set_text(objects.label_gnss_elevation_value, "--");
+    if (objects.label_gnss_num_sats_value)
+        lv_label_set_text(objects.label_gnss_num_sats_value, "--");
+    if (objects.label_gnss_mode_value)
+        lv_label_set_text(objects.label_gnss_mode_value, "--");
+}
+
+void clear_var_water(void) {
+    if (objects.bar_fresh_water_value)
+        lv_bar_set_value(objects.bar_fresh_water_value, 0, LV_ANIM_OFF);
+    if (objects.label_fresh_water_value)
+        lv_label_set_text(objects.label_fresh_water_value, "--");
+    if (objects.bar_grey_water_level)
+        lv_bar_set_value(objects.bar_grey_water_level, 0, LV_ANIM_OFF);
+    if (objects.bar_black_water_level)
+        lv_bar_set_value(objects.bar_black_water_level, 0, LV_ANIM_OFF);
 }
 
 /* MQTT connected status */

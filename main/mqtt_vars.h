@@ -58,6 +58,12 @@ void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black);
 /* Connection status */
 void set_var_mqtt_connected(bool connected);
 
+/* Module watchdog clear functions — call with display lock held */
+void clear_var_energy(void);
+void clear_var_airquality(void);
+void clear_var_gps(void);
+void clear_var_water(void);
+
 
 #ifdef __cplusplus
 }

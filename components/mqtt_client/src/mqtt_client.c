@@ -3,6 +3,7 @@
 #include "mqtt_client.h" /* ESP-IDF esp_mqtt library */
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "esp_timer.h"
 #include "nvs.h"
 #include "cJSON.h"
 #include "freertos/FreeRTOS.h"
@@ -13,6 +14,32 @@
 /* Display lock/unlock from BSP - must hold around LVGL calls from non-LVGL tasks */
 extern void bsp_display_lock(int timeout_ms);
 extern void bsp_display_unlock(void);
+
+/* --- Per-module watchdog --- */
+
+typedef enum {
+    WD_ENERGY = 0,
+    WD_AIRQUALITY,
+    WD_GPS,
+    WD_WATER,
+    WD_COUNT
+} watchdog_id_t;
+
+static const int64_t WATCHDOG_TIMEOUT_US[WD_COUNT] = {
+    [WD_ENERGY]     = 10LL * 1000000LL,  /* 10 s — Ampline publishes at 1 s */
+    [WD_AIRQUALITY] = 20LL * 1000000LL,  /* 20 s — Borealis reads at 2 s */
+    [WD_GPS]        = 15LL * 1000000LL,  /* 15 s — Milepost at ~1 Hz */
+    [WD_WATER]      = 10LL * 1000000LL,  /* 10 s — Reservoir publishes at 1 s */
+};
+
+/* 0 = never seen (watchdog not yet armed for this module) */
+static int64_t s_watchdog_last_seen[WD_COUNT] = {0};
+static bool    s_watchdog_timed_out[WD_COUNT] = {false, false, false, false};
+
+extern void clear_var_energy(void);
+extern void clear_var_airquality(void);
+extern void clear_var_gps(void);
+extern void clear_var_water(void);
 
 /* MQTT variable setters (mqtt_vars.h / vars.c) */
 extern void set_var_device01_status(int32_t value);
@@ -371,6 +398,41 @@ int mqtt_client_publish(const char *topic, const char *payload, int payload_len)
     return msg_id;
 }
 
+/* --- Module watchdog check --- */
+
+void mqtt_client_check_watchdogs(void) {
+    int64_t now = esp_timer_get_time();
+    int to_clear[WD_COUNT];
+    int n = 0;
+
+    for (int i = 0; i < WD_COUNT; i++) {
+        if (s_watchdog_last_seen[i] == 0) continue; /* never seen — not yet armed */
+        bool timed_out = (now - s_watchdog_last_seen[i]) > WATCHDOG_TIMEOUT_US[i];
+        if (timed_out && !s_watchdog_timed_out[i]) {
+            s_watchdog_timed_out[i] = true;
+            to_clear[n++] = i;
+            ESP_LOGW(TAG, "Module watchdog timeout: id=%d", i);
+        } else if (!timed_out && s_watchdog_timed_out[i]) {
+            s_watchdog_timed_out[i] = false;
+            ESP_LOGI(TAG, "Module watchdog recovered: id=%d", i);
+        }
+    }
+
+    if (n > 0) {
+        bsp_display_lock(0);
+        for (int j = 0; j < n; j++) {
+            switch (to_clear[j]) {
+                case WD_ENERGY:     clear_var_energy();     break;
+                case WD_AIRQUALITY: clear_var_airquality(); break;
+                case WD_GPS:        clear_var_gps();        break;
+                case WD_WATER:      clear_var_water();      break;
+                default: break;
+            }
+        }
+        bsp_display_unlock();
+    }
+}
+
 /* --- GNSS mode helper --- */
 
 static void process_gnss_mode(int mode) {
@@ -425,6 +487,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/energy/status */
     else if (strcmp(topic, "local/energy/status") == 0) {
+        s_watchdog_last_seen[WD_ENERGY] = esp_timer_get_time();
         cJSON *bp = cJSON_GetObjectItem(doc, "battery_percent");
         cJSON *bv = cJSON_GetObjectItem(doc, "battery_voltage");
         cJSON *sw = cJSON_GetObjectItem(doc, "solar_watts");
@@ -441,6 +504,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/airquality/temphumid */
     else if (strcmp(topic, "local/airquality/temphumid") == 0) {
+        s_watchdog_last_seen[WD_AIRQUALITY] = esp_timer_get_time();
         cJSON *temp_f = cJSON_GetObjectItem(doc, "tempInF");
         cJSON *humid = cJSON_GetObjectItem(doc, "humidity");
 
@@ -453,6 +517,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/airquality/status */
     else if (strcmp(topic, "local/airquality/status") == 0) {
+        s_watchdog_last_seen[WD_AIRQUALITY] = esp_timer_get_time();
         cJSON *eco2 = cJSON_GetObjectItem(doc, "eco2_ppm");
         cJSON *tvoc = cJSON_GetObjectItem(doc, "tvoc_ppb");
 
@@ -463,6 +528,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/gps/latlon */
     else if (strcmp(topic, "local/gps/latlon") == 0) {
+        s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *lat = cJSON_GetObjectItem(doc, "latitude");
         cJSON *lon = cJSON_GetObjectItem(doc, "longitude");
         if (lat) set_var_latitude((float)lat->valuedouble);
@@ -470,11 +536,13 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/gps/alt */
     else if (strcmp(topic, "local/gps/alt") == 0) {
+        s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *alt = cJSON_GetObjectItem(doc, "altitudeFeet");
         if (alt) set_var_altitude((float)alt->valuedouble);
     }
     /* local/gps/details */
     else if (strcmp(topic, "local/gps/details") == 0) {
+        s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *sats = cJSON_GetObjectItem(doc, "numberOfSatellites");
         cJSON *spd = cJSON_GetObjectItem(doc, "speedOverGround");
         cJSON *crs = cJSON_GetObjectItem(doc, "courseOverGround");
@@ -487,6 +555,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/gps/time */
     else if (strcmp(topic, "local/gps/time") == 0) {
+        s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *yr = cJSON_GetObjectItem(doc, "year");
         cJSON *mo = cJSON_GetObjectItem(doc, "month");
         cJSON *dy = cJSON_GetObjectItem(doc, "day");
@@ -501,6 +570,7 @@ static void process_message(const char *topic, const char *payload, int length) 
     }
     /* local/water/status — tank levels (0-100%) from Reservoir via can-bridge */
     else if (strcmp(topic, "local/water/status") == 0) {
+        s_watchdog_last_seen[WD_WATER] = esp_timer_get_time();
         cJSON *fresh = cJSON_GetObjectItem(doc, "fresh");
         cJSON *grey  = cJSON_GetObjectItem(doc, "grey");
         cJSON *black = cJSON_GetObjectItem(doc, "black");

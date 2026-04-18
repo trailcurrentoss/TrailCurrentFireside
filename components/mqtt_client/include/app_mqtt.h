@@ -50,4 +50,11 @@ void mqtt_client_stop(void);
  */
 const char *mqtt_client_hostname(char *out, size_t out_len);
 
+/**
+ * Check all module watchdogs and clear stale UI values.
+ * Call from the main loop on every iteration (after process_messages).
+ * Zero overhead unless a module transitions state.
+ */
+void mqtt_client_check_watchdogs(void);
+
 #endif /* APP_MQTT_H */

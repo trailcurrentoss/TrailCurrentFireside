@@ -258,6 +258,10 @@ void app_main(void)
          * wakes immediately when a message arrives. */
         mqtt_client_process_messages();
 
+        /* Check per-module watchdogs and clear stale values when a module stops
+         * reporting. Acquires display lock only on state transitions (rare). */
+        mqtt_client_check_watchdogs();
+
         /* Screen timeout: blank after inactivity, wake on touch.
          * Check every loop iteration (~10ms) for responsive wake. */
         if (!screen_blanked) {
