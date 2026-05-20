@@ -188,19 +188,28 @@ bool sd_config_read(void) {
         long cert_size = ftell(f);
         fseek(f, 0, SEEK_SET);
 
-        if (cert_size > 0 && cert_size < 8192) {
+        if (cert_size <= 0 || cert_size >= 4000) {
+            /* NVS_MAX_STR_LEN is 4000 — anything at/above that will fail to store */
+            ESP_LOGW(TAG, "ca.crt size %ld out of range (must be 1..3999 bytes)", cert_size);
+        } else {
             char *cert_buf = malloc(cert_size + 1);
             if (cert_buf) {
                 size_t read_len = fread(cert_buf, 1, cert_size, f);
                 cert_buf[read_len] = '\0';
-                nvs_set_str(nvs, "mqttCaCert", cert_buf);
-                ESP_LOGI(TAG, "CA cert stored (%ld bytes)", cert_size);
+                esp_err_t cret = nvs_set_str(nvs, "mqttCaCert", cert_buf);
+                if (cret == ESP_OK) {
+                    ESP_LOGI(TAG, "CA cert stored (%ld bytes)", cert_size);
+                } else {
+                    ESP_LOGE(TAG, "Failed to store CA cert in NVS: %s", esp_err_to_name(cret));
+                }
                 free(cert_buf);
+            } else {
+                ESP_LOGE(TAG, "malloc(%ld) for CA cert failed", cert_size + 1);
             }
         }
         fclose(f);
     } else {
-        ESP_LOGI(TAG, "ca.crt not found (optional)");
+        ESP_LOGW(TAG, "ca.crt not found on SD card (looked for %s/ca.crt)", MOUNT_POINT);
     }
 
     nvs_commit(nvs);

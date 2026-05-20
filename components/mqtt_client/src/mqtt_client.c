@@ -256,15 +256,20 @@ bool mqtt_client_load_settings(void) {
 
     /* CA certificate */
     len = 0;
-    if (nvs_get_str(nvs, "mqttCaCert", NULL, &len) == ESP_OK && len > 0) {
+    esp_err_t cret = nvs_get_str(nvs, "mqttCaCert", NULL, &len);
+    if (cret == ESP_OK && len > 0) {
         if (s_ca_cert_pem) {
             free(s_ca_cert_pem);
         }
         s_ca_cert_pem = malloc(len);
         if (s_ca_cert_pem) {
             nvs_get_str(nvs, "mqttCaCert", s_ca_cert_pem, &len);
-            ESP_LOGI(TAG, "CA cert loaded (%d bytes)", (int)len);
+            ESP_LOGI(TAG, "CA cert loaded from NVS (%d bytes)", (int)len);
+        } else {
+            ESP_LOGE(TAG, "malloc(%d) for CA cert failed", (int)len);
         }
+    } else {
+        ESP_LOGW(TAG, "CA cert not in NVS: %s", esp_err_to_name(cret));
     }
 
     nvs_close(nvs);

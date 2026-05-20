@@ -450,7 +450,17 @@ void set_var_tvoc(int32_t ppb) {
 static bool system_time_set = false;
 
 void set_var_gps_time(int year, int month, int day, int hour, int minute, int second) {
-    /* Convert UTC fields to epoch via mktime with TZ temporarily set to UTC */
+    /* Drop pre-fix garbage: GPS modules often emit epoch (1970), GPS epoch
+     * (1980), factory defaults (2000), or wraparound dates before lock. */
+    if (year < 2025 || year > 2099 ||
+        month < 1 || month > 12 ||
+        day   < 1 || day   > 31 ||
+        hour  < 0 || hour  > 23 ||
+        minute < 0 || minute > 59 ||
+        second < 0 || second > 60) {
+        return;
+    }
+
     setenv("TZ", "UTC0", 1);
     tzset();
 
@@ -462,8 +472,22 @@ void set_var_gps_time(int year, int month, int day, int hour, int minute, int se
     tm.tm_min  = minute;
     tm.tm_sec  = second;
 
-    time_t t = mktime(&tm);
-    struct timeval tv = { .tv_sec = t, .tv_usec = 0 };
+    time_t gps_epoch = mktime(&tm);
+
+    /* After first sync, only re-sync on drift > 2s to avoid yanking the local
+     * clock backward when GPS messages arrive faster than 1Hz second-resolution
+     * ticks forward. */
+    if (system_time_set) {
+        time_t now;
+        time(&now);
+        time_t diff = gps_epoch > now ? gps_epoch - now : now - gps_epoch;
+        if (diff <= 2) {
+            update_clock_display();
+            return;
+        }
+    }
+
+    struct timeval tv = { .tv_sec = gps_epoch, .tv_usec = 0 };
     settimeofday(&tv, NULL);
     system_time_set = true;
 
