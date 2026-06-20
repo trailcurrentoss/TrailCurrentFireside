@@ -192,10 +192,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 53.25230213986889,
-              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#f5cff5df-b7da-4eb3-9886-3e002797cf18",
+                  "name": "Settings",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/settings",
+                    "subObjectPath": "[TrailCurrentFireside.eez-project]:/settings",
+                    "permanent": false
+                  },
+                  "icon": "material:settings"
+                },
                 {
                   "type": "tab",
                   "id": "#bd7e4903-a8cf-421c-9f9a-471dc483fad7",
