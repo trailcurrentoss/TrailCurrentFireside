@@ -16,10 +16,11 @@ idf_component_register(
         "vars.c"
         "discovery.c"
         "ota.c"
+        "app_state.c"
     INCLUDE_DIRS . ./ui
-    REQUIRES esp_wifi esp_app_format mqtt_client sd_config button_config json nvs_flash waveshare__esp32_p4_wifi6_touch_lcd_7b esp_http_server app_update mdns esp_timer)
+    REQUIRES esp_wifi esp_app_format mqtt_client fireside_config wifi_setup button_config json nvs_flash waveshare__esp32_p4_wifi6_touch_lcd_7b esp_http_server app_update mdns esp_timer)
 
-target_compile_definitions(${COMPONENT_LIB} PRIVATE MODULE_TYPE="fireside")
+target_compile_definitions(${COMPONENT_LIB} PRIVATE MODULE_TYPE="fireside" FIRESIDE_HAS_WIZARD_UI=1)
 
 idf_component_get_property(LVGL_LIB lvgl__lvgl COMPONENT_LIB)
 target_compile_options(

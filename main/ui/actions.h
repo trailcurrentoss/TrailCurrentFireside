@@ -33,6 +33,26 @@ extern void action_select_edit_address(lv_event_t * e);
 extern void action_select_edit_channel(lv_event_t * e);
 extern void action_clear_button(lv_event_t * e);
 extern void action_reset_all_buttons(lv_event_t * e);
+extern void action_wifi_scan(lv_event_t * e);
+extern void action_wifi_select_network(lv_event_t * e);
+extern void action_wifi_password_submit(lv_event_t * e);
+extern void action_wifi_toggle_password_reveal(lv_event_t * e);
+extern void action_wifi_back(lv_event_t * e);
+extern void action_mqtt_next(lv_event_t * e);
+extern void action_mqtt_back(lv_event_t * e);
+extern void action_clear_connection(lv_event_t * e);
+extern void action_open_notification_panel(lv_event_t * e);
+extern void action_close_notification_panel(lv_event_t * e);
+extern void action_acknowledge_active_alarm(lv_event_t * e);
+extern void action_clear_all_active_alarms(lv_event_t * e);
+extern void action_test_alarm(lv_event_t * e);
+extern void action_open_alarm_settings(lv_event_t * e);
+extern void action_toggle_switchback_sensor(lv_event_t * e);
+extern void action_open_sensor_rename(lv_event_t * e);
+extern void action_save_sensor_rename(lv_event_t * e);
+extern void action_cancel_sensor_rename(lv_event_t * e);
+extern void action_alarm_show_duration_changed(lv_event_t * e);
+extern void action_alarm_snooze_duration_changed(lv_event_t * e);
 
 
 #ifdef __cplusplus

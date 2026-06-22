@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[TrailCurrentFireside.eez-project]:/userPages/8",
+    "selectedUserWidgetObject": "[TrailCurrentFireside.eez-project]:/userWidgets/1",
     "selectedFontObject": "[TrailCurrentFireside.eez-project]:/fonts/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
@@ -125,7 +126,7 @@
                 {
                   "type": "tabset",
                   "id": "#18f6b82f-d4f0-4c3f-a7f7-6b37f7e33a5c",
-                  "weight": 1,
+                  "weight": 1.0953947368421053,
                   "enableClose": false,
                   "children": [
                     {
@@ -157,7 +158,7 @@
                 {
                   "type": "tabset",
                   "id": "#5d8ec1de-be2e-49c1-aea3-d7a591a70825",
-                  "weight": 1,
+                  "weight": 0.9046052631578947,
                   "enableClose": false,
                   "children": [
                     {
@@ -192,9 +193,21 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 53.25230213986889,
+              "selected": 4,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#08bbb6dd-e6a8-4958-bbce-f1a9674d8df8",
+                  "name": "TopToolbar",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userWidgets/1",
+                    "permanent": false
+                  },
+                  "icon": "svg:user_widget"
+                },
                 {
                   "type": "tab",
                   "id": "#f5cff5df-b7da-4eb3-9886-3e002797cf18",
@@ -232,10 +245,10 @@
                 {
                   "type": "tab",
                   "id": "#271b3acc-df77-4a33-8902-368be5704fae",
-                  "name": "PageHome",
+                  "name": "PageWifiSetup",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/0",
+                    "objectPath": "[TrailCurrentFireside.eez-project]:/userPages/8",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1255,15 +1268,13 @@
     "[TrailCurrentFireside.eez-project]:/userPages/0[flow-state]": {
       "selection": {
         "0": {
-          "6": {
-            "$selected": true
-          }
+          "6": {}
         }
       },
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -300
+          "x": -381,
+          "y": -233
         },
         "scale": 0.75
       },
@@ -1275,11 +1286,19 @@
       }
     },
     "[TrailCurrentFireside.eez-project]:/userPages/1[flow-state]": {
-      "selection": {},
+      "selection": {
+        "0": {
+          "2": {
+            "2": {
+              "$selected": true
+            }
+          }
+        }
+      },
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -300
+          "x": -350,
+          "y": -324
         },
         "scale": 0.75
       },
@@ -1305,8 +1324,8 @@
       },
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -300
+          "x": -347,
+          "y": -316
         },
         "scale": 0.75
       },
@@ -1356,8 +1375,8 @@
       },
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -300
+          "x": -309,
+          "y": -205
         },
         "scale": 0.75
       },
@@ -1378,7 +1397,7 @@
       },
       "transform": {
         "translate": {
-          "x": -512,
+          "x": -341,
           "y": -180
         },
         "scale": 0.75
@@ -1394,8 +1413,8 @@
       "selection": {},
       "transform": {
         "translate": {
-          "x": -512,
-          "y": -300
+          "x": -333,
+          "y": -286
         },
         "scale": 0.75
       },
@@ -1410,7 +1429,102 @@
       "selection": {},
       "transform": {
         "translate": {
+          "x": -361,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/8[flow-state]": {
+      "selection": {
+        "0": {
+          "4": {
+            "$selected": true
+          },
+          "12": {
+            "6": {}
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -357,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/9[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
           "x": -512,
+          "y": -300
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userWidgets/1[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -512,
+          "y": -220
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userWidgets/0[flow-state]": {
+      "selection": {},
+      "transform": {
+        "translate": {
+          "x": -291,
+          "y": 78
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[TrailCurrentFireside.eez-project]:/userPages/10[flow-state]": {
+      "selection": {
+        "0": {
+          "3": {
+            "$selected": true
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -314,
           "y": -300
         },
         "scale": 0.75

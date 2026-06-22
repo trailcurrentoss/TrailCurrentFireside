@@ -17,19 +17,18 @@
 #include "bsp/display.h"
 #include "bsp/esp-bsp.h"
 #include "mqtt_vars.h"
-#include "sd_config.h"
 #include "app_mqtt.h"
 #include "button_config.h"
 #include "discovery.h"
 #include "ota.h"
+#include "fireside_config.h"
+#include "app_state.h"
 
 /* Check if WiFi is enabled (ESP-Hosted for ESP32-P4 via ESP-WIFI-REMOTE) */
 #if defined(CONFIG_ESP_HOSTED_ENABLED)
 #define WIFI_ENABLED 1
 #include "esp_wifi.h"
 #include "esp_hosted.h"
-/* WiFi event handler init from actions.c */
-extern void wifi_event_handler_init(void);
 #else
 #define WIFI_ENABLED 0
 #endif
@@ -65,11 +64,9 @@ static void wake_touch_cb(lv_event_t *e) {
     ESP_LOGI(TAG, "Screen wake - restored brightness %d", (int)brightness);
 }
 
-#define SD_NVS_NAMESPACE "sd_config"
-
 void app_main(void)
 {
-    /* Initialize NVS - required for WiFi and config storage */
+    /* Initialize NVS — required for WiFi credentials, MQTT config, and user settings */
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -77,13 +74,10 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    /* Read configuration from SD card before WiFi/network init */
-    bool sd_config_found = sd_config_read();
-    if (sd_config_found) {
-        ESP_LOGI(TAG, "SD card config loaded successfully");
-    } else {
-        ESP_LOGI(TAG, "No SD card present - using existing NVS settings");
-    }
+    /* Load persisted Fireside config (WiFi + MQTT credentials entered through
+     * the touchscreen wizard). On a freshly-flashed device this is empty and
+     * the wizard handles first-time provisioning. */
+    ESP_ERROR_CHECK(fireside_config_init());
 
 #if WIFI_ENABLED
     /* Initialize ESP-Hosted transport to communicate with C6 slave */
@@ -145,7 +139,7 @@ void app_main(void)
 
     ESP_LOGI(TAG, "WiFi initialized in STA mode");
 
-    /* Load MQTT settings from NVS (populated by SD card read) */
+    /* Load MQTT settings from fireside_config (touchscreen-entered NVS) */
     mqtt_client_load_settings();
 #endif
 
@@ -190,7 +184,11 @@ void app_main(void)
         lv_label_set_text(objects.label_version_number, app->version);
     }
     uint8_t about_mac[6] = {0};
-    if (esp_read_mac(about_mac, ESP_MAC_WIFI_STA) == ESP_OK) {
+    /* On ESP32-P4 the WiFi MAC lives on the C6 slave over ESP-Hosted, not in
+     * local efuse — esp_read_mac() can't see it. Query via esp_wifi_get_mac()
+     * which goes through the ESP-Hosted RPC bridge. */
+#if WIFI_ENABLED
+    if (esp_wifi_get_mac(WIFI_IF_STA, about_mac) == ESP_OK) {
         char buf[18];
         snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X",
                  about_mac[0], about_mac[1], about_mac[2],
@@ -198,54 +196,41 @@ void app_main(void)
         extern void set_var_mcu_mac_address(const char *value);
         set_var_mcu_mac_address(buf);
     }
+#endif
 
     /* Restore persisted user settings (theme, brightness, timeout, timezone) */
     extern void restore_user_settings(void);
     restore_user_settings();
 
 #if WIFI_ENABLED
-    /* Register WiFi event handlers for UI updates (must be after ui_init) */
-    wifi_event_handler_init();
-
-    /* Auto-connect to WiFi using credentials from NVS
-       (populated by SD card config.env — SD is only needed to update settings) */
-    {
-        nvs_handle_t nvs;
-        if (nvs_open(SD_NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
-            char ssid[33] = {0};
-            char password[65] = {0};
-            size_t ssid_len = sizeof(ssid);
-            size_t pass_len = sizeof(password);
-
-            if (nvs_get_str(nvs, "wifiSSID", ssid, &ssid_len) == ESP_OK &&
-                strlen(ssid) > 0) {
-                nvs_get_str(nvs, "wifiPass", password, &pass_len);
-
-                ESP_LOGI(TAG, "Connecting to WiFi: %s", ssid);
-                wifi_config_t wifi_config = {0};
-                strlcpy((char *)wifi_config.sta.ssid, ssid,
-                        sizeof(wifi_config.sta.ssid));
-                strlcpy((char *)wifi_config.sta.password, password,
-                        sizeof(wifi_config.sta.password));
-                wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-                esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-                esp_wifi_connect();
-                lv_label_set_text(objects.label_wifi_connection_status,
-                                  "Status: Connecting...");
-                ESP_LOGI(TAG, "WiFi auto-connect initiated");
-            } else {
-                ESP_LOGW(TAG, "No WiFi SSID in NVS");
-                lv_label_set_text(objects.label_wifi_connection_status,
-                                  "Status: To update settings, insert SD card with config.env");
-            }
-            nvs_close(nvs);
+    /* Touchscreen setup state machine. On first boot with no saved creds it
+     * loads PageWifiSetup → scan list → password keyboard → PageWifiConnecting
+     * → PageMqttSetup wizard → PageMqttConnecting → PageHome. Subsequent boots
+     * with saved creds skip the wizard and go straight to PageWifiConnecting,
+     * then PageHome once both WiFi + MQTT are up.
+     *
+     * If the EEZ wizard pages haven't been re-exported yet
+     * (FIRESIDE_HAS_WIZARD_UI is 0), app_state_init logs a warning and falls
+     * through — the rest of boot still works, but there's no first-boot UI for
+     * provisioning until the export is run. */
+    if (objects.label_wifi_connection_status) {
+        if (fireside_config_has_wifi()) {
+            lv_label_set_text(objects.label_wifi_connection_status,
+                              "Status: Connecting...");
         } else {
             lv_label_set_text(objects.label_wifi_connection_status,
-                              "Status: To update settings, insert SD card with config.env");
+                              "Status: Not configured — open Settings → Reset Connection to provision");
         }
     }
 #endif
     bsp_display_unlock();
+
+#if WIFI_ENABLED
+    /* Drive the wizard / auto-connect through app_state. Must run AFTER
+     * ui_init() (objects.* are referenced) but display lock is released so
+     * lv_scr_load() inside app_state can run on the LVGL thread. */
+    ESP_ERROR_CHECK(app_state_init());
+#endif
 
     discovery_init();
     ota_init();

@@ -38,6 +38,8 @@ CLAUDE.md
 # Temporary/backup files
 *.orig
 *.tmp
+tmp/
+scripts/
 
 # FreeCAD temporary and backup files
 .xdp-*

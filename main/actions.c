@@ -35,8 +35,6 @@
 
 #if WIFI_ENABLED
 static char wifi_connected_ip[20] = {0};
-static int wifi_retry_count = 0;
-#define WIFI_MAX_RETRIES 5
 static esp_timer_handle_t s_rssi_timer = NULL;
 
 static void rssi_poll_cb(void *arg) {
@@ -78,80 +76,41 @@ static void stop_rssi_polling(void) {
 }
 
 /**
- * @brief WiFi event handler to update UI on connection status changes
+ * @brief Called by app_state when WiFi reaches CONNECTED.
+ *
+ * The wifi_setup component owns the actual WIFI/IP event registration;
+ * this hook lives in actions.c so it can update the legacy Settings page
+ * status label, start RSSI polling, and kick off mDNS + MQTT once an IP is
+ * available.
  */
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-                               int32_t event_id, void *event_data) {
-  if (event_base == WIFI_EVENT) {
-    switch (event_id) {
-      case WIFI_EVENT_STA_CONNECTED:
-        ESP_LOGI("WIFI_EVENT", "Connected to AP");
-        wifi_retry_count = 0;
-        bsp_display_lock(0);
-        lv_label_set_text(objects.label_wifi_connection_status, "Status: Connected, getting IP...");
-        bsp_display_unlock();
-        break;
-      case WIFI_EVENT_STA_DISCONNECTED: {
-        wifi_event_sta_disconnected_t *disconn = (wifi_event_sta_disconnected_t *)event_data;
-        ESP_LOGW("WIFI_EVENT", "Disconnected from AP, reason: %d", disconn->reason);
-        stop_rssi_polling();
-        if (wifi_retry_count < WIFI_MAX_RETRIES) {
-          wifi_retry_count++;
-          ESP_LOGI("WIFI_EVENT", "Retrying connection (%d/%d)...", wifi_retry_count, WIFI_MAX_RETRIES);
-          esp_wifi_connect();
-          char retry_msg[64];
-          snprintf(retry_msg, sizeof(retry_msg), "Status: Retry %d/%d...", wifi_retry_count, WIFI_MAX_RETRIES);
-          bsp_display_lock(0);
-          lv_label_set_text(objects.label_wifi_connection_status, retry_msg);
-          bsp_display_unlock();
-        } else {
-          ESP_LOGW("WIFI_EVENT", "Max retries reached, giving up");
-          bsp_display_lock(0);
-          lv_label_set_text(objects.label_wifi_connection_status, "Status: Connection failed");
-          bsp_display_unlock();
-        }
-        break;
-      }
-      default:
-        break;
-    }
-  } else if (event_base == IP_EVENT) {
-    if (event_id == IP_EVENT_STA_GOT_IP) {
-      ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-      snprintf(wifi_connected_ip, sizeof(wifi_connected_ip), IPSTR, IP2STR(&event->ip_info.ip));
-      ESP_LOGI("WIFI_EVENT", "Got IP: %s", wifi_connected_ip);
-      char status_msg[64];
-      snprintf(status_msg, sizeof(status_msg), "Connected: %s", wifi_connected_ip);
-      bsp_display_lock(0);
-      lv_label_set_text(objects.label_wifi_connection_status, status_msg);
-      bsp_display_unlock();
-      start_rssi_polling();
-      /* Start mDNS (enables .local resolution) then connect MQTT */
-      discovery_mdns_init();
-      mqtt_client_connect();
-    }
+void fireside_wifi_connected(uint32_t ip) {
+  snprintf(wifi_connected_ip, sizeof(wifi_connected_ip), "%lu.%lu.%lu.%lu",
+           (unsigned long)( ip        & 0xff),
+           (unsigned long)((ip >>  8) & 0xff),
+           (unsigned long)((ip >> 16) & 0xff),
+           (unsigned long)((ip >> 24) & 0xff));
+  ESP_LOGI("WIFI_EVENT", "Got IP: %s", wifi_connected_ip);
+
+  char status_msg[64];
+  snprintf(status_msg, sizeof(status_msg), "Connected: %s", wifi_connected_ip);
+  bsp_display_lock(0);
+  if (objects.label_wifi_connection_status) {
+    lv_label_set_text(objects.label_wifi_connection_status, status_msg);
   }
+  bsp_display_unlock();
+
+  start_rssi_polling();
+  discovery_mdns_init();
+  mqtt_client_connect();
 }
 
-/**
- * @brief Initialize WiFi event handlers for UI updates
- * Call this once after WiFi is initialized
- */
-void wifi_event_handler_init(void) {
-  esp_event_handler_instance_t wifi_handler;
-  esp_event_handler_instance_t ip_handler;
-
-  ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                       ESP_EVENT_ANY_ID,
-                                                       &wifi_event_handler,
-                                                       NULL,
-                                                       &wifi_handler));
-  ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
-                                                       IP_EVENT_STA_GOT_IP,
-                                                       &wifi_event_handler,
-                                                       NULL,
-                                                       &ip_handler));
-  ESP_LOGI("ACTIONS", "WiFi event handlers registered for UI updates");
+void fireside_wifi_disconnected(void) {
+  stop_rssi_polling();
+  bsp_display_lock(0);
+  if (objects.label_wifi_connection_status) {
+    lv_label_set_text(objects.label_wifi_connection_status, "Status: Reconnecting...");
+  }
+  bsp_display_unlock();
 }
 #endif
 
@@ -938,3 +897,370 @@ void action_all_on_off(lv_event_t *e) {
     vTaskDelay(pdMS_TO_TICKS(30));
   }
 }
+
+/* ============================================================================
+ * Touchscreen setup wizard — WiFi scan/connect + MQTT host/user/pass wizard.
+ *
+ * These actions reference widgets/objects that only exist after the EEZ patch
+ * is applied AND the user re-runs EEZ Studio → Build. Until that's done, the
+ * handlers compile as no-op stubs so the firmware still links.
+ *
+ * Symbols added by the EEZ patch (referenced below by `objects.*`):
+ *   page_wifi_setup, page_wifi_connecting, page_mqtt_setup, page_mqtt_connecting
+ *   wifi_net_act_0..7  (invisible tap targets per row)
+ *   wifi_password_panel, wifi_pwd_ssid, wifi_pwd_input, wifi_pwd_keyboard,
+ *   wifi_pwd_reveal_icon, wifi_connecting_ssid
+ *   mqtt_caption, mqtt_step, mqtt_input, mqtt_keyboard,
+ *   mqtt_next_lbl, mqtt_back_lbl, mqtt_connecting_host
+ *   btn_clear_connection  (on PageSettings)
+ * Actions added:
+ *   WifiScan, WifiSelectNetwork, WifiPasswordSubmit, WifiTogglePasswordReveal,
+ *   WifiBack, MqttNext, MqttBack, ClearConnection
+ *
+ * To activate after the EEZ export: add -DFIRESIDE_HAS_WIZARD_UI=1 to
+ * main/CMakeLists.txt (one line) and rebuild.
+ * ============================================================================ */
+#include "app_state.h"
+#include "wifi_setup.h"
+#include "fireside_config.h"
+
+#ifndef FIRESIDE_HAS_WIZARD_UI
+#define FIRESIDE_HAS_WIZARD_UI 0
+#endif
+
+#if FIRESIDE_HAS_WIZARD_UI
+
+/* Forward decl for the password-panel show/hide used by app_state. */
+void fireside_wifi_password_panel_show(bool show);
+
+/* Currently-selected SSID + lock from the scan list (used between
+ * WifiSelectNetwork and WifiPasswordSubmit). */
+static char s_selected_ssid[33] = {0};
+static bool s_selected_locked  = false;
+static bool s_password_revealed = false;
+
+void fireside_wifi_password_panel_show(bool show)
+{
+    if (!objects.wifi_password_panel) return;
+    if (show) {
+        lv_obj_clear_flag(objects.wifi_password_panel, LV_OBJ_FLAG_HIDDEN);
+        if (objects.wifi_pwd_input && objects.wifi_pwd_keyboard) {
+            lv_keyboard_set_textarea(objects.wifi_pwd_keyboard, objects.wifi_pwd_input);
+        }
+        if (objects.wifi_pwd_input) {
+            lv_textarea_set_text(objects.wifi_pwd_input, "");
+            lv_textarea_set_password_mode(objects.wifi_pwd_input, true);
+        }
+        s_password_revealed = false;
+    } else {
+        lv_obj_add_flag(objects.wifi_password_panel, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+void action_wifi_scan(lv_event_t *e)
+{
+    (void)e;
+    ESP_LOGI(TAG, "WifiScan");
+    app_state_wifi_show_scanning();
+    wifi_setup_scan_start();
+}
+
+void action_wifi_select_network(lv_event_t *e)
+{
+    int idx = (int)(intptr_t)lv_event_get_user_data(e);
+    wifi_setup_network_t nets[WIFI_SETUP_MAX_SCAN_RESULTS];
+    size_t n = wifi_setup_get_scan_results(nets, WIFI_SETUP_MAX_SCAN_RESULTS);
+    if (idx < 0 || (size_t)idx >= n) {
+        ESP_LOGW(TAG, "WifiSelectNetwork: row %d out of range (n=%zu)", idx, n);
+        return;
+    }
+    strlcpy(s_selected_ssid, nets[idx].ssid, sizeof(s_selected_ssid));
+    s_selected_locked = nets[idx].locked;
+    ESP_LOGI(TAG, "WifiSelectNetwork %d: %s (%s)", idx, s_selected_ssid,
+             s_selected_locked ? "locked" : "open");
+
+    if (!s_selected_locked) {
+        /* Open network — connect directly, skip password panel. */
+        if (objects.wifi_connecting_ssid) {
+            lv_label_set_text(objects.wifi_connecting_ssid, s_selected_ssid);
+        }
+        app_state_set(APP_STATE_WIFI_CONNECTING);
+        wifi_setup_connect(s_selected_ssid, "");
+        return;
+    }
+
+    if (objects.wifi_pwd_ssid) {
+        lv_label_set_text(objects.wifi_pwd_ssid, s_selected_ssid);
+    }
+    fireside_wifi_password_panel_show(true);
+}
+
+void action_wifi_password_submit(lv_event_t *e)
+{
+    (void)e;
+    const char *pwd = objects.wifi_pwd_input
+        ? lv_textarea_get_text(objects.wifi_pwd_input) : "";
+    if (!s_selected_ssid[0]) {
+        ESP_LOGW(TAG, "WifiPasswordSubmit with no selected SSID");
+        return;
+    }
+    ESP_LOGI(TAG, "WifiPasswordSubmit ssid=%s pwd_len=%d",
+             s_selected_ssid, (int)strlen(pwd));
+
+    fireside_config_set_wifi(s_selected_ssid, pwd);
+
+    fireside_wifi_password_panel_show(false);
+    if (objects.wifi_connecting_ssid) {
+        lv_label_set_text(objects.wifi_connecting_ssid, s_selected_ssid);
+    }
+    app_state_set(APP_STATE_WIFI_CONNECTING);
+    wifi_setup_connect(s_selected_ssid, pwd);
+}
+
+void action_wifi_toggle_password_reveal(lv_event_t *e)
+{
+    (void)e;
+    if (!objects.wifi_pwd_input) return;
+    s_password_revealed = !s_password_revealed;
+    lv_textarea_set_password_mode(objects.wifi_pwd_input, !s_password_revealed);
+    if (objects.wifi_pwd_reveal_icon) {
+        /* fa-eye-slash uf070 / fa-eye uf06e */
+        lv_label_set_text(objects.wifi_pwd_reveal_icon,
+                          s_password_revealed ? "\xEF\x81\xB0" : "\xEF\x81\xAE");
+    }
+}
+
+void action_wifi_back(lv_event_t *e)
+{
+    (void)e;
+    fireside_wifi_password_panel_show(false);
+    s_selected_ssid[0] = '\0';
+}
+
+/* MQTT 3-step wizard ------------------------------------------------------- */
+static int  s_mqtt_step = 0;
+static char s_mqtt_host[65]  = {0};
+static char s_mqtt_user[65]  = {0};
+static char s_mqtt_pass[129] = {0};
+
+static void mqtt_setup_show_step(int step)
+{
+    s_mqtt_step = step;
+    const char *caption, *placeholder;
+    bool password = false;
+    const char *cur = "";
+    switch (step) {
+    case 0:
+        caption     = "TrailCurrent server";
+        placeholder = "hostname or IP";
+        cur         = s_mqtt_host;
+        break;
+    case 1:
+        caption     = "MQTT username";
+        placeholder = "username";
+        cur         = s_mqtt_user;
+        break;
+    case 2:
+        caption     = "MQTT password";
+        placeholder = "password";
+        cur         = s_mqtt_pass;
+        password    = true;
+        break;
+    default: return;
+    }
+    char step_buf[24];
+    snprintf(step_buf, sizeof(step_buf), "Step %d of 3", step + 1);
+    if (objects.mqtt_caption) lv_label_set_text(objects.mqtt_caption, caption);
+    if (objects.mqtt_step)    lv_label_set_text(objects.mqtt_step, step_buf);
+    if (objects.mqtt_input) {
+        lv_textarea_set_password_mode(objects.mqtt_input, password);
+        lv_textarea_set_placeholder_text(objects.mqtt_input, placeholder);
+        lv_textarea_set_text(objects.mqtt_input, cur);
+    }
+    if (objects.mqtt_input && objects.mqtt_keyboard) {
+        lv_keyboard_set_textarea(objects.mqtt_keyboard, objects.mqtt_input);
+    }
+    if (objects.mqtt_next_lbl) {
+        lv_label_set_text(objects.mqtt_next_lbl, step == 2 ? "Save" : "Next");
+    }
+    if (objects.mqtt_back_lbl) {
+        lv_label_set_text(objects.mqtt_back_lbl, step == 0 ? "Skip" : "Back");
+    }
+}
+
+void fireside_mqtt_setup_enter(void)
+{
+    const fireside_config_t *pc = fireside_config_get();
+    if (pc) {
+        strlcpy(s_mqtt_host, pc->mqtt_host, sizeof(s_mqtt_host));
+        strlcpy(s_mqtt_user, pc->mqtt_user, sizeof(s_mqtt_user));
+        strlcpy(s_mqtt_pass, pc->mqtt_pass, sizeof(s_mqtt_pass));
+    }
+    mqtt_setup_show_step(0);
+}
+
+void action_mqtt_next(lv_event_t *e)
+{
+    (void)e;
+    const char *txt = objects.mqtt_input
+        ? lv_textarea_get_text(objects.mqtt_input) : "";
+    switch (s_mqtt_step) {
+    case 0:
+        strlcpy(s_mqtt_host, txt, sizeof(s_mqtt_host));
+        mqtt_setup_show_step(1);
+        break;
+    case 1:
+        strlcpy(s_mqtt_user, txt, sizeof(s_mqtt_user));
+        mqtt_setup_show_step(2);
+        break;
+    case 2:
+        strlcpy(s_mqtt_pass, txt, sizeof(s_mqtt_pass));
+        fireside_config_set_mqtt(s_mqtt_host, s_mqtt_user, s_mqtt_pass, 0);
+        ESP_LOGI(TAG, "MqttSave host=%s user=%s", s_mqtt_host, s_mqtt_user);
+        if (objects.mqtt_connecting_host) {
+            lv_label_set_text(objects.mqtt_connecting_host, s_mqtt_host);
+        }
+        app_state_set(APP_STATE_MQTT_CONNECTING);
+        if (mqtt_client_load_settings()) {
+            mqtt_client_connect();
+        }
+        break;
+    default: break;
+    }
+}
+
+void action_mqtt_back(lv_event_t *e)
+{
+    (void)e;
+    const char *txt = objects.mqtt_input
+        ? lv_textarea_get_text(objects.mqtt_input) : "";
+    switch (s_mqtt_step) {
+    case 0:
+        /* Step 0 "Back" = Skip MQTT entirely; land on the dashboard. The
+         * user can re-enter the wizard via Settings → Reset Connection. */
+        ESP_LOGI(TAG, "MqttSkip — proceeding to READY without MQTT");
+        app_state_set(APP_STATE_READY);
+        break;
+    case 1:
+        strlcpy(s_mqtt_user, txt, sizeof(s_mqtt_user));
+        mqtt_setup_show_step(0);
+        break;
+    case 2:
+        strlcpy(s_mqtt_pass, txt, sizeof(s_mqtt_pass));
+        mqtt_setup_show_step(1);
+        break;
+    default: break;
+    }
+}
+
+/* Reset Connection — wired to btn_clear_connection on PageSettings.
+ * Two-step confirm to avoid an accidental tap nuking the configuration. */
+static lv_obj_t *s_reset_confirm = NULL;
+
+static void reset_confirm_dismiss(void)
+{
+    if (s_reset_confirm) { lv_obj_del(s_reset_confirm); s_reset_confirm = NULL; }
+}
+static void reset_confirm_cancel_cb(lv_event_t *e) { (void)e; reset_confirm_dismiss(); }
+static void reset_confirm_ok_cb(lv_event_t *e)
+{
+    (void)e;
+    app_state_reset_connection_and_reenter();
+}
+
+void action_clear_connection(lv_event_t *e)
+{
+    (void)e;
+    if (s_reset_confirm) return;
+    ESP_LOGI(TAG, "ClearConnection — showing confirmation modal");
+
+    lv_obj_t *top = lv_layer_top();
+    lv_obj_clear_flag(top, LV_OBJ_FLAG_IGNORE_LAYOUT);
+
+    lv_obj_t *bg = lv_obj_create(top);
+    s_reset_confirm = bg;
+    lv_obj_remove_style_all(bg);
+    lv_obj_set_size(bg, 1024, 600);
+    lv_obj_set_pos(bg, 0, 0);
+    lv_obj_clear_flag(bg, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(bg, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(bg, 200, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_t *card = lv_obj_create(bg);
+    lv_obj_remove_style_all(card);
+    lv_obj_set_size(card, 560, 320);
+    lv_obj_align(card, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(card, lv_color_hex(0x202020),
+                              LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(card, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(card, 18, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_color(card, lv_color_hex(0xb33636),
+                                  LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(card, 3, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(card, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_t *t = lv_label_create(card);
+    lv_obj_set_style_text_color(t, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(t, &lv_font_montserrat_32, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(t, "Reset Connection?");
+    lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 32);
+
+    lv_obj_t *b = lv_label_create(card);
+    lv_obj_set_style_text_color(b, lv_color_hex(0xc0c0c0),
+                                LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(b, &lv_font_montserrat_18,
+                               LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_width(b, 480);
+    lv_label_set_long_mode(b, LV_LABEL_LONG_WRAP);
+    lv_obj_set_style_text_align(b, LV_TEXT_ALIGN_CENTER,
+                                LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(b, "Clears saved WiFi and MQTT credentials, then reboots into setup.");
+    lv_obj_align(b, LV_ALIGN_TOP_MID, 0, 96);
+
+    lv_obj_t *cancel = lv_btn_create(card);
+    lv_obj_set_size(cancel, 200, 64);
+    lv_obj_align(cancel, LV_ALIGN_BOTTOM_LEFT, 30, -28);
+    lv_obj_set_style_bg_color(cancel, lv_color_hex(0x404040),
+                              LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(cancel, 240, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(cancel, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(cancel, reset_confirm_cancel_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *cl = lv_label_create(cancel);
+    lv_obj_set_style_text_color(cl, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(cl, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(cl, "Cancel");
+    lv_obj_center(cl);
+
+    lv_obj_t *ok = lv_btn_create(card);
+    lv_obj_set_size(ok, 200, 64);
+    lv_obj_align(ok, LV_ALIGN_BOTTOM_RIGHT, -30, -28);
+    lv_obj_set_style_bg_color(ok, lv_color_hex(0xb33636),
+                              LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ok, 240, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(ok, 12, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_event_cb(ok, reset_confirm_ok_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *ol = lv_label_create(ok);
+    lv_obj_set_style_text_color(ol, lv_color_white(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ol, &lv_font_montserrat_22, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_label_set_text(ol, "Reset");
+    lv_obj_center(ol);
+}
+
+#else  /* FIRESIDE_HAS_WIZARD_UI == 0 */
+
+/* Stubs: the EEZ Studio export hasn't been re-run with the wizard pages yet,
+ * so these symbols satisfy the action_<Name> externs declared in actions.h
+ * (which is regenerated by every EEZ export and lists every action by name). */
+void fireside_wifi_password_panel_show(bool show)         { (void)show; }
+void fireside_mqtt_setup_enter(void)                      {}
+void action_wifi_scan(lv_event_t *e)                      { (void)e; }
+void action_wifi_select_network(lv_event_t *e)            { (void)e; }
+void action_wifi_password_submit(lv_event_t *e)           { (void)e; }
+void action_wifi_toggle_password_reveal(lv_event_t *e)    { (void)e; }
+void action_wifi_back(lv_event_t *e)                      { (void)e; }
+void action_mqtt_next(lv_event_t *e)                      { (void)e; }
+void action_mqtt_back(lv_event_t *e)                      { (void)e; }
+void action_clear_connection(lv_event_t *e)               { (void)e; }
+
+#endif  /* FIRESIDE_HAS_WIZARD_UI */

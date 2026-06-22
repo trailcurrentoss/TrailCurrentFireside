@@ -247,6 +247,11 @@ void remove_style_tab_default(lv_obj_t *obj);
 void add_style_tab_view_default(lv_obj_t *obj);
 void remove_style_tab_view_default(lv_obj_t *obj);
 
+// Style: StyleBadge
+lv_style_t *get_style_style_badge_MAIN_DEFAULT();
+void add_style_style_badge(lv_obj_t *obj);
+void remove_style_style_badge(lv_obj_t *obj);
+
 
 
 #ifdef __cplusplus

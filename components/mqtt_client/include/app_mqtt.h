@@ -5,11 +5,19 @@
 #include <stddef.h>
 
 /**
- * Load MQTT settings from NVS (namespace "sd_config").
- * Must be called after sd_config_read() has populated NVS.
- * Returns true if host, username, and password are all present.
+ * Load MQTT settings from fireside_config (NVS namespace "fireside").
+ * fireside_config_init() must have been called first.
+ * Returns true if host + username are present (enough to attempt a connection).
  */
 bool mqtt_client_load_settings(void);
+
+/**
+ * Register a callback invoked when MQTT goes up or down. The callback runs
+ * on the MQTT event task — keep it short and bounce LVGL work to the LVGL
+ * thread (lv_async_call). Pass NULL to clear.
+ */
+typedef void (*mqtt_client_state_cb_t)(bool connected);
+void mqtt_client_set_state_callback(mqtt_client_state_cb_t cb);
 
 /**
  * Connect to the MQTT broker using loaded settings.

@@ -390,7 +390,9 @@ void set_var_altitude(float feet) {
     gps_altitude = feet;
     if (objects.label_gnss_elevation_value) {
         char buf[16];
-        sprintf(buf, "%.0f ft", feet);
+        /* Unit "ft" is rendered by a separate sibling label in the .eez-project;
+         * this label is the numeric value only. */
+        sprintf(buf, "%.0f", feet);
         lv_label_set_text(objects.label_gnss_elevation_value, buf);
     }
 }

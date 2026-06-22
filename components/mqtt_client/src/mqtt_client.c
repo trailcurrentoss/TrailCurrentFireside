@@ -10,6 +10,7 @@
 #include "freertos/queue.h"
 #include <string.h>
 #include <stdlib.h>
+#include "fireside_config.h"
 
 /* Display lock/unlock from BSP - must hold around LVGL calls from non-LVGL tasks */
 extern void bsp_display_lock(int timeout_ms);
@@ -97,17 +98,21 @@ extern void ota_handle_trigger(void);
 
 static const char *TAG = "MQTT";
 
-#define NVS_NAMESPACE "sd_config"
-
-/* Connection settings loaded from NVS */
+/* Connection settings — copied out of fireside_config so the broker URI buffer
+ * stays stable across reconfiguration. */
 static char s_host[128] = {0};
 static uint16_t s_port = 8883;
 static char s_username[64] = {0};
 static char s_password[128] = {0};
-static char *s_ca_cert_pem = NULL;
 
 static esp_mqtt_client_handle_t s_client = NULL;
 static volatile bool s_connected = false;
+static mqtt_client_state_cb_t s_state_cb = NULL;
+
+void mqtt_client_set_state_callback(mqtt_client_state_cb_t cb)
+{
+    s_state_cb = cb;
+}
 
 /* Queue for passing received messages from MQTT task to main loop */
 typedef struct {
@@ -132,6 +137,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "Connected to broker");
         s_connected = true;
+        if (s_state_cb) s_state_cb(true);
 
         /* Subscribe to all data topics */
         esp_mqtt_client_subscribe(s_client, "local/lights/+/status", 0);
@@ -156,6 +162,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGW(TAG, "Disconnected from broker");
         s_connected = false;
+        if (s_state_cb) s_state_cb(false);
         bsp_display_lock(0);
         set_var_mqtt_connected(false);
         bsp_display_unlock();
@@ -225,69 +232,31 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 /* --- Public API --- */
 
 bool mqtt_client_load_settings(void) {
-    nvs_handle_t nvs;
-    esp_err_t ret = nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to open NVS: %s", esp_err_to_name(ret));
+    const fireside_config_t *pc = fireside_config_get();
+    if (!pc || !pc->mqtt_host[0]) {
+        ESP_LOGW(TAG, "No MQTT config in fireside_config");
         return false;
     }
 
-    size_t len;
+    strlcpy(s_host,     pc->mqtt_host, sizeof(s_host));
+    strlcpy(s_username, pc->mqtt_user, sizeof(s_username));
+    strlcpy(s_password, pc->mqtt_pass, sizeof(s_password));
+    s_port = pc->mqtt_port ? pc->mqtt_port : 8883;
 
-    len = sizeof(s_host);
-    if (nvs_get_str(nvs, "mqttHost", s_host, &len) == ESP_OK) {
-        ESP_LOGI(TAG, "Host: %s", s_host);
-    }
-
-    if (nvs_get_u16(nvs, "mqttPort", &s_port) != ESP_OK) {
-        s_port = 8883;
-    }
-    ESP_LOGI(TAG, "Port: %d", s_port);
-
-    len = sizeof(s_username);
-    if (nvs_get_str(nvs, "mqttUser", s_username, &len) == ESP_OK) {
-        ESP_LOGI(TAG, "User: %s", s_username);
-    }
-
-    len = sizeof(s_password);
-    if (nvs_get_str(nvs, "mqttPass", s_password, &len) == ESP_OK) {
-        ESP_LOGI(TAG, "Password loaded");
-    }
-
-    /* CA certificate */
-    len = 0;
-    esp_err_t cret = nvs_get_str(nvs, "mqttCaCert", NULL, &len);
-    if (cret == ESP_OK && len > 0) {
-        if (s_ca_cert_pem) {
-            free(s_ca_cert_pem);
-        }
-        s_ca_cert_pem = malloc(len);
-        if (s_ca_cert_pem) {
-            nvs_get_str(nvs, "mqttCaCert", s_ca_cert_pem, &len);
-            ESP_LOGI(TAG, "CA cert loaded from NVS (%d bytes)", (int)len);
-        } else {
-            ESP_LOGE(TAG, "malloc(%d) for CA cert failed", (int)len);
-        }
+    bool has_config = strlen(s_host) > 0 && strlen(s_username) > 0;
+    if (has_config) {
+        ESP_LOGI(TAG, "Loaded from fireside_config: %s:%u user=%s",
+                 s_host, (unsigned)s_port, s_username);
     } else {
-        ESP_LOGW(TAG, "CA cert not in NVS: %s", esp_err_to_name(cret));
-    }
-
-    nvs_close(nvs);
-
-    bool has_config = strlen(s_host) > 0 && strlen(s_username) > 0 &&
-                      strlen(s_password) > 0;
-    if (!has_config) {
-        ESP_LOGW(TAG, "Missing config - host:%s user:%s pass:%s",
+        ESP_LOGW(TAG, "Incomplete config - host:%s user:%s",
                  strlen(s_host) > 0 ? "ok" : "MISSING",
-                 strlen(s_username) > 0 ? "ok" : "MISSING",
-                 strlen(s_password) > 0 ? "ok" : "MISSING");
+                 strlen(s_username) > 0 ? "ok" : "MISSING");
     }
     return has_config;
 }
 
 void mqtt_client_connect(void) {
-    if (strlen(s_host) == 0 || strlen(s_username) == 0 ||
-        strlen(s_password) == 0) {
+    if (strlen(s_host) == 0 || strlen(s_username) == 0) {
         ESP_LOGW(TAG, "Cannot connect - missing MQTT configuration");
         return;
     }
@@ -318,6 +287,11 @@ void mqtt_client_connect(void) {
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = uri,
+        /* Cert verification is bypassed by CONFIG_ESP_TLS_INSECURE +
+         * CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY in sdkconfig.defaults; this
+         * flag covers the CN-match check inside esp-mqtt itself. No CA cert
+         * lives on the device — the TrailCurrent broker's self-signed cert is
+         * accepted automatically. */
         .broker.verification.skip_cert_common_name_check = true,
         .credentials.client_id = client_id,
         .credentials.username = s_username,
@@ -326,13 +300,6 @@ void mqtt_client_connect(void) {
         .session.keepalive = 30,
         .buffer.size = 1024,
     };
-
-    if (s_ca_cert_pem) {
-        mqtt_cfg.broker.verification.certificate = s_ca_cert_pem;
-        ESP_LOGI(TAG, "Using self-signed CA cert");
-    } else {
-        ESP_LOGW(TAG, "No CA cert loaded - TLS connection will likely fail");
-    }
 
     s_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!s_client) {
