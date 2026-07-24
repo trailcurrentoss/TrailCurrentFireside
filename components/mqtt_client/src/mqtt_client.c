@@ -130,17 +130,9 @@ typedef struct {
     char topic[128];
     char payload[512];
     int payload_len;
-    /* PROBE: timestamp when MQTT_EVENT_DATA delivered the message. Used to
-     * measure end-to-end (broker-to-UI) latency via the LAT: log lines. */
-    int64_t rx_time_us;
 } mqtt_message_t;
 
 static QueueHandle_t s_incoming_queue = NULL;
-
-/* PROBE: track queue high-water mark so we can see if messages are backing
- * up under Headwaters' 200+ msg/sec load. Reset every ~5s. */
-static uint32_t s_queue_hwm = 0;
-static int64_t  s_queue_hwm_reset_us = 0;
 
 /* Forward declarations */
 static void process_message(const char *topic, const char *payload, int length);
@@ -244,18 +236,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         msg.payload[data_len] = '\0';
         msg.payload_len = data_len;
 
-        /* Demoted to DEBUG — was fatal at INFO under Headwaters' ~200
-         * msg/sec load. ESP_LOGI writes synchronously to UART at 115200
-         * baud (~11.5 KB/s throughput). Each RX line is ~80 bytes, so
-         * 200 msg/sec × 80 B = 16 KB/s of log traffic, well above the
-         * UART's sustained write capacity. When the log ring fills, the
-         * MQTT event task blocks in vfs_write() → new inbound messages
-         * pile up in the TCP receive buffer → status updates arrive
-         * ~10 s late even though the broker delivered them promptly.
-         * PWA and other MQTT clients (which have no console log path)
-         * see the same messages instantly, confirming Fireside was the
-         * bottleneck. Re-raise to INFO for one debug session by adding
-         * `esp_log_level_set("MQTT", ESP_LOG_DEBUG)` at boot. */
+        /* Kept at DEBUG — at INFO this floods UART under Headwaters' ~200
+         * msg/sec load and back-pressures the MQTT event task. */
         ESP_LOGD(TAG, "RX: %s (%d bytes)", msg.topic, msg.payload_len);
 
         /* Discovery / OTA triggers are dispatched directly from the MQTT task
@@ -279,13 +261,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         }
 
         if (s_incoming_queue) {
-            /* PROBE: stamp receive time so the main-loop consumer can
-             * compute queue-latency + total-latency. */
-            msg.rx_time_us = esp_timer_get_time();
             xQueueSend(s_incoming_queue, &msg, 0);
-            /* PROBE: track queue high-water mark for backlog visibility. */
-            uint32_t depth = (uint32_t)uxQueueMessagesWaiting(s_incoming_queue);
-            if (depth > s_queue_hwm) s_queue_hwm = depth;
         }
         break;
     }
@@ -390,15 +366,6 @@ void mqtt_client_connect(void) {
 
     ESP_LOGI(TAG, "Connecting to %s as %s (client_id=%s)...",
              uri, s_username, client_id);
-    /* Diagnostic heap snapshot before the TLS handshake. If the log line
-     * that follows shows `largest` shrinking below ~20 KB across successive
-     * reconnects, mbedtls's dynamic-buffer allocation is going to start
-     * failing and the session flap will migrate from PINGRESP-timeout to
-     * handshake-failure. Watch this over a long run to catch a slow leak
-     * before it kills TLS entirely. */
-    ESP_LOGI(TAG, "  heap before connect: free=%u largest_internal=%u",
-             (unsigned)esp_get_free_heap_size(),
-             (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
 
     /* Destroy previous client if reconnecting */
     if (s_client) {
@@ -493,16 +460,6 @@ static void mqtt_dispatch_task(void *arg) {
         if (xQueueReceive(s_incoming_queue, &msg, portMAX_DELAY) != pdTRUE) {
             continue;
         }
-        int64_t deq_us = esp_timer_get_time();
-        int64_t age_ms = (deq_us - msg.rx_time_us) / 1000;
-        if (strncmp(msg.topic, "local/spoor/", 12) == 0 ||
-            strncmp(msg.topic, "local/picket/", 13) == 0 ||
-            strcmp(msg.topic, "local/airquality/safety") == 0 ||
-            strcmp(msg.topic, "local/energy/status") == 0) {
-            uint32_t depth = (uint32_t)uxQueueMessagesWaiting(s_incoming_queue);
-            ESP_LOGI(TAG, "LAT: dequeue topic=%s queue_age=%lldms depth=%u+1",
-                     msg.topic, age_ms, (unsigned)depth);
-        }
         lvgl_port_lock(0);
         process_message(msg.topic, msg.payload, msg.payload_len);
         lvgl_port_unlock();
@@ -513,15 +470,6 @@ static void mqtt_dispatch_task(void *arg) {
             lvgl_port_lock(0);
             process_message(msg.topic, msg.payload, msg.payload_len);
             lvgl_port_unlock();
-        }
-        /* 5s window report — carried over from the old process_messages
-         * summary so we still see queue backlog trends in the log. */
-        int64_t now_us = esp_timer_get_time();
-        if (now_us - s_queue_hwm_reset_us >= 5000000LL) {
-            ESP_LOGI(TAG, "LAT: 5s window — queue_hwm=%u",
-                     (unsigned)s_queue_hwm);
-            s_queue_hwm = 0;
-            s_queue_hwm_reset_us = now_us;
         }
     }
 }
@@ -544,61 +492,6 @@ void mqtt_client_process_messages(void) {
     /* Retained as a no-op so callers (main.c) that still invoke it don't
      * fail to link. Actual processing moved to mqtt_dispatch_task above. */
 }
-
-/* Legacy path — no longer called from the main loop. Left here (dead
- * code, unreachable) as documentation of what the pre-task processing
- * used to look like. Once the new task path is proven, delete. */
-#if 0
-static void mqtt_client_process_messages_legacy(void) {
-    if (!s_incoming_queue) {
-        vTaskDelay(pdMS_TO_TICKS(10));
-        return;
-    }
-
-    mqtt_message_t msg;
-    /* Block up to 10ms waiting for the first message — wakes immediately
-     * when a message arrives instead of polling on a fixed interval.
-     * Take the display lock per message (not around the whole drain) so
-     * the LVGL task can get in between messages. Wrapping the whole drain
-     * in one lock, as this file used to, starves the LVGL task under any
-     * sustained MQTT throughput and makes touch feel dead — Headwaters
-     * replaying retained messages was enough to lock out touch entirely. */
-    int drained = 0;
-    if (xQueueReceive(s_incoming_queue, &msg, pdMS_TO_TICKS(10)) == pdTRUE) {
-        int64_t deq_us  = esp_timer_get_time();
-        int64_t age_ms  = (deq_us - msg.rx_time_us) / 1000;
-        /* PROBE: only log the age on alarm-source topics + the badge-
-         * driving CO/AQ topics. Otherwise we'd log 200x/sec and drown
-         * the console. */
-        if (strncmp(msg.topic, "local/spoor/", 12) == 0 ||
-            strncmp(msg.topic, "local/picket/", 13) == 0 ||
-            strcmp(msg.topic, "local/airquality/safety") == 0 ||
-            strcmp(msg.topic, "local/energy/status") == 0) {
-            uint32_t depth = (uint32_t)uxQueueMessagesWaiting(s_incoming_queue);
-            ESP_LOGI(TAG, "LAT: dequeue topic=%s queue_age=%lldms depth=%u+1",
-                     msg.topic, age_ms, (unsigned)depth);
-        }
-        lvgl_port_lock(0);
-        process_message(msg.topic, msg.payload, msg.payload_len);
-        lvgl_port_unlock();
-        drained++;
-        while (xQueueReceive(s_incoming_queue, &msg, 0) == pdTRUE) {
-            lvgl_port_lock(0);
-            process_message(msg.topic, msg.payload, msg.payload_len);
-            lvgl_port_unlock();
-            drained++;
-        }
-    }
-    /* PROBE: every ~5s, publish a summary of queue backlog + drain rate. */
-    int64_t now_us = esp_timer_get_time();
-    if (now_us - s_queue_hwm_reset_us >= 5000000LL) {
-        ESP_LOGI(TAG, "LAT: 5s window — queue_hwm=%u drained_this_tick=%d",
-                 (unsigned)s_queue_hwm, drained);
-        s_queue_hwm = 0;
-        s_queue_hwm_reset_us = now_us;
-    }
-}
-#endif  /* legacy mqtt_client_process_messages */
 
 bool mqtt_client_is_connected(void) {
     return s_connected;

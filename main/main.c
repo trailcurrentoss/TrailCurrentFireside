@@ -78,14 +78,6 @@ static void init_fail(const char *module, esp_err_t err) {
     }
 }
 
-/* Diagnostic — kept to confirm touch survives adding WiFi back. */
-static void diag_press_cb(lv_event_t *e) {
-    lv_indev_t *indev = lv_indev_get_act();
-    lv_point_t p = {0, 0};
-    if (indev) lv_indev_get_point(indev, &p);
-    ESP_LOGI(TAG, "LVGL PRESSED at (%d,%d)", (int)p.x, (int)p.y);
-}
-
 static void on_sntp_sync(struct timeval *tv) {
     (void)tv;
     system_time_set = true;
@@ -163,8 +155,6 @@ void app_main(void) {
         button_config_init();
         button_config_apply_to_ui();
         if (objects.page_home) lv_scr_load(objects.page_home);
-        lv_obj_t *scr = lv_scr_act();
-        if (scr) lv_obj_add_event_cb(scr, diag_press_cb, LV_EVENT_PRESSED, NULL);
         init_clock_blink();     /* start 500ms dot-blink timer */
         init_metric_charts();   /* create lv_chart in every _chart panel */
         init_wifi_rssi_poll();  /* 5s WiFi RSSI poll → topbar dBm labels */
@@ -199,14 +189,11 @@ void app_main(void) {
 #endif
 
     /* 8. WiFi bring-up NOW (after touch is proven up). */
-    ESP_LOGI(TAG, "esp_netif_init...");
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_got_ip, NULL);
 
-    ESP_LOGI(TAG, "esp_hosted_init...");
     err = esp_hosted_init();
-    ESP_LOGI(TAG, "esp_hosted_init = %s", esp_err_to_name(err));
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "ESP-Hosted failed — continuing UI-only");
     } else {

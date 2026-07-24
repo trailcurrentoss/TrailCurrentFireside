@@ -186,9 +186,6 @@ void alarms_init(void) {
 }
 
 void alarms_apply_inputs(alarm_src_t src, uint8_t addr, uint16_t bits) {
-    /* PROBE: stash entry time so paint_notif_badge can compute the
-     * apply-to-paint delta and show the 0-1000ms polling delay. */
-    int64_t enter_us = esp_timer_get_time();
     if (addr >= MAX_BOARDS) return;
     if (src == ALARM_SRC_SWITCHBACK) {
         s_inputs_sw[addr] = bits & ((1u << SW_SENSORS) - 1);
@@ -197,18 +194,9 @@ void alarms_apply_inputs(alarm_src_t src, uint8_t addr, uint16_t bits) {
         s_inputs_pk[addr] = bits & ((1u << PK_SENSORS) - 1);
         s_known_pk |= (1u << addr);
     }
-    ESP_LOGI(TAG, "LAT: apply_inputs src=%s addr=%u bits=0x%04x at=%lldus",
-             src == ALARM_SRC_SWITCHBACK ? "sw" : "pk",
-             (unsigned)addr, (unsigned)bits, enter_us);
-    extern int64_t alarms_last_input_us;
-    alarms_last_input_us = enter_us;
     /* The notification-badge repaint is driven from vars.c's 1-Hz clock
      * tick, so no cross-module coupling is needed here. */
 }
-
-/* PROBE: exposed to vars.c so paint_notif_badge can log the delta from
- * "last new alarm input arrived" to "badge repainted". */
-int64_t alarms_last_input_us = 0;
 
 void alarms_apply_battery(int32_t percent) {
     s_battery_pct = percent;
@@ -362,7 +350,6 @@ void alarms_set_snooze_secs(int secs) {
         nvs_set_u16(h, "snooze_s", (uint16_t)secs);
         nvs_commit(h); nvs_close(h);
     }
-    ESP_LOGI(TAG, "snooze_secs = %d", s_snooze_secs);
 }
 
 int alarms_acknowledge_all(void) {

@@ -183,7 +183,6 @@ esp_err_t wifi_setup_init(wifi_setup_state_cb_t state_cb, void *user_ctx)
         IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL, NULL));
 
     s_initialized = true;
-    ESP_LOGI(TAG, "event handlers registered");
     return ESP_OK;
 }
 

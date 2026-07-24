@@ -106,7 +106,7 @@ Light commands are published to `local/lights/{id}/command`.
 │   ├── vars.c                    # UI variable bindings and LVGL widget updates
 │   ├── app_state.c               # App state machine + NVS wrappers
 │   ├── alarms.c                  # Alarm handling and notifications
-│   ├── audio.c                   # Audio playback (audio_assets.c holds embedded PCM)
+│   ├── audio.c                   # Audio playback (audio_assets.c holds embedded PCM — see DOCS/AUDIO_PHRASES.md)
 │   ├── battery.c                 # Battery status handling
 │   ├── mqtt_vars.h               # Declarations for MQTT-sourced variables
 │   ├── idf_component.yml         # Component dependencies

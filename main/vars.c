@@ -1037,15 +1037,6 @@ static int notif_count(void) {
 
 static void paint_notif_badge(void) {
 #if __has_include("ui/screens.h")
-    /* PROBE: measure the "alarm input landed → badge repainted" gap. */
-    extern int64_t alarms_last_input_us;
-    int64_t enter_us = esp_timer_get_time();
-    if (alarms_last_input_us > 0 &&
-        (enter_us - alarms_last_input_us) < 5000000LL) {
-        int64_t delta_ms = (enter_us - alarms_last_input_us) / 1000;
-        ESP_LOGI(TAG, "LAT: paint_notif_badge apply->paint=%lldms", delta_ms);
-        alarms_last_input_us = 0;   /* only log once per input burst */
-    }
     int n = notif_count();
     /* Rising-edge detection — fire a TTS phrase when a NEW alarm class
      * appears (transition from inactive to active for that class). We
