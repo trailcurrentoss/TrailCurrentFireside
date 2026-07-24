@@ -61,10 +61,40 @@ CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
 CONFIG_ESP_TLS_INSECURE=y
 CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
 
-# --- Debug-friendly defaults — matches vendor examples so a support bug
-#     report has the same code footprint. Bump to RELEASE later. ---
-CONFIG_COMPILER_OPTIMIZATION_DEBUG=y
+# --- Compiler at -O2 for size/speed. Assertions kept ON so field failures
+#     still trip ESP_ERROR_CHECK + LVGL asserts; only the optimization
+#     level changed. Flip assertions off in a later pass if you want the
+#     final couple percent. ---
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_ENABLE=y
+
+# --- FreeRTOS tick rate. Default 100 Hz gives 10 ms granularity to
+#     vTaskDelay and the lock handoffs inside esp_lvgl_port (touch dispatch,
+#     paint commit). 1000 Hz drops that to 1 ms so UI-visible operations
+#     stop landing on tick boundaries. Costs one extra timer IRQ per ms;
+#     on P4 that's noise vs the rest of the load. ---
+CONFIG_FREERTOS_HZ=1000
+
+# --- IRAM-safe ISR flags NOT enabled (yet) ------------------------------
+# The natural fix for "NVS commit from UI handler stalls the DSI ISR" is:
+#     CONFIG_LCD_DSI_ISR_IRAM_SAFE=y
+#     CONFIG_GDMA_ISR_IRAM_SAFE=y
+#     CONFIG_GDMA_CTRL_FUNC_IN_IRAM=y
+# We tried these and had to back out — they enforce a hard requirement
+# that every registered callback (and its user_ctx) live in internal RAM:
+#   - esp_lvgl_port's `lvgl_port_flush_dpi_panel_ready_callback` (in
+#     managed_components/espressif__esp_lvgl_port) is NOT marked
+#     IRAM_ATTR, so esp_lcd_dpi_panel_register_event_callbacks() refuses
+#     it and draw_buf_flush() hangs waiting for a done-signal that never
+#     fires → LVGL task blocks → task_wdt fires on IDLE0.
+#   - i2s_std's DMA callback context is malloc'd (PSRAM-eligible), so
+#     gdma_register_tx_event_callbacks() rejects the registration and
+#     i2s_channel_init_std_mode() fails → no audio.
+# Turning these on requires either (a) patching esp_lvgl_port + i2s_std
+# with IRAM_ATTR callbacks and DIRAM-only context, or (b) moving NVS
+# writes off the UI thread into a lower-priority task that pre-commits
+# outside the DSI refresh window.  Option (b) is the cleaner path; leave
+# the flags off until it lands.
 
 # --- LVGL memory — use system malloc so LVGL's heap comes from PSRAM.
 #     Default is a fixed 64KB LV_MEM pool which is nowhere near enough for
