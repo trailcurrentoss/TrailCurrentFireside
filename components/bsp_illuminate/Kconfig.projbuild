@@ -1,0 +1,35 @@
+menu "bsp_illuminate — display pipeline"
+
+    config DISPLAY_LVGL_AVOID_TEAR
+        bool "Use panel frame buffers directly (tear-free)"
+        default y
+        help
+            When enabled, esp_lvgl_port sets LVGL's buf1/buf2 to the two DPI
+            frame buffers owned by the MIPI-DSI panel and skips its own PSRAM
+            buffer allocation. Requires num_fbs = 2 in esp_lcd_dpi_panel_config_t.
+            Eliminates the per-frame PSRAM->PSRAM memcpy that the fallback
+            (separate LVGL buffers + copy into a single DPI FB) performs, and
+            removes visible tearing on scroll/animation. Should be combined
+            with either DIRECT_MODE (recommended) or FULL_REFRESH.
+
+    config DISPLAY_LVGL_DIRECT_MODE
+        bool "LVGL direct mode (dirty-region sync)"
+        default y
+        help
+            LVGL draws into whichever panel FB is currently the back buffer, at
+            absolute screen coordinates, and copies only the union of the
+            current-frame + prior-frame dirty areas to the other FB after each
+            swap. Cheaper per frame than full refresh. Incompatible with LVGL
+            sw_rotate (rotation must be identity or performed by the panel).
+
+    config DISPLAY_LVGL_FULL_REFRESH
+        bool "LVGL full-refresh mode"
+        default n
+        help
+            LVGL always redraws the entire screen into the back FB. Wastes
+            CPU/PPA on unchanged areas but sidesteps dirty-region sync bugs.
+            Kept for A/B comparison against direct mode. Mutually exclusive
+            with DIRECT_MODE at runtime (esp_lvgl_port picks direct_mode first
+            if both are set).
+
+endmenu

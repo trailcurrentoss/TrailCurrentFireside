@@ -113,7 +113,11 @@ static esp_err_t display_port_init(void)  // Initialize LCD port (MIPI DSI + pan
         .dpi_clock_freq_mhz = 51,                     // DPI clock frequency = 51 MHz
         .virtual_channel = 0,                         // Virtual channel = 0
         .pixel_format = dpi_pixel_format,             // Pixel format
-        .num_fbs = 1,                                 // Frame buffers = 1
+        /* Two panel-owned frame buffers: esp_lvgl_port (with avoid_tearing)
+         * hands both to LVGL as buf1/buf2, so no separate LVGL PSRAM
+         * buffers are allocated and the per-frame PSRAM->PSRAM memcpy is
+         * eliminated. Required by esp_lcd_dpi_panel_get_frame_buffer(_, 2, ...). */
+        .num_fbs = 2,
         .video_timing = {                             // Video timing parameters
             .h_size = H_size,                         // Horizontal size
             .v_size = V_size,                         // Vertical size
@@ -158,7 +162,7 @@ static esp_err_t lvgl_init()  // Initialize LVGL
     const lvgl_port_cfg_t lvgl_cfg = {  // LVGL port configuration
         .task_priority = configMAX_PRIORITIES - 4, /* LVGL task priority */
         .task_stack = 8192*2,                      /* LVGL task stack size */
-        .task_affinity = -1,                       /* Task pinned to core (-1 = no affinity) */
+        .task_affinity = 1,                        /* Pin LVGL task to core 1; WiFi/lwIP/MQTT run on core 0 */
         .task_max_sleep_ms = 10,                   /* Max sleep in LVGL task */
         .timer_period_ms = 5,                      /* LVGL timer tick period in ms */
     };
@@ -190,7 +194,11 @@ static esp_err_t lvgl_init()  // Initialize LVGL
         .flags = {                               // Display flags
             .buff_dma = false,                   // Buffer not in DMA
             .buff_spiram = true,                 // Buffer in SPIRAM
-            .sw_rotate = true,                   // Enable software rotation
+            /* Rotation is identity everywhere (swap/mirror all false,
+             * set_var_rotation_degrees(0)); sw_rotate would allocate a
+             * scratch buffer and is incompatible with the direct-mode
+             * zero-copy path (buf1/buf2 must be the panel FBs). */
+            .sw_rotate = false,
 
 #if LVGL_VERSION_MAJOR >= 9
             .swap_bytes = false,                  // Swap bytes (LVGL v9+)

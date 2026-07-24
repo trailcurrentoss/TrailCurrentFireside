@@ -121,6 +121,14 @@ CONFIG_FREERTOS_HZ=1000
 #     NULL) during the first lv_obj_create at boot. ---
 CONFIG_LV_MEM_CUSTOM=y
 
+# --- LVGL refresh period. Default is 30 ms (~33 fps). With the DPI panel
+#     now double-buffered (num_fbs=2) and the per-frame PSRAM->PSRAM memcpy
+#     removed, a full paint fits well under 16 ms, so tick the display at
+#     ~60 fps to smooth animations, chart updates, and slider drags. Safe
+#     only after the memcpy is gone — at 30 ms the vendor code was already
+#     bandwidth-limited by the copy.
+CONFIG_LV_DISP_DEF_REFR_PERIOD=16
+
 # --- LVGL indev polling period. Default is 30 ms, which means LVGL reads the
 #     GT911 roughly every other refresh frame. With the touch indev in
 #     polling mode (Touch_GPIO_INT set to NC, see LessonsLearned #28), a light
