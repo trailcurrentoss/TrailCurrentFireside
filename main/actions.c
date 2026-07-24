@@ -429,13 +429,14 @@ void action_set_timezone(lv_event_t *e) {
     uint16_t idx = lv_dropdown_get_selected(objects.settings_timezone_dd);
     char sel[32] = {0};
     lv_dropdown_get_selected_str(objects.settings_timezone_dd, sel, sizeof(sel));
-    /* Phase 2: setenv("TZ", posix_tz_string_from_iana(sel), 1); tzset(); */
+    bool applied = apply_timezone(sel);
     nvs_handle_t nvs;
     if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
         nvs_set_str(nvs, "tz", sel);
         nvs_commit(nvs); nvs_close(nvs);
     }
-    ESP_LOGI(TAG, "timezone -> %s (idx=%u)", sel, (unsigned)idx);
+    ESP_LOGI(TAG, "timezone -> %s (idx=%u)%s", sel, (unsigned)idx,
+             applied ? "" : " [unmapped, TZ unchanged]");
 #endif
 }
 
@@ -1015,6 +1016,33 @@ void action_battery_threshold(lv_event_t *e) {
     alarms_init();
 #else
     (void)e;
+#endif
+}
+
+/* Factory reset flow:
+ *   Settings "Factory Reset" tile button  -> action_show_factory_reset_confirm
+ *   Modal Cancel button / backdrop tap    -> action_cancel_factory_reset_confirm
+ *   Modal "Factory Reset" (red) button    -> action_factory_reset (wipes+reboots)
+ */
+
+void action_show_factory_reset_confirm(lv_event_t *e) {
+    (void)e;
+#if __has_include("ui/screens.h")
+    /* Modal is authored as the LAST child of the PageSettings screen in the
+     * .eez-project, so it already sits on top in the widget tree. Simply
+     * clearing HIDDEN reveals it. */
+    if (objects.modal_factory_reset) {
+        lv_obj_clear_flag(objects.modal_factory_reset, LV_OBJ_FLAG_HIDDEN);
+    }
+#endif
+}
+
+void action_cancel_factory_reset_confirm(lv_event_t *e) {
+    (void)e;
+#if __has_include("ui/screens.h")
+    if (objects.modal_factory_reset) {
+        lv_obj_add_flag(objects.modal_factory_reset, LV_OBJ_FLAG_HIDDEN);
+    }
 #endif
 }
 

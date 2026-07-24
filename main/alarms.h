@@ -139,6 +139,27 @@ void alarms_set_snooze_secs(int secs);
  * that were acknowledged, for logging. */
 int alarms_acknowledge_all(void);
 
+/* Per-alarm acknowledge — slides ONLY the specified alarm's last-announced
+ * timestamp forward to now, so its next re-alert fires one snooze window
+ * from now instead of from the original announcement. Used by the topbar
+ * toaster (one Ack button per active alarm) so the user can silence a
+ * single nuisance without also snoozing the others.
+ *
+ * Returns true if the alarm is still active (was ack'd); false if it has
+ * already cleared or the coordinates don't match a known alarm. */
+bool alarms_acknowledge_sensor(alarm_src_t src, uint8_t addr, uint8_t sensor);
+bool alarms_acknowledge_battery(void);
+
+/* Enumerate currently-active alarms. The callback is invoked once per
+ * active alarm with the alarm's coordinates in an `alarm_edge_t` (same
+ * shape as the rising-edge queue — is_battery=true marks the battery
+ * entry, otherwise src/addr/sensor identify the sensor). Enumeration
+ * order is stable across calls provided the arm bitmaps don't change:
+ * switchback boards ascending by addr then sensor bit, then picket
+ * boards, then battery. */
+typedef void (*alarms_enum_cb_t)(const alarm_edge_t *entry, void *ctx);
+int  alarms_enumerate_active(alarms_enum_cb_t cb, void *ctx);
+
 #ifdef __cplusplus
 }
 #endif

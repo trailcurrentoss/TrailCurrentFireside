@@ -130,6 +130,12 @@ void    set_var_screen_timeout_minutes(int32_t value);
  * ui_init(). */
 void restore_user_settings(void);
 
+/* Map an IANA zone (as authored in the Settings timezone dropdown) to its
+ * POSIX TZ string and install it via setenv+tzset, so localtime_r() in
+ * update_clock_display() renders local wall time instead of UTC. Returns
+ * true when the zone was known and applied. */
+bool apply_timezone(const char *iana);
+
 /* Clock label update — called by main loop at 1 Hz with display lock held. */
 void update_clock_display(void);
 

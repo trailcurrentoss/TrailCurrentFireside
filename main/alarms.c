@@ -386,6 +386,77 @@ int alarms_acknowledge_all(void) {
     return acked;
 }
 
+bool alarms_acknowledge_sensor(alarm_src_t src, uint8_t addr,
+                               uint8_t sensor) {
+    if (addr >= MAX_BOARDS) return false;
+    uint16_t inputs   = (src == ALARM_SRC_SWITCHBACK) ? s_inputs_sw[addr]
+                                                      : s_inputs_pk[addr];
+    uint16_t armed    = (src == ALARM_SRC_SWITCHBACK) ? s_armed_sw[addr]
+                                                      : s_armed_pk[addr];
+    uint16_t polarity = (src == ALARM_SRC_SWITCHBACK) ? s_polarity_sw[addr]
+                                                      : s_polarity_pk[addr];
+    uint16_t active = (inputs ^ polarity) & armed;
+    uint8_t max_sensor = (src == ALARM_SRC_SWITCHBACK) ? SW_SENSORS
+                                                       : PK_SENSORS;
+    if (sensor >= max_sensor) return false;
+    if (!(active & (1u << sensor))) return false;
+    int64_t now = esp_timer_get_time();
+    if (src == ALARM_SRC_SWITCHBACK) s_last_announced_sw[addr][sensor] = now;
+    else                             s_last_announced_pk[addr][sensor] = now;
+    ESP_LOGI(TAG, "ack: %s/%u/%u snoozed for %ds",
+             (src == ALARM_SRC_SWITCHBACK) ? "SB" : "PK",
+             (unsigned)addr, (unsigned)sensor, s_snooze_secs);
+    return true;
+}
+
+bool alarms_acknowledge_battery(void) {
+    if (!(s_battery_enabled && s_battery_pct >= 0 &&
+          s_battery_pct < s_battery_threshold)) {
+        return false;
+    }
+    s_last_announced_battery_us = esp_timer_get_time();
+    ESP_LOGI(TAG, "ack: battery snoozed for %ds", s_snooze_secs);
+    return true;
+}
+
+int alarms_enumerate_active(alarms_enum_cb_t cb, void *ctx) {
+    if (!cb) return 0;
+    int n = 0;
+    for (int a = 0; a < MAX_BOARDS; a++) {
+        uint16_t active_sw = (s_inputs_sw[a] ^ s_polarity_sw[a]) & s_armed_sw[a];
+        for (int bit = 0; bit < SW_SENSORS; bit++) {
+            if (active_sw & (1u << bit)) {
+                alarm_edge_t e = { .is_battery = false,
+                                   .src = ALARM_SRC_SWITCHBACK,
+                                   .addr = (uint8_t)a,
+                                   .sensor = (uint8_t)bit };
+                cb(&e, ctx);
+                n++;
+            }
+        }
+    }
+    for (int a = 0; a < MAX_BOARDS; a++) {
+        uint16_t active_pk = (s_inputs_pk[a] ^ s_polarity_pk[a]) & s_armed_pk[a];
+        for (int bit = 0; bit < PK_SENSORS; bit++) {
+            if (active_pk & (1u << bit)) {
+                alarm_edge_t e = { .is_battery = false,
+                                   .src = ALARM_SRC_PICKET,
+                                   .addr = (uint8_t)a,
+                                   .sensor = (uint8_t)bit };
+                cb(&e, ctx);
+                n++;
+            }
+        }
+    }
+    if (s_battery_enabled && s_battery_pct >= 0 &&
+        s_battery_pct < s_battery_threshold) {
+        alarm_edge_t e = { .is_battery = true };
+        cb(&e, ctx);
+        n++;
+    }
+    return n;
+}
+
 bool alarms_pop_rising_edge(alarm_edge_t *out) {
     if (!out) return false;
     if (s_edge_q_head == s_edge_q_tail) return false;

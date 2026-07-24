@@ -4,7 +4,7 @@
 # SRCS or the linker won't find their symbols. Because font conversion is
 # owned by tmp/gen_eez_project.py (not EEZ Studio's auto-embed), we glob for
 # every `ui_font_*.c` and `ui_image_*.c` the generator emits.
-file(GLOB UI_FONT_SRCS "ui/ui_font_*.c")
+file(GLOB UI_FONT_SRCS "vars.c" "alarms.c" "ui/ui_font_*.c")
 file(GLOB UI_IMAGE_SRCS "ui/ui_image_*.c")
 
 # The core EEZ export produces screens.c / styles.c / images.c / ui.c.

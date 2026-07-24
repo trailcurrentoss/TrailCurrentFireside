@@ -47,6 +47,8 @@ extern void action_open_edit_buttons(lv_event_t * e);
 extern void action_select_module(lv_event_t * e);
 extern void action_select_address(lv_event_t * e);
 extern void action_select_channel(lv_event_t * e);
+extern void action_show_factory_reset_confirm(lv_event_t * e);
+extern void action_cancel_factory_reset_confirm(lv_event_t * e);
 
 
 #ifdef __cplusplus

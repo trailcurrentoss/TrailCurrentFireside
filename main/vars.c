@@ -37,6 +37,7 @@
 #include "esp_wifi.h"
 #include <time.h>
 #include <sys/time.h>
+#include <stdlib.h>
 
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -305,6 +306,13 @@ static int32_t f_to_display(int32_t f) {
  * toggles or the sample lands). */
 static void paint_air_temp(void);
 static void paint_notif_badge(void);
+
+/* Toaster refresh — repopulates whichever notification toaster is currently
+ * open so the row list tracks the current active-alarm set. Called from
+ * paint_notif_badge on every tick that also updates the badge count. */
+#if __has_include("ui/screens.h")
+static void toaster_refresh_if_open(void);
+#endif
 
 void set_var_temperature_unit(int32_t value) {
     s_temp_unit = value ? 1 : 0;
@@ -1205,6 +1213,12 @@ static void paint_notif_badge(void) {
         }
         if (counts[i]) lv_label_set_text(counts[i], buf);
     }
+
+    /* Keep the currently-open toaster in sync with the live alarm set.
+     * Cheap: at most one populate pass per tick, only walks alarm bitmaps
+     * (no NVS I/O), and label_set_text_if_changed suppresses redundant
+     * LVGL redraws when no row's text moved. */
+    toaster_refresh_if_open();
 #endif
 }
 
@@ -1320,6 +1334,29 @@ void    set_var_screen_brightness(int32_t v)    { s_brightness = v; }
 int32_t get_var_screen_timeout_minutes(void)    { return s_timeout_min; }
 void    set_var_screen_timeout_minutes(int32_t v) { s_timeout_min = v; }
 
+bool apply_timezone(const char *iana) {
+    if (!iana || !*iana) return false;
+    /* US-only zone set — matches the 5 options authored in the Settings
+     * timezone dropdown. Rules are the post-2007 US convention: DST from
+     * the 2nd Sunday of March to the 1st Sunday of November. Phoenix stays
+     * on MST year-round. */
+    static const struct { const char *iana; const char *posix; } zones[] = {
+        { "America/New_York",    "EST5EDT,M3.2.0,M11.1.0" },
+        { "America/Chicago",     "CST6CDT,M3.2.0,M11.1.0" },
+        { "America/Denver",      "MST7MDT,M3.2.0,M11.1.0" },
+        { "America/Los_Angeles", "PST8PDT,M3.2.0,M11.1.0" },
+        { "America/Phoenix",     "MST7"                    },
+    };
+    for (size_t i = 0; i < sizeof(zones)/sizeof(*zones); i++) {
+        if (strcmp(iana, zones[i].iana) == 0) {
+            setenv("TZ", zones[i].posix, 1);
+            tzset();
+            return true;
+        }
+    }
+    return false;
+}
+
 void restore_user_settings(void) {
     nvs_handle_t nvs;
     if (nvs_open("fireside", NVS_READONLY, &nvs) != ESP_OK) return;
@@ -1352,7 +1389,9 @@ void restore_user_settings(void) {
      *   isn't in the list, silently leave the dropdown at its default. */
     char tz_buf[32] = {0};
     size_t tz_len = sizeof(tz_buf);
-    if (nvs_get_str(nvs, "tz", tz_buf, &tz_len) == ESP_OK && tz_buf[0]) {
+    bool tz_have = (nvs_get_str(nvs, "tz", tz_buf, &tz_len) == ESP_OK &&
+                    tz_buf[0]);
+    if (tz_have) {
 #if __has_include("ui/screens.h")
         if (objects.settings_timezone_dd) {
             const char *zones[5] = {
@@ -1369,6 +1408,11 @@ void restore_user_settings(void) {
         }
 #endif
     }
+    /* Install the POSIX TZ so localtime_r() renders local wall time. Falls
+     * back to the dropdown's authored default (America/New_York) when no
+     * value has been persisted yet — matches what the UI shows on a fresh
+     * device. */
+    apply_timezone(tz_have ? tz_buf : "America/New_York");
     nvs_close(nvs);
     ESP_LOGI(TAG, "Restored: brightness=%ld timeout=%ld tempunit=%ld tz=%s",
              (long)s_brightness, (long)s_timeout_min, (long)s_temp_unit,
@@ -1662,63 +1706,278 @@ void init_clock_blink(void) {
 }
 
 /* ============================================================
- * Notification-icon tap → acknowledge active alarms.
+ * Notification bell → toaster panel with per-alarm ack.
  *
- * The topbar bell icon is authored in EEZ Studio as a plain label (not
- * clickable by default). Enable click flag + expand hit area on every
- * instance so a tap on any page dispatches to alarms_acknowledge_all(),
- * which slides the per-alarm "last announced" timestamp forward by one
- * snooze window. The badge itself stays visible while alarms are still
- * active — ack silences the TTS repeat, it does not clear the count.
- * If the underlying condition returns to normal on its own (door
- * closes, battery recovers), the count goes down and the badge hides.
+ * Tapping the topbar bell (or badge) opens the toaster panel authored
+ * inside the TopBar user widget. The toaster lists every currently
+ * active alarm; each row carries an "Ack" button that snoozes only that
+ * one alarm — the underlying condition still contributes to the badge
+ * count, but the TTS re-alert holds off for one snooze window
+ * (ALARM_SNOOZE_SECS_DEFAULT = 120s) instead of firing every tick.
+ *
+ * The topbar is instanced on 13 pages; EEZ Studio's export gives us one
+ * copy of every toaster widget per page. Only the toaster on the active
+ * screen is visible at any time (LVGL doesn't render off-screen roots),
+ * so opening all 13 at once is harmless — but we open only the one
+ * belonging to the currently loaded screen to avoid touching state we
+ * won't visibly change.
  * ============================================================ */
 
+#define FIRESIDE_TOASTER_ROWS 8
+
 #if __has_include("ui/screens.h")
-static void notif_icon_ack_cb(lv_event_t *e) {
+
+/* Enumerate every topbar user-widget instance in the project. The prefix
+ * matches the identifier column shown by `main/ui/screens.h`; each entry
+ * expands to one `struct fireside_toaster` at init. If a new page hosts
+ * a topbar in the future, add its prefix here and the toaster wiring
+ * follows automatically — no other change needed. */
+#define TOPBAR_INSTANCES(_) \
+    _(home_topbar) \
+    _(trailer_topbar) \
+    _(power_topbar) \
+    _(water_topbar) \
+    _(air_topbar) \
+    _(settings_topbar) \
+    _(page_wifi_setup_topbar) \
+    _(page_wifi_connecting_topbar) \
+    _(page_mqtt_setup_topbar) \
+    _(page_mqtt_connecting_topbar) \
+    _(page_alarms_topbar) \
+    _(page_edit_buttons_topbar) \
+    _(page_button_edit_topbar)
+
+#define TOPBAR_COUNT_ENTRY(prefix) +1
+#define TOPBAR_INSTANCE_COUNT (0 TOPBAR_INSTANCES(TOPBAR_COUNT_ENTRY))
+
+struct fireside_toaster {
+    lv_obj_t *notif_icon;
+    lv_obj_t *notif_badge;
+    lv_obj_t *toaster;
+    lv_obj_t *empty_msg;
+    lv_obj_t *row_panels[FIRESIDE_TOASTER_ROWS];
+    lv_obj_t *row_labels[FIRESIDE_TOASTER_ROWS];
+    lv_obj_t *row_acks[FIRESIDE_TOASTER_ROWS];
+    /* Populated on every open — maps row slot → alarm identity so the
+     * ack button click can call the right per-alarm snooze API. */
+    alarm_edge_t row_alarms[FIRESIDE_TOASTER_ROWS];
+    int filled_rows;
+};
+
+/* Assign field-by-field into the module-static `s_toasters` array — one
+ * `INIT_TB(prefix)` invocation per instance, indexed by a running counter
+ * `idx`. The earlier version used a designated-initializer local
+ * `struct fireside_toaster tb_init[TOPBAR_INSTANCE_COUNT] = { ... }` on
+ * the stack, but that struct is ~184 B × 13 ≈ 2.4 KB — enough to blow
+ * app_main's ~4 KB stack and trip a stack-protection panic during
+ * init_notif_icon_ack_taps(). Writing to BSS directly keeps the stack
+ * usage of this init helper at zero. */
+#define INIT_TB(prefix) do { \
+    s_toasters[idx].notif_icon      = objects.prefix##__topbar_notif_icon; \
+    s_toasters[idx].notif_badge     = objects.prefix##__topbar_notif_badge; \
+    s_toasters[idx].toaster         = objects.prefix##__topbar_toaster; \
+    s_toasters[idx].empty_msg       = objects.prefix##__topbar_toaster_empty; \
+    s_toasters[idx].row_panels[0]   = objects.prefix##__topbar_toaster_row_0; \
+    s_toasters[idx].row_panels[1]   = objects.prefix##__topbar_toaster_row_1; \
+    s_toasters[idx].row_panels[2]   = objects.prefix##__topbar_toaster_row_2; \
+    s_toasters[idx].row_panels[3]   = objects.prefix##__topbar_toaster_row_3; \
+    s_toasters[idx].row_panels[4]   = objects.prefix##__topbar_toaster_row_4; \
+    s_toasters[idx].row_panels[5]   = objects.prefix##__topbar_toaster_row_5; \
+    s_toasters[idx].row_panels[6]   = objects.prefix##__topbar_toaster_row_6; \
+    s_toasters[idx].row_panels[7]   = objects.prefix##__topbar_toaster_row_7; \
+    s_toasters[idx].row_labels[0]   = objects.prefix##__topbar_toaster_row_0_label; \
+    s_toasters[idx].row_labels[1]   = objects.prefix##__topbar_toaster_row_1_label; \
+    s_toasters[idx].row_labels[2]   = objects.prefix##__topbar_toaster_row_2_label; \
+    s_toasters[idx].row_labels[3]   = objects.prefix##__topbar_toaster_row_3_label; \
+    s_toasters[idx].row_labels[4]   = objects.prefix##__topbar_toaster_row_4_label; \
+    s_toasters[idx].row_labels[5]   = objects.prefix##__topbar_toaster_row_5_label; \
+    s_toasters[idx].row_labels[6]   = objects.prefix##__topbar_toaster_row_6_label; \
+    s_toasters[idx].row_labels[7]   = objects.prefix##__topbar_toaster_row_7_label; \
+    s_toasters[idx].row_acks[0]     = objects.prefix##__topbar_toaster_row_0_ack; \
+    s_toasters[idx].row_acks[1]     = objects.prefix##__topbar_toaster_row_1_ack; \
+    s_toasters[idx].row_acks[2]     = objects.prefix##__topbar_toaster_row_2_ack; \
+    s_toasters[idx].row_acks[3]     = objects.prefix##__topbar_toaster_row_3_ack; \
+    s_toasters[idx].row_acks[4]     = objects.prefix##__topbar_toaster_row_4_ack; \
+    s_toasters[idx].row_acks[5]     = objects.prefix##__topbar_toaster_row_5_ack; \
+    s_toasters[idx].row_acks[6]     = objects.prefix##__topbar_toaster_row_6_ack; \
+    s_toasters[idx].row_acks[7]     = objects.prefix##__topbar_toaster_row_7_ack; \
+    idx++; \
+} while (0);
+
+static struct fireside_toaster s_toasters[TOPBAR_INSTANCE_COUNT];
+
+/* Encode (toaster_index, row_index) into a single void* for lv_event's
+ * user_data. 8 bits per field is more than enough (13 toasters, 8 rows). */
+#define TB_ENCODE(ti, ri)   ((void *)(uintptr_t)(((uint32_t)(ti) << 8) | (ri)))
+#define TB_DECODE_TI(p)     ((int)((uintptr_t)(p) >> 8))
+#define TB_DECODE_RI(p)     ((int)((uintptr_t)(p) & 0xFFu))
+
+struct enum_ctx {
+    alarm_edge_t buf[FIRESIDE_TOASTER_ROWS];
+    int count;
+};
+
+static void enum_collect(const alarm_edge_t *e, void *v) {
+    struct enum_ctx *c = (struct enum_ctx *)v;
+    if (c->count >= FIRESIDE_TOASTER_ROWS) return;
+    c->buf[c->count++] = *e;
+}
+
+static void toaster_populate(struct fireside_toaster *tb) {
+    if (!tb || !tb->toaster) return;
+    struct enum_ctx ctx = { .count = 0 };
+    alarms_enumerate_active(enum_collect, &ctx);
+    tb->filled_rows = ctx.count;
+
+    for (int i = 0; i < FIRESIDE_TOASTER_ROWS; i++) {
+        if (i < ctx.count) {
+            tb->row_alarms[i] = ctx.buf[i];
+            if (tb->row_labels[i]) {
+                char label[ALARM_LABEL_MAX + 8];
+                if (ctx.buf[i].is_battery) {
+                    snprintf(label, sizeof(label), "Battery critical");
+                } else {
+                    alarms_get_label(ctx.buf[i].src, ctx.buf[i].addr,
+                                     ctx.buf[i].sensor, label, sizeof(label));
+                }
+                /* label_set_text_if_changed skips the LVGL invalidate when
+                 * the text is unchanged — matters because this helper runs
+                 * every 1 Hz tick while the toaster is open. */
+                label_set_text_if_changed(tb->row_labels[i], label);
+            }
+            if (tb->row_panels[i]) {
+                lv_obj_clear_flag(tb->row_panels[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        } else {
+            if (tb->row_panels[i]) {
+                lv_obj_add_flag(tb->row_panels[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+    }
+    if (tb->empty_msg) {
+        if (ctx.count == 0) {
+            lv_obj_clear_flag(tb->empty_msg, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(tb->empty_msg, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+/* Refresh whichever toaster is currently open. Called from the 1 Hz clock
+ * tick (paint_notif_badge) so:
+ *   - rows for alarms that have since cleared self-remove
+ *   - rows for newly-fired alarms appear without the user closing + reopening
+ *   - the empty-message toggles as the last alarm clears
+ * Only ever one toaster can be visible (only one screen is loaded at a
+ * time), so we stop at the first non-hidden one. */
+static void toaster_refresh_if_open(void) {
+    for (int i = 0; i < TOPBAR_INSTANCE_COUNT; i++) {
+        if (s_toasters[i].toaster &&
+            !lv_obj_has_flag(s_toasters[i].toaster, LV_OBJ_FLAG_HIDDEN)) {
+            toaster_populate(&s_toasters[i]);
+            return;
+        }
+    }
+}
+
+static struct fireside_toaster *find_toaster_for_screen(lv_obj_t *screen) {
+    if (!screen) return NULL;
+    for (int i = 0; i < TOPBAR_INSTANCE_COUNT; i++) {
+        if (s_toasters[i].toaster &&
+            lv_obj_get_screen(s_toasters[i].toaster) == screen) {
+            return &s_toasters[i];
+        }
+    }
+    return NULL;
+}
+
+static void toaster_close_all(void) {
+    for (int i = 0; i < TOPBAR_INSTANCE_COUNT; i++) {
+        if (s_toasters[i].toaster) {
+            lv_obj_add_flag(s_toasters[i].toaster, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+static void notif_icon_click_cb(lv_event_t *e) {
     (void)e;
-    int n = alarms_acknowledge_all();
-    ESP_LOGI(TAG, "notif tap: acknowledged %d active alarm(s)", n);
+    struct fireside_toaster *tb = find_toaster_for_screen(lv_scr_act());
+    if (!tb || !tb->toaster) {
+        ESP_LOGW(TAG, "notif tap: no toaster for current screen");
+        return;
+    }
+    bool was_open = !lv_obj_has_flag(tb->toaster, LV_OBJ_FLAG_HIDDEN);
+    /* Close every instance first so switching pages while open doesn't
+     * leave a stale toaster hidden behind the current one. */
+    toaster_close_all();
+    if (!was_open) {
+        toaster_populate(tb);
+        lv_obj_clear_flag(tb->toaster, LV_OBJ_FLAG_HIDDEN);
+        /* Z-order is authored in the JSON — the toaster is the last
+         * child of the TopBar root panel so it already draws over the
+         * other topbar children. Don't call lv_obj_move_foreground here
+         * (it would be a Mode-A canvas-device divergence). */
+        ESP_LOGI(TAG, "toaster: opened (%d active alarm(s))", tb->filled_rows);
+    } else {
+        ESP_LOGI(TAG, "toaster: closed");
+    }
+}
+
+static void ack_button_click_cb(lv_event_t *e) {
+    int ti = TB_DECODE_TI(lv_event_get_user_data(e));
+    int ri = TB_DECODE_RI(lv_event_get_user_data(e));
+    if (ti < 0 || ti >= TOPBAR_INSTANCE_COUNT) return;
+    if (ri < 0 || ri >= FIRESIDE_TOASTER_ROWS) return;
+    struct fireside_toaster *tb = &s_toasters[ti];
+    if (ri >= tb->filled_rows) return;
+    alarm_edge_t *ae = &tb->row_alarms[ri];
+    /* Ack only snoozes the TTS re-alert. The row stays visible as long as
+     * the underlying condition is still active — the 1 Hz refresh drops
+     * the row when the sensor returns to normal (door closes, battery
+     * recovers, etc.). If the condition happens to clear between open and
+     * this tap, the ack call returns false and the refresh below removes
+     * the now-stale row. */
+    (void)(ae->is_battery
+              ? alarms_acknowledge_battery()
+              : alarms_acknowledge_sensor(ae->src, ae->addr, ae->sensor));
+    toaster_populate(tb);
 }
 #endif
 
 void init_notif_icon_ack_taps(void) {
 #if __has_include("ui/screens.h")
-    /* Bell icons on all six topbar instances. */
-    lv_obj_t *icons[6] = {
-        objects.home_topbar__topbar_notif_icon,
-        objects.trailer_topbar__topbar_notif_icon,
-        objects.power_topbar__topbar_notif_icon,
-        objects.water_topbar__topbar_notif_icon,
-        objects.air_topbar__topbar_notif_icon,
-        objects.settings_topbar__topbar_notif_icon,
-    };
-    /* Badge dots — same handler so tapping the little red circle behind
-     * the count also acknowledges (larger visible target than the bell
-     * glyph alone). Both dispatch to the same callback. */
-    lv_obj_t *badges[6] = {
-        objects.home_topbar__topbar_notif_badge,
-        objects.trailer_topbar__topbar_notif_badge,
-        objects.power_topbar__topbar_notif_badge,
-        objects.water_topbar__topbar_notif_badge,
-        objects.air_topbar__topbar_notif_badge,
-        objects.settings_topbar__topbar_notif_badge,
-    };
-    for (int i = 0; i < 6; i++) {
-        if (icons[i]) {
-            lv_obj_add_flag(icons[i], LV_OBJ_FLAG_CLICKABLE);
+    int idx = 0;
+    TOPBAR_INSTANCES(INIT_TB)
+    (void)idx;   /* silence unused-after-macro-expansion warning */
+
+    for (int i = 0; i < TOPBAR_INSTANCE_COUNT; i++) {
+        struct fireside_toaster *tb = &s_toasters[i];
+
+        if (tb->notif_icon) {
+            lv_obj_add_flag(tb->notif_icon, LV_OBJ_FLAG_CLICKABLE);
             /* Bell is ~16x14 px in the topbar — expand hit area to make
              * it comfortably tappable on the 10" glass without moving
              * the visual center. */
-            lv_obj_set_ext_click_area(icons[i], 18);
-            lv_obj_add_event_cb(icons[i], notif_icon_ack_cb,
+            lv_obj_set_ext_click_area(tb->notif_icon, 18);
+            lv_obj_add_event_cb(tb->notif_icon, notif_icon_click_cb,
                                 LV_EVENT_CLICKED, NULL);
         }
-        if (badges[i]) {
-            lv_obj_add_flag(badges[i], LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_set_ext_click_area(badges[i], 18);
-            lv_obj_add_event_cb(badges[i], notif_icon_ack_cb,
+        if (tb->notif_badge) {
+            lv_obj_add_flag(tb->notif_badge, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_ext_click_area(tb->notif_badge, 18);
+            lv_obj_add_event_cb(tb->notif_badge, notif_icon_click_cb,
                                 LV_EVENT_CLICKED, NULL);
+        }
+        for (int r = 0; r < FIRESIDE_TOASTER_ROWS; r++) {
+            if (tb->row_acks[r]) {
+                lv_obj_add_event_cb(tb->row_acks[r], ack_button_click_cb,
+                                    LV_EVENT_CLICKED, TB_ENCODE(i, r));
+            }
+            /* Every row starts hidden — populate on open uncovers the
+             * first N based on active alarms. */
+            if (tb->row_panels[r]) {
+                lv_obj_add_flag(tb->row_panels[r], LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 #endif
