@@ -4,11 +4,10 @@
 # every setting from DOCS/LessonsLearned.md that's specific to this board
 # revision (CrowPanel Advance 10.1" V1.2).
 
-# --- MIPI-DSI DMA alignment (LessonsLearned #6) ---------------------
-# EK79007 panel over 900 Mbps/lane MIPI-DSI needs specific L2 cache + MMU
-# geometry. Without these you get blue flicker at boot.
-CONFIG_CACHE_L2_CACHE_128KB=y
-CONFIG_CACHE_L2_CACHE_LINE_64B=y
+# --- MMU page size — 64 KB. The L2 cache size + line-size choices moved
+# to sdkconfig.defaults (256 KB / 128 B lines, the Espressif-recommended
+# MIPI-DSI + PSRAM bandwidth config). The prior 128 KB / 64 B lines here
+# were LessonsLearned #6's earlier setting; 256 KB / 128 B supersedes.
 CONFIG_MMU_PAGE_SIZE_64KB=y
 
 # --- ESP-Hosted enable (LessonsLearned #5) --------------------------

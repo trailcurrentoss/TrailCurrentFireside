@@ -16,6 +16,14 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 
+# --- Experimental-features gate. On ESP32-P4, CONFIG_SPIRAM_SPEED_200M is
+#     hidden behind this Kconfig — without it set, the SPIRAM speed option
+#     silently falls back to 80 MHz (the next visible choice) and the PSRAM
+#     clock ends up much slower than intended. Every LVGL draw buffer + the
+#     DPI framebuffer lives in PSRAM, so the bandwidth loss is user-visible
+#     (tearing during scroll, longer paint frames on the 1024x600 panel).
+CONFIG_IDF_EXPERIMENTAL_FEATURES=y
+
 # --- PSRAM — required. LCD framebuffer is ~1.2 MB per buffer (1024x600x2);
 #     with no PSRAM, display_init returns ESP_ERR_NO_MEM at boot. ---
 CONFIG_SPIRAM=y
@@ -26,6 +34,16 @@ CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
 CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY=y
+
+# --- L2 cache geometry — Espressif's recommended P4 config for MIPI-DSI
+#     + PSRAM bandwidth. 256 KB gives more room to keep hot framebuffer
+#     lines resident between paints; 128 B cache lines line up with the
+#     PSRAM burst length so refill traffic uses full bursts instead of
+#     truncated ones (was 64 B previously, which halved effective PSRAM
+#     read throughput for framebuffer scans). MMU page size stays 64 KB
+#     via sdkconfig.defaults.esp32p4.
+CONFIG_CACHE_L2_CACHE_256KB=y
+CONFIG_CACHE_L2_CACHE_LINE_128B=y
 
 # --- Custom partitions (partitions.csv already in the project root). ---
 CONFIG_PARTITION_TABLE_CUSTOM=y
