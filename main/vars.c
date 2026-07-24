@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -42,6 +43,9 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "lvgl.h"
 
 #if __has_include("ui/screens.h")
@@ -51,6 +55,23 @@
 #endif
 
 static const char *TAG = "VARS";
+
+/* ============================================================
+ * lv_label_set_text invalidates the widget unconditionally in LVGL 8,
+ * even when the new string equals the old one. That's a hidden cost on
+ * fan-out clusters like the six-topbar labels — a 5s poll would trigger
+ * six redraws every tick on an otherwise idle screen. This helper reads
+ * the label's current text and skips the set when nothing changed, so
+ * the redraw only happens when the value actually moves.
+ * ============================================================ */
+#if __has_include("ui/screens.h")
+static inline void label_set_text_if_changed(lv_obj_t *lbl, const char *text) {
+    if (!lbl || !text) return;
+    const char *cur = lv_label_get_text(lbl);
+    if (cur && strcmp(cur, text) == 0) return;
+    lv_label_set_text(lbl, text);
+}
+#endif
 
 /* ============================================================
  * Ring buffers
@@ -477,6 +498,23 @@ static const char *battery_glyph_for(int pct) {
 void set_var_internal_battery_soc(int32_t percent) {
     s_int_battery_pct = percent;
 #if __has_include("ui/screens.h")
+    /* Cached-last-value guard: the 10 s poller re-invokes the setter every
+     * tick with the same value while the battery is quiet, and the icon
+     * color is also a function of s_int_charging (see set_var_internal_charging
+     * — it flips low_warn red vs charging green without SOC moving). Skip
+     * only when BOTH inputs match the last paint. */
+    static int32_t s_last_pct_painted      = INT32_MIN;
+    static bool    s_last_charging_painted = false;
+    static bool    s_first_paint           = true;
+    if (!s_first_paint
+        && percent == s_last_pct_painted
+        && s_int_charging == s_last_charging_painted) {
+        return;
+    }
+    s_first_paint           = false;
+    s_last_pct_painted      = percent;
+    s_last_charging_painted = s_int_charging;
+
     /* Fan out across the six main pages that carry the TopBar. Wizards
      * (WiFi setup, MQTT setup, Alarms, Edit Buttons) also carry it but
      * aren't visited during steady-state use — extend the list if the
@@ -510,9 +548,9 @@ void set_var_internal_battery_soc(int32_t percent) {
      * actively charging (charging keeps the green cue regardless of level). */
     bool low_warn = (percent >= 0 && percent < 20 && !s_int_charging);
     for (size_t i = 0; i < sizeof(pct_labels)/sizeof(*pct_labels); i++) {
-        if (pct_labels[i]) lv_label_set_text(pct_labels[i], buf);
+        if (pct_labels[i]) label_set_text_if_changed(pct_labels[i], buf);
         if (icons[i]) {
-            lv_label_set_text(icons[i], glyph);
+            label_set_text_if_changed(icons[i], glyph);
             if (low_warn) {
                 lv_obj_set_style_text_color(icons[i],
                     lv_color_hex(0xFF5453), LV_PART_MAIN);
@@ -537,6 +575,16 @@ void set_var_internal_battery_voltage(float volts) {
 void set_var_internal_charging(bool charging) {
     s_int_charging = charging;
 #if __has_include("ui/screens.h")
+    /* Cached-last-value guard: the poller re-invokes with the same state
+     * every 10 s. Bail out when nothing changed so the six bolt icons +
+     * six battery icons don't invalidate on every quiet tick. First call
+     * still runs so the initial paint lands correctly. */
+    static bool s_last_charging_painted = false;
+    static bool s_first_paint           = true;
+    if (!s_first_paint && charging == s_last_charging_painted) return;
+    s_first_paint            = false;
+    s_last_charging_painted  = charging;
+
     lv_obj_t *bolts[] = {
         objects.home_topbar__topbar_charge_icon,
         objects.trailer_topbar__topbar_charge_icon,
@@ -1178,6 +1226,14 @@ void set_var_mqtt_connected(bool connected) {
 
 void set_var_wifi_rssi(int32_t rssi_dbm) {
 #if __has_include("ui/screens.h")
+    /* Cached-last-value guard: the poller re-applies the same rssi every
+     * 5 s while the link is quiet, and LVGL 8's lv_label_set_text always
+     * invalidates. Bail out when unchanged so an idle station doesn't
+     * trigger six needless redraws every tick. */
+    static int32_t s_last_rssi = INT32_MIN;
+    if (rssi_dbm == s_last_rssi) return;
+    s_last_rssi = rssi_dbm;
+
     /* Fan out to every TopBar instance (one per page). */
     /* EEZ Studio's per-instance name is `<uwi_identifier>__<child_identifier>`
      * — no page-name prefix. My generator passes page_id="home" (etc.) to
@@ -1193,7 +1249,7 @@ void set_var_wifi_rssi(int32_t rssi_dbm) {
     };
     char buf[16]; snprintf(buf, sizeof(buf), "%ld dBm", (long)rssi_dbm);
     for (int i = 0; i < 10; i++) {
-        if (labels[i]) lv_label_set_text(labels[i], buf);
+        if (labels[i]) label_set_text_if_changed(labels[i], buf);
     }
 #else
     (void)rssi_dbm;
@@ -1342,72 +1398,92 @@ void update_clock_display(void) {
     localtime_r(&now, &t);
     if (t.tm_year + 1900 < 2020) return;   /* RTC not yet set — keep placeholder */
 
-    char short_buf[12];
-    snprintf(short_buf, sizeof(short_buf), "%d:%02d %s",
-             (t.tm_hour % 12) ? (t.tm_hour % 12) : 12,
-             t.tm_min,
-             (t.tm_hour < 12) ? "AM" : "PM");
+    /* Called from the 1 Hz main-loop tick, but nothing in the label block
+     * below moves faster than tm_min. Skip the fanout when the minute is
+     * unchanged so an idle home screen doesn't re-run 20 snprintfs +
+     * invalidate ~20 labels every second. paint_notif_badge still runs
+     * on every tick (spec §alarms — sensor-input alarms need per-second
+     * evaluation regardless of clock movement). */
+    static int s_last_min  = -1;
+    static int s_last_hour = -1;
+    if (t.tm_min != s_last_min || t.tm_hour != s_last_hour) {
+        s_last_min  = t.tm_min;
+        s_last_hour = t.tm_hour;
 
-    lv_obj_t *clocks[] = {
-        objects.home_topbar__topbar_clock,
-        objects.trailer_topbar__topbar_clock,
-        objects.power_topbar__topbar_clock,
-        objects.water_topbar__topbar_clock,
-        objects.air_topbar__topbar_clock,
-        objects.settings_topbar__topbar_clock,
-    };
-    for (size_t i = 0; i < sizeof(clocks)/sizeof(*clocks); i++) {
-        if (clocks[i]) lv_label_set_text(clocks[i], short_buf);
-    }
-    /* Home page big clock digits. */
-    if (objects.home_clock_hh) {
-        char hh[4]; int h12 = (t.tm_hour % 12) ? (t.tm_hour % 12) : 12;
-        snprintf(hh, sizeof(hh), "%d", h12);
-        lv_label_set_text(objects.home_clock_hh, hh);
-    }
-    if (objects.home_clock_mm) {
-        char mm[4]; snprintf(mm, sizeof(mm), "%02d", t.tm_min);
-        lv_label_set_text(objects.home_clock_mm, mm);
-    }
-    if (objects.home_clock_ampm) {
-        lv_label_set_text(objects.home_clock_ampm, (t.tm_hour < 12) ? "AM" : "PM");
-    }
-    /* Weekday goes ABOVE the time, in green uppercase (new design §2b).
-     * The date line now shows month/day/year only — no weekday, no
-     * middle dot. */
-    if (objects.home_clock_weekday) {
-        char wday[16];
-        strftime(wday, sizeof(wday), "%A", &t);
-        for (char *c = wday; *c; c++) *c = (char)toupper((unsigned char)*c);
-        lv_label_set_text(objects.home_clock_weekday, wday);
-    }
-    if (objects.home_clock_date) {
-        char mon[16], db[48];
-        strftime(mon, sizeof(mon), "%B", &t);
-        snprintf(db, sizeof(db), "%s %d, %d",
-                 mon, t.tm_mday, 1900 + t.tm_year);
-        lv_label_set_text(objects.home_clock_date, db);
+        char short_buf[12];
+        snprintf(short_buf, sizeof(short_buf), "%d:%02d %s",
+                 (t.tm_hour % 12) ? (t.tm_hour % 12) : 12,
+                 t.tm_min,
+                 (t.tm_hour < 12) ? "AM" : "PM");
+
+        lv_obj_t *clocks[] = {
+            objects.home_topbar__topbar_clock,
+            objects.trailer_topbar__topbar_clock,
+            objects.power_topbar__topbar_clock,
+            objects.water_topbar__topbar_clock,
+            objects.air_topbar__topbar_clock,
+            objects.settings_topbar__topbar_clock,
+        };
+        for (size_t i = 0; i < sizeof(clocks)/sizeof(*clocks); i++) {
+            if (clocks[i]) label_set_text_if_changed(clocks[i], short_buf);
+        }
+        /* Home page big clock digits. label_set_text_if_changed still
+         * matters even inside this minute-guarded block: hh only changes
+         * hourly, weekday/date only daily, ampm twice a day, greeting a
+         * handful of times a day — no reason to invalidate them on the
+         * minute boundaries when they haven't moved. */
+        if (objects.home_clock_hh) {
+            char hh[4]; int h12 = (t.tm_hour % 12) ? (t.tm_hour % 12) : 12;
+            snprintf(hh, sizeof(hh), "%d", h12);
+            label_set_text_if_changed(objects.home_clock_hh, hh);
+        }
+        if (objects.home_clock_mm) {
+            char mm[4]; snprintf(mm, sizeof(mm), "%02d", t.tm_min);
+            label_set_text_if_changed(objects.home_clock_mm, mm);
+        }
+        if (objects.home_clock_ampm) {
+            label_set_text_if_changed(objects.home_clock_ampm,
+                                      (t.tm_hour < 12) ? "AM" : "PM");
+        }
+        /* Weekday goes ABOVE the time, in green uppercase (new design §2b).
+         * The date line now shows month/day/year only — no weekday, no
+         * middle dot. */
+        if (objects.home_clock_weekday) {
+            char wday[16];
+            strftime(wday, sizeof(wday), "%A", &t);
+            for (char *c = wday; *c; c++) *c = (char)toupper((unsigned char)*c);
+            label_set_text_if_changed(objects.home_clock_weekday, wday);
+        }
+        if (objects.home_clock_date) {
+            char mon[16], db[48];
+            strftime(mon, sizeof(mon), "%B", &t);
+            snprintf(db, sizeof(db), "%s %d, %d",
+                     mon, t.tm_mday, 1900 + t.tm_year);
+            label_set_text_if_changed(objects.home_clock_date, db);
+        }
+
+        /* Topbar greeting — cycles by time of day (RTC, not MQTT). Runs
+         * here so it re-evaluates on the minute without needing its own
+         * timer. */
+        const char *greet;
+        if      (t.tm_hour < 5)  greet = "Good Evening";
+        else if (t.tm_hour < 12) greet = "Good Morning";
+        else if (t.tm_hour < 17) greet = "Good Afternoon";
+        else if (t.tm_hour < 21) greet = "Good Evening";
+        else                     greet = "Good Night";
+        lv_obj_t *greets[6] = {
+            objects.home_topbar__topbar_greeting,
+            objects.trailer_topbar__topbar_greeting,
+            objects.power_topbar__topbar_greeting,
+            objects.water_topbar__topbar_greeting,
+            objects.air_topbar__topbar_greeting,
+            objects.settings_topbar__topbar_greeting,
+        };
+        for (int i = 0; i < 6; i++) {
+            if (greets[i]) label_set_text_if_changed(greets[i], greet);
+        }
     }
 
-    /* Topbar greeting — cycles by time of day (RTC, not MQTT). Runs here
-     * so it re-evaluates once a minute without needing its own timer. */
-    const char *greet;
-    if      (t.tm_hour < 5)  greet = "Good Evening";
-    else if (t.tm_hour < 12) greet = "Good Morning";
-    else if (t.tm_hour < 17) greet = "Good Afternoon";
-    else if (t.tm_hour < 21) greet = "Good Evening";
-    else                     greet = "Good Night";
-    lv_obj_t *greets[6] = {
-        objects.home_topbar__topbar_greeting,
-        objects.trailer_topbar__topbar_greeting,
-        objects.power_topbar__topbar_greeting,
-        objects.water_topbar__topbar_greeting,
-        objects.air_topbar__topbar_greeting,
-        objects.settings_topbar__topbar_greeting,
-    };
-    for (int i = 0; i < 6; i++) {
-        if (greets[i]) lv_label_set_text(greets[i], greet);
-    }
     /* Recompute the notification badge once per clock tick so
      * sensor-input alarms (evaluated in alarms.c from spoor/picket topics)
      * surface without waiting for an unrelated setter to fire. */
@@ -1416,22 +1492,65 @@ void update_clock_display(void) {
 }
 
 /* ============================================================
- * WiFi RSSI poll — read from the driver every 5 s and paint into every
- * topbar. Called from an LVGL timer (see init_wifi_rssi_poll below).
+ * WiFi RSSI poll — every 5 s, ask the driver for the current AP info and
+ * paint the value into every topbar.
+ *
+ * This board remotes WiFi over ESP-Hosted SDIO to an ESP32-C6, so
+ * esp_wifi_sta_get_ap_info() is a synchronous cross-chip RPC. When the
+ * C6 is busy that call can stall for tens to hundreds of milliseconds,
+ * so it must not run on the LVGL task (it would freeze rendering and
+ * touch for the whole duration).
+ *
+ * Split into two halves:
+ *   - wifi_rssi_poll_task: dedicated FreeRTOS task, priority 1, does the
+ *     RPC and stores the result to an atomic cache. Never touches LVGL.
+ *   - wifi_rssi_apply_cb: LVGL timer, checks the dirty flag and calls
+ *     set_var_wifi_rssi() with the cached value. LVGL-safe by
+ *     construction (runs on the LVGL task with the lock already held).
+ *
+ * "0 dBm" is preserved as the "not associated" placeholder: when the
+ * RPC returns non-OK the task caches 0, which set_var_wifi_rssi then
+ * renders as "0 dBm" in every topbar.
  * ============================================================ */
 
-static void wifi_rssi_poll_cb(lv_timer_t *t) {
-    (void)t;
-    wifi_ap_record_t ap;
-    if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
-        set_var_wifi_rssi((int32_t)ap.rssi);
-    } else {
-        set_var_wifi_rssi(0);  /* not associated → "0 dBm" reads as unreachable */
+static _Atomic int32_t s_cached_rssi       = 0;
+static _Atomic bool    s_cached_rssi_dirty = true;
+
+static void wifi_rssi_poll_task(void *arg) {
+    (void)arg;
+    while (1) {
+        wifi_ap_record_t ap;
+        int32_t rssi = 0;
+        if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
+            rssi = (int32_t)ap.rssi;
+        }
+        atomic_store(&s_cached_rssi, rssi);
+        atomic_store(&s_cached_rssi_dirty, true);
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
+static void wifi_rssi_apply_cb(lv_timer_t *t) {
+    (void)t;
+    if (!atomic_exchange(&s_cached_rssi_dirty, false)) return;
+    set_var_wifi_rssi(atomic_load(&s_cached_rssi));
+}
+
 void init_wifi_rssi_poll(void) {
-    lv_timer_create(wifi_rssi_poll_cb, 5000, NULL);
+    /* Apply timer runs on the LVGL task at 500 ms so the initial cache
+     * value lands promptly after the poller's first RPC completes. The
+     * callback is nearly free when the dirty flag isn't set. */
+    lv_timer_create(wifi_rssi_apply_cb, 500, NULL);
+    static bool started = false;
+    if (started) return;
+    started = true;
+    /* 4 KB stack: esp_wifi_sta_get_ap_info uses ~1 KB on this chip.
+     * Priority 1 keeps it below every UI/network task; a WiFi RSSI
+     * update is never latency-critical. */
+    if (xTaskCreate(wifi_rssi_poll_task, "wifi_rssi_poll",
+                    4096, NULL, 1, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "xTaskCreate(wifi_rssi_poll) failed");
+    }
 }
 
 /* ============================================================

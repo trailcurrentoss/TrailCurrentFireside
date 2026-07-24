@@ -8,9 +8,11 @@
  */
 #include "battery.h"
 
+#include <stdatomic.h>
 #include <string.h>
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "lvgl.h"
 
 #include "bsp_i2c.h"
@@ -50,41 +52,80 @@ esp_err_t battery_read(battery_info_t *out) {
     return ESP_OK;
 }
 
-static void battery_poll_cb(lv_timer_t *t) {
-    (void)t;
-    battery_info_t info;
-    esp_err_t err = battery_read(&info);
-    if (err != ESP_OK) {
-        /* No STC8H1KXX response — no battery board or comms error. Show the
-         * cluster as unknown so the user can tell the reading is not live. */
-        static bool warned = false;
-        if (!warned) {
-            ESP_LOGW(TAG, "battery_read failed: %s", esp_err_to_name(err));
-            warned = true;
+/* ============================================================
+ * Poll pipeline — battery_read() is an I2C transaction and must not run
+ * on the LVGL task (it would stall touch and rendering for the duration
+ * of the transfer). Same split as the WiFi RSSI poller in vars.c:
+ *
+ *   - battery_poll_task: dedicated FreeRTOS task, does the I2C read
+ *     every 10 s and stores the result to an atomic cache.
+ *   - battery_apply_cb: LVGL timer, checks the dirty flag and calls the
+ *     set_var_internal_* setters with the cached values. Runs on the
+ *     LVGL task so the setters remain lock-safe.
+ *
+ * On a read failure the cache is populated with pct=-1 and charging=false
+ * so the TopBar cluster falls back to "--%" — matches the pre-split
+ * behaviour when no STC8H1KXX is present.
+ * ============================================================ */
+
+static _Atomic int32_t s_cached_pct       = -1;
+static _Atomic int32_t s_cached_mv        = 0;
+static _Atomic int32_t s_cached_charging  = 0;    /* 0 = not charging, 1 = charging */
+static _Atomic bool    s_cached_dirty     = false;
+
+static void battery_poll_task(void *arg) {
+    (void)arg;
+    while (1) {
+        battery_info_t info;
+        esp_err_t err = battery_read(&info);
+        if (err != ESP_OK) {
+            static bool warned = false;
+            if (!warned) {
+                ESP_LOGW(TAG, "battery_read failed: %s", esp_err_to_name(err));
+                warned = true;
+            }
+            atomic_store(&s_cached_pct, -1);
+            atomic_store(&s_cached_mv, 0);
+            atomic_store(&s_cached_charging, 0);
+        } else {
+            /* Cap to 0..100 — the vendor firmware occasionally reports 101
+             * while a cell is topping off. */
+            int pct = info.bat_level_pct;
+            if (pct > 100) pct = 100;
+            atomic_store(&s_cached_pct, pct);
+            atomic_store(&s_cached_mv, (int32_t)info.bat_voltage_mv);
+            atomic_store(&s_cached_charging,
+                         info.bat_state == BATTERY_STATE_CHARGING ? 1 : 0);
+            ESP_LOGD(TAG, "SOC=%d%% V=%lu mV state=%u",
+                     pct, (unsigned long)info.bat_voltage_mv,
+                     (unsigned)info.bat_state);
         }
-        set_var_internal_battery_soc(-1);
-        set_var_internal_charging(false);
-        return;
+        atomic_store(&s_cached_dirty, true);
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
+}
 
-    /* Cap to 0..100 — the vendor firmware occasionally reports 101 while a
-     * cell is topping off. */
-    int pct = info.bat_level_pct;
-    if (pct > 100) pct = 100;
-
-    bool charging = (info.bat_state == BATTERY_STATE_CHARGING);
+static void battery_apply_cb(lv_timer_t *t) {
+    (void)t;
+    if (!atomic_exchange(&s_cached_dirty, false)) return;
+    int32_t pct = atomic_load(&s_cached_pct);
+    int32_t mv  = atomic_load(&s_cached_mv);
+    bool    chg = atomic_load(&s_cached_charging) != 0;
     set_var_internal_battery_soc(pct);
-    set_var_internal_battery_voltage(info.bat_voltage_mv / 1000.0f);
-    set_var_internal_charging(charging);
-
-    ESP_LOGD(TAG, "SOC=%d%% V=%lu mV state=%u",
-             pct, (unsigned long)info.bat_voltage_mv,
-             (unsigned)info.bat_state);
+    if (pct >= 0) set_var_internal_battery_voltage(mv / 1000.0f);
+    set_var_internal_charging(chg);
 }
 
 void init_battery_poll(void) {
-    /* One immediate paint so the boot placeholder ("--%") swaps to a real
-     * reading as soon as I2C responds, without waiting the full poll period. */
-    battery_poll_cb(NULL);
-    lv_timer_create(battery_poll_cb, 10000, NULL);
+    /* Apply timer runs on the LVGL task at 500 ms so the initial cache
+     * value from the poller's first read lands promptly. The callback
+     * is nearly free when the dirty flag isn't set. */
+    lv_timer_create(battery_apply_cb, 500, NULL);
+    /* 3 KB stack: battery_read is a tight loop over i2c_read_reg; no
+     * deep call stacks. Priority 1 keeps it well below the LVGL and
+     * network tasks. */
+    if (xTaskCreate(battery_poll_task, "battery_poll",
+                    3072, NULL, 1, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "xTaskCreate(battery_poll) failed");
+    }
 }
