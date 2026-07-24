@@ -460,16 +460,13 @@ static void mqtt_dispatch_task(void *arg) {
         if (xQueueReceive(s_incoming_queue, &msg, portMAX_DELAY) != pdTRUE) {
             continue;
         }
-        lvgl_port_lock(0);
+        /* Lock is NOT held here — process_message parses cJSON and extracts
+         * values without the LVGL lock, then takes the lock only around the
+         * setter calls per topic branch. At ~200 msg/sec that keeps parse
+         * time (~1 ms per message) off LVGL's critical path. */
         process_message(msg.topic, msg.payload, msg.payload_len);
-        lvgl_port_unlock();
-        /* Opportunistically drain anything else that arrived while we
-         * were processing this one — one LVGL lock per message, so the
-         * LVGL task can still slip in between. */
         while (xQueueReceive(s_incoming_queue, &msg, 0) == pdTRUE) {
-            lvgl_port_lock(0);
             process_message(msg.topic, msg.payload, msg.payload_len);
-            lvgl_port_unlock();
         }
     }
 }
@@ -579,6 +576,18 @@ static void process_gnss_mode(int mode) {
 
 /* --- Process incoming MQTT message --- */
 
+/*
+ * Two-phase message handling:
+ *   Phase 1 (this function, NO LVGL lock): parse cJSON, walk the topic
+ *           dispatch tree, extract every numeric/string value we need into
+ *           locals or into stack cJSON pointers.
+ *   Phase 2 (lvgl_port_lock scope inside each branch): call the set_var_*
+ *           setters. Per the vars.c contract those assume the caller holds
+ *           the display lock. The lock now wraps only the setter block —
+ *           parsing (~1 ms per message with malloc-heavy cJSON) is off the
+ *           LVGL critical path, so at Headwaters' ~200 msg/sec load the
+ *           LVGL task keeps the frame + touch cadence.
+ */
 static void process_message(const char *topic, const char *payload, int length) {
     cJSON *doc = cJSON_ParseWithLength(payload, length);
     if (!doc) {
@@ -592,7 +601,10 @@ static void process_message(const char *topic, const char *payload, int length) 
         if (id < 1 || id > 8) { cJSON_Delete(doc); return; }
 
         /* Skip updates for the device whose brightness is being adjusted
-         * by the user — avoids fighting with another controller. */
+         * by the user — avoids fighting with another controller.
+         * button_config_find is a static-array lookup; the brightness id
+         * getter reads a plain int32. Neither touches LVGL, so this
+         * short-circuit runs without the lock. */
         uint8_t btn_editing = (uint8_t)button_config_find(MOD_TORRENT, 0, (uint8_t)(id - 1));
         if (btn_editing && btn_editing == (uint8_t)get_var_current_device_brightness_identifier()) {
             cJSON_Delete(doc);
@@ -604,7 +616,10 @@ static void process_message(const char *topic, const char *payload, int length) 
         int state = state_j ? state_j->valueint : 0;
         int brightness = brightness_j ? brightness_j->valueint : 0;
         int value = (state > 0) ? ((brightness > 0) ? brightness : 1) : 0;
+
+        lvgl_port_lock(0);
         apply_module_status(MOD_TORRENT, 0, (uint8_t)(id - 1), value);
+        lvgl_port_unlock();
     }
     /* local/relays/{id}/status — Switchback instance 0, channel id-1 */
     else if (strncmp(topic, "local/relays/", 13) == 0) {
@@ -612,7 +627,10 @@ static void process_message(const char *topic, const char *payload, int length) 
         if (id < 1 || id > 8) { cJSON_Delete(doc); return; }
         cJSON *state_j = cJSON_GetObjectItem(doc, "state");
         int state = state_j ? state_j->valueint : 0;
+
+        lvgl_port_lock(0);
         apply_module_status(MOD_SWITCHBACK, 0, (uint8_t)(id - 1), state);
+        lvgl_port_unlock();
     }
     /* local/energy/status */
     else if (strcmp(topic, "local/energy/status") == 0) {
@@ -624,25 +642,35 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *cw = cJSON_GetObjectItem(doc, "consumption_watts");
         cJSON *tr = cJSON_GetObjectItem(doc, "time_remaining_minutes");
 
-        if (bp) set_var_battery_soc((int32_t)bp->valuedouble);
-        if (bv) set_var_battery_voltage((float)bv->valuedouble);
-        if (sw) set_var_solar_watts((int32_t)sw->valuedouble);
-        if (ct && ct->valuestring) set_var_solar_status(ct->valuestring);
-        if (cw) set_var_consumption_watts((int32_t)cw->valuedouble);
-        if (tr) set_var_time_remaining((int32_t)tr->valuedouble);
+        int32_t bp_v = bp ? (int32_t)bp->valuedouble : 0;
+        float   bv_v = bv ? (float)bv->valuedouble   : 0.0f;
+        int32_t sw_v = sw ? (int32_t)sw->valuedouble : 0;
+        const char *ct_v = (ct && ct->valuestring) ? ct->valuestring : NULL;
+        int32_t cw_v = cw ? (int32_t)cw->valuedouble : 0;
+        int32_t tr_v = tr ? (int32_t)tr->valuedouble : 0;
+
+        lvgl_port_lock(0);
+        if (bp)   set_var_battery_soc(bp_v);
+        if (bv)   set_var_battery_voltage(bv_v);
+        if (sw)   set_var_solar_watts(sw_v);
+        if (ct_v) set_var_solar_status(ct_v);
+        if (cw)   set_var_consumption_watts(cw_v);
+        if (tr)   set_var_time_remaining(tr_v);
+        lvgl_port_unlock();
     }
     /* local/airquality/temphumid */
     else if (strcmp(topic, "local/airquality/temphumid") == 0) {
         s_watchdog_last_seen[WD_AIRQUALITY] = esp_timer_get_time();
         cJSON *temp_f = cJSON_GetObjectItem(doc, "tempInF");
-        cJSON *humid = cJSON_GetObjectItem(doc, "humidity");
+        cJSON *humid  = cJSON_GetObjectItem(doc, "humidity");
 
-        if (temp_f) {
-            set_var_current_interior_temperature((int32_t)temp_f->valuedouble);
-        }
-        if (humid) {
-            set_var_humidity((float)humid->valuedouble);
-        }
+        int32_t temp_v  = temp_f ? (int32_t)temp_f->valuedouble : 0;
+        float   humid_v = humid  ? (float)humid->valuedouble    : 0.0f;
+
+        lvgl_port_lock(0);
+        if (temp_f) set_var_current_interior_temperature(temp_v);
+        if (humid)  set_var_humidity(humid_v);
+        lvgl_port_unlock();
     }
     /* local/airquality/status */
     else if (strcmp(topic, "local/airquality/status") == 0) {
@@ -650,10 +678,15 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *eco2 = cJSON_GetObjectItem(doc, "eco2_ppm");
         cJSON *tvoc = cJSON_GetObjectItem(doc, "tvoc_ppb");
 
-        if (eco2 && cJSON_IsNumber(eco2))
-            set_var_co2((int32_t)eco2->valuedouble);
-        if (tvoc && cJSON_IsNumber(tvoc))
-            set_var_tvoc((int32_t)tvoc->valuedouble);
+        bool have_eco2 = eco2 && cJSON_IsNumber(eco2);
+        bool have_tvoc = tvoc && cJSON_IsNumber(tvoc);
+        int32_t eco2_v = have_eco2 ? (int32_t)eco2->valuedouble : 0;
+        int32_t tvoc_v = have_tvoc ? (int32_t)tvoc->valuedouble : 0;
+
+        lvgl_port_lock(0);
+        if (have_eco2) set_var_co2(eco2_v);
+        if (have_tvoc) set_var_tvoc(tvoc_v);
+        lvgl_port_unlock();
     }
     /* local/airquality/safety — Borealis CO safety data (via can-bridge).
      * Payload: { co_ppm, co_warn (bool), co_alarm (bool), alarm_flags }.
@@ -664,38 +697,62 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *cop  = cJSON_GetObjectItem(doc, "co_ppm");
         cJSON *warn = cJSON_GetObjectItem(doc, "co_warn");
         cJSON *alrm = cJSON_GetObjectItem(doc, "co_alarm");
-        if (cop && cJSON_IsNumber(cop))
-            set_var_co((int32_t)cop->valuedouble);
+
+        bool have_cop = cop && cJSON_IsNumber(cop);
+        int32_t cop_v = have_cop ? (int32_t)cop->valuedouble : 0;
         bool w = warn && cJSON_IsBool(warn) ? cJSON_IsTrue(warn) : false;
         bool a = alrm && cJSON_IsBool(alrm) ? cJSON_IsTrue(alrm) : false;
+
+        lvgl_port_lock(0);
+        if (have_cop) set_var_co(cop_v);
         set_var_co_flags(w, a);
+        lvgl_port_unlock();
     }
     /* local/gps/latlon */
     else if (strcmp(topic, "local/gps/latlon") == 0) {
         s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *lat = cJSON_GetObjectItem(doc, "latitude");
         cJSON *lon = cJSON_GetObjectItem(doc, "longitude");
-        if (lat) set_var_latitude((float)lat->valuedouble);
-        if (lon) set_var_longitude((float)lon->valuedouble);
+
+        float lat_v = lat ? (float)lat->valuedouble : 0.0f;
+        float lon_v = lon ? (float)lon->valuedouble : 0.0f;
+
+        lvgl_port_lock(0);
+        if (lat) set_var_latitude(lat_v);
+        if (lon) set_var_longitude(lon_v);
+        lvgl_port_unlock();
     }
     /* local/gps/alt */
     else if (strcmp(topic, "local/gps/alt") == 0) {
         s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *alt = cJSON_GetObjectItem(doc, "altitudeFeet");
-        if (alt) set_var_altitude((float)alt->valuedouble);
+        float alt_v = alt ? (float)alt->valuedouble : 0.0f;
+
+        if (alt) {
+            lvgl_port_lock(0);
+            set_var_altitude(alt_v);
+            lvgl_port_unlock();
+        }
     }
     /* local/gps/details */
     else if (strcmp(topic, "local/gps/details") == 0) {
         s_watchdog_last_seen[WD_GPS] = esp_timer_get_time();
         cJSON *sats = cJSON_GetObjectItem(doc, "numberOfSatellites");
-        cJSON *spd = cJSON_GetObjectItem(doc, "speedOverGround");
-        cJSON *crs = cJSON_GetObjectItem(doc, "courseOverGround");
+        cJSON *spd  = cJSON_GetObjectItem(doc, "speedOverGround");
+        cJSON *crs  = cJSON_GetObjectItem(doc, "courseOverGround");
         cJSON *gnss = cJSON_GetObjectItem(doc, "gnssMode");
 
-        if (sats) set_var_satellite_count(sats->valueint);
-        if (spd) set_var_speed((float)spd->valuedouble);
-        if (crs) set_var_course((float)crs->valuedouble);
-        if (gnss) process_gnss_mode(gnss->valueint);
+        int32_t sats_v = sats ? sats->valueint            : 0;
+        float   spd_v  = spd  ? (float)spd->valuedouble   : 0.0f;
+        float   crs_v  = crs  ? (float)crs->valuedouble   : 0.0f;
+        int     gnss_v = gnss ? gnss->valueint            : 0;
+
+        lvgl_port_lock(0);
+        if (sats) set_var_satellite_count(sats_v);
+        if (spd)  set_var_speed(spd_v);
+        if (crs)  set_var_course(crs_v);
+        if (gnss) process_gnss_mode(gnss_v);
+        lvgl_port_unlock();
     }
     /* local/gps/time */
     else if (strcmp(topic, "local/gps/time") == 0) {
@@ -708,21 +765,30 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *sc = cJSON_GetObjectItem(doc, "second");
 
         if (yr && mo && dy && hr && mn && sc) {
-            set_var_gps_time(yr->valueint, mo->valueint, dy->valueint,
-                             hr->valueint, mn->valueint, sc->valueint);
+            int y  = yr->valueint, m  = mo->valueint, d = dy->valueint;
+            int hh = hr->valueint, mm = mn->valueint, ss = sc->valueint;
+            lvgl_port_lock(0);
+            set_var_gps_time(y, m, d, hh, mm, ss);
+            lvgl_port_unlock();
         }
     }
     /* local/spoor/<addr>/inputs — Switchback DIs (8 bits per board).
-     * Payload matches Headwaters alarms-service.js: { addr, inputs }. */
+     * Payload matches Headwaters alarms-service.js: { addr, inputs }.
+     * alarms_apply_inputs writes into static arrays that alarms_tick_edges
+     * (called from vars.c's LVGL 1 Hz timer) reads, so we still take the
+     * lock around it to keep the reader/writer ordering the rest of the
+     * codebase assumes. */
     else if (strncmp(topic, "local/spoor/", 12) == 0 &&
              strstr(topic, "/inputs") != NULL) {
         cJSON *addr_j = cJSON_GetObjectItem(doc, "addr");
         cJSON *bits_j = cJSON_GetObjectItem(doc, "inputs");
         if (addr_j && cJSON_IsNumber(addr_j) &&
             bits_j && cJSON_IsNumber(bits_j)) {
-            alarms_apply_inputs(ALARM_SRC_SWITCHBACK,
-                                (uint8_t)addr_j->valueint,
-                                (uint16_t)bits_j->valueint);
+            uint8_t  addr = (uint8_t)addr_j->valueint;
+            uint16_t bits = (uint16_t)bits_j->valueint;
+            lvgl_port_lock(0);
+            alarms_apply_inputs(ALARM_SRC_SWITCHBACK, addr, bits);
+            lvgl_port_unlock();
         }
     }
     /* local/picket/<addr>/inputs — Picket reed switches (12 bits per board). */
@@ -732,9 +798,11 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *bits_j = cJSON_GetObjectItem(doc, "inputs");
         if (addr_j && cJSON_IsNumber(addr_j) &&
             bits_j && cJSON_IsNumber(bits_j)) {
-            alarms_apply_inputs(ALARM_SRC_PICKET,
-                                (uint8_t)addr_j->valueint,
-                                (uint16_t)bits_j->valueint);
+            uint8_t  addr = (uint8_t)addr_j->valueint;
+            uint16_t bits = (uint16_t)bits_j->valueint;
+            lvgl_port_lock(0);
+            alarms_apply_inputs(ALARM_SRC_PICKET, addr, bits);
+            lvgl_port_unlock();
         }
     }
     /* local/water/status — tank levels (0-100%) from Reservoir via can-bridge */
@@ -743,10 +811,13 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *fresh = cJSON_GetObjectItem(doc, "fresh");
         cJSON *grey  = cJSON_GetObjectItem(doc, "grey");
         cJSON *black = cJSON_GetObjectItem(doc, "black");
-        set_var_water_levels(
-            fresh ? (int32_t)fresh->valuedouble : 0,
-            grey  ? (int32_t)grey->valuedouble  : 0,
-            black ? (int32_t)black->valuedouble : 0);
+        int32_t fresh_v = fresh ? (int32_t)fresh->valuedouble : 0;
+        int32_t grey_v  = grey  ? (int32_t)grey->valuedouble  : 0;
+        int32_t black_v = black ? (int32_t)black->valuedouble : 0;
+
+        lvgl_port_lock(0);
+        set_var_water_levels(fresh_v, grey_v, black_v);
+        lvgl_port_unlock();
     }
     else {
         ESP_LOGW(TAG, "Unhandled topic (subscribed but no case): %s", topic);
