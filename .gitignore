@@ -1,3 +1,18 @@
+# AI agent configuration (local only — never commit)
+.claude
+.claude/
+.claude.md
+CLAUDE.md
+CLAUDE.MD
+.cursorrules
+.cursor/
+.github/copilot*
+.aider*
+.continue/
+.codeium/
+.tabnine*
+.sourcery.yaml
+
 # ESP-IDF build artifacts
 build/
 build_*_*/
@@ -9,6 +24,16 @@ sdkconfig.old
 # ESP-IDF dependency manager
 dependencies.lock
 managed_components/
+
+# EEZ Studio backups + tmp/ working state
+GUI/**/*.eez-project.bak*
+GUI/**/*.eez-project-ui-state
+tmp/
+GUI/tmp/
+**/tmp/
+
+# CrowPanel vendor source — third-party reference, don't commit into this repo
+CrowPanel-Advanced-*/
 
 # Log files and temporary files
 *.log
@@ -31,14 +56,9 @@ pytest_embedded_log/
 .DS_Store
 Thumbs.db
 
-# Local development/agent files
-CLAUDE.md
-.claude/
-
 # Temporary/backup files
 *.orig
 *.tmp
-tmp/
 scripts/
 
 # FreeCAD temporary and backup files

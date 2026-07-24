@@ -1,0 +1,44 @@
+## IDF Component Manager Manifest — Fireside CrowPanel on Elecrow
+## ESP32-P4 10.1" 1024x600 (EK79007 MIPI-DSI + GT911 capacitive touch).
+##
+## Phase 1: display + touch only. WiFi (esp_hosted / esp_wifi_remote) is
+## DELIBERATELY LEFT OUT. Re-adding esp_hosted on this board caused the
+## SDIO driver's constructor (__attribute__((constructor)) esp_hosted_host_init)
+## to fail its buf_mp_g mempool allocation before app_main runs, boot-looping
+## the device. Turn WiFi on in Phase 2 with a proper esp_hosted_init() sequence
+## in main.c (see the vendor's Lesson16 for the correct order).
+dependencies:
+  # LVGL 8.4 — matches the eez-project's lvglVersion so the C export's API
+  # (lv_mem_alloc, lv_disp_t, LV_DISP_ROT_*) resolves. CrowPanel vendor
+  # examples run 9.4 with esp_lvgl_port's compat shim, but the shim doesn't
+  # cover the exporter's memory-alloc calls — cleanest fix is to pin both
+  # sides to 8.4 (this is exactly what Fireside does).
+  lvgl/lvgl:
+    version: "~8.4.0"
+    public: true
+
+  # LCD panel driver (EK79007 on MIPI-DSI) + touch driver (GT911 on I2C).
+  espressif/esp_lcd_ek79007: "^1.0.2"
+  espressif/esp_lcd_touch_gt911: "^1.1.3"
+
+  # LVGL <-> ESP-LCD glue. bsp_illuminate uses it directly.
+  espressif/esp_lvgl_port: "*"
+
+  # WiFi over ESP-Hosted — 2.12.3 matches the C6 slave firmware the user
+  # already flashed via the vendor upgrade guide (Advance_P4_On-Board_
+  # ESP32C6_Firmware_V2.12.3). See DOCS/LessonsLearned.md #19 for why the
+  # 2.7 default in vendor Lesson16 is wrong for this device.
+  espressif/esp_hosted:
+    rules:
+      - if: target in [esp32p4, esp32h2]
+    version: "~2.12.3"
+  espressif/esp_wifi_remote:
+    rules:
+      - if: target in [esp32p4, esp32h2]
+    version: "*"
+
+  # mDNS — Phase 2 use only (Headwaters discovery). Cheap to keep here.
+  espressif/mdns:
+    version: "*"
+
+  idf: ">=5.3"

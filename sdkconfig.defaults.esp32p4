@@ -1,0 +1,41 @@
+# ESP32-P4 target-specific sdkconfig defaults.
+#
+# Loaded on top of sdkconfig.defaults when the target is esp32p4. Contains
+# every setting from DOCS/LessonsLearned.md that's specific to this board
+# revision (CrowPanel Advance 10.1" V1.2).
+
+# --- MIPI-DSI DMA alignment (LessonsLearned #6) ---------------------
+# EK79007 panel over 900 Mbps/lane MIPI-DSI needs specific L2 cache + MMU
+# geometry. Without these you get blue flicker at boot.
+CONFIG_CACHE_L2_CACHE_128KB=y
+CONFIG_CACHE_L2_CACHE_LINE_64B=y
+CONFIG_MMU_PAGE_SIZE_64KB=y
+
+# --- ESP-Hosted enable (LessonsLearned #5) --------------------------
+CONFIG_SLAVE_IDF_TARGET_ESP32C6=y
+CONFIG_ESP_HOSTED_ENABLED=y
+CONFIG_ESP_HOSTED_P4_DEV_BOARD_NONE=y
+
+# --- ESP-Hosted SDIO pin map for CrowPanel V1.2 (LessonsLearned #18) -
+# THIS IS THE BIT THAT'S BEEN BURNING US. Elecrow's V1.1+V1.2 boards use
+# 4-bit SDIO with:  CMD=19, CLK=18, D0=17, D1=16, D2=15, D3=14, RESET=32
+# esp_hosted's defaults are for a dev board and have D0/D3 reversed +
+# reset on GPIO 54 which isn't wired to the C6. Result: "Not able to
+# connect with ESP-Hosted slave device" → reboot loop.
+CONFIG_ESP_HOSTED_SDIO_HOST_INTERFACE=y
+CONFIG_ESP_HOSTED_SDIO_SLOT_1=y
+CONFIG_ESP_HOSTED_SDIO_4_BIT_BUS=y
+CONFIG_ESP_HOSTED_SDIO_BUS_WIDTH=4
+CONFIG_ESP_HOSTED_SDIO_CLOCK_FREQ_KHZ=40000
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_1=19
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_1=18
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_1=17
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_1=16
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_1=15
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_1=14
+CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE=32
+
+# --- ESP-Hosted task stacks in PSRAM (LessonsLearned #20) ----------
+# Internal RAM is tight when WiFi + LVGL + mbedtls all want internal
+# buffers; SPIRAM has 32 MB headroom. Move Hosted's worker tasks there.
+CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM=y

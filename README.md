@@ -1,89 +1,73 @@
 # TrailCurrent Fireside
 
-Central control display firmware for an ESP32-P4 with a 7" touchscreen, providing a dashboard for monitoring and controlling devices on the [TrailCurrent](https://trailcurrent.com) CAN bus via WiFi and MQTT.
-
-## Home Screen
-
-![Main Screen](DOCS/IMAGES/HomeScreen.png)
+Central control display firmware for an ESP32-P4 with a 10.1" touchscreen, providing a dashboard for monitoring and controlling devices on the [TrailCurrent](https://trailcurrent.com) CAN bus via WiFi and MQTT.
 
 ## Hardware Overview
 
-- **Microcontroller:** ESP32-P4 ([Waveshare ESP32-P4 WiFi6 Touch LCD 7B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7b.htm?aff_id=Trailcurrent)) — selected for its processing power and rich display capability, enabling more engaging touch-panel UIs
-- **WiFi:** Via ESP-Hosted (ESP32-C6 slave over SDIO)
-- **Display:** 7" 1024x600 MIPI-DSI LCD with capacitive touch
-- **Build System:** ESP-IDF v5.5.2
-- **SD Card:** SDMMC 4-bit mode for configuration (separate bus from ESP-Hosted SDIO)
+- **Board:** [Elecrow CrowPanel Advance 10.1" ESP32-P4 HMI AI Display (1024×600 IPS + capacitive touch)](https://www.elecrow.com/crowpanel-advanced-10-1-inch-esp32-p4-hmi-ai-display-1024x600-ips-touch-screen.html)
+- **Microcontroller:** ESP32-P4 (16 MB PSRAM, 16 MB flash)
+- **WiFi:** ESP32-C6 slave over 4-bit SDIO via ESP-Hosted (vendor firmware v2.12.3)
+- **Display:** 10.1" 1024×600 MIPI-DSI (EK79007 controller) with GT911 capacitive touch
+- **Build System:** ESP-IDF v5.3 or newer, target `esp32p4`
 - **Key Features:**
   - Central dashboard for trailer system monitoring
   - Thermostat with temperature control
-  - Eight device control buttons
-  - SD card provisioning: insert a `config.env` to configure WiFi and MQTT credentials, stored to NVS for ongoing use
+  - Configurable device control buttons
+  - On-device setup wizard (WiFi + MQTT provisioning — no SD card required)
   - MQTT over TLS (`mqtts://`) for real-time data from the TrailCurrent platform
   - Light control with on/off and brightness via MQTT
   - GPS, energy, and air quality monitoring via MQTT subscriptions
-  - Color theme switching
+  - Battery status via MQTT (from Solstice)
+  - Alarm and audio notifications
+  - Color theme switching (light/dark)
   - Screen brightness and timeout controls
-  - Timezone selection
-  - NVS-persisted user settings (theme, brightness, timeout, timezone)
-  - LVGL v8 UI designed with EEZ Studio
+  - NVS-persisted user settings (theme, brightness, timeout, WiFi + MQTT credentials)
+  - LVGL v8.4 UI designed with EEZ Studio
   - FreeCAD enclosure design
-
-## Hardware Requirements
-
-### Components
-
-- **Board:** [Waveshare ESP32-P4 WiFi6 Touch LCD 7B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7b.htm?aff_id=Trailcurrent)
-- **WiFi Module:** ESP32-C6 (integrated, communicates via ESP-Hosted SDIO)
 
 ## Firmware
 
 This project uses ESP-IDF (not PlatformIO).
 
+**Prerequisites:**
+
+- ESP-IDF v5.3 or newer, targeting `esp32p4`.
+- [EEZ Studio](https://github.com/eez-open/studio) — needed to export the UI to C. First-build users **must** run this before `idf.py build`.
+- ESP32-C6 slave firmware **v2.12.3** flashed to the on-board C6. See the Elecrow "Advance P4 On-Board ESP32C6 Firmware V2.12.3" upgrade guide — the SDIO pin map in `sdkconfig.defaults.esp32p4` targets this revision.
+
 **Setup:**
+
 ```bash
-# Install ESP-IDF v5.5.2 (if not already installed)
-# See https://docs.espressif.com/projects/esp-idf/en/stable/esp32p4/get-started/
+# 1. Export the UI from EEZ Studio.
+#    Open GUI/elecrow-esp32-p4-10-in/elecrow-esp32-p4-10-in.eez-project
+#    then File → Build (Ctrl+B). Output lands in main/ui/.
 
-# Set target
+# 2. Build + flash + monitor.
 idf.py set-target esp32p4
-
-# Configure (optional - sdkconfig.defaults has working defaults)
-idf.py menuconfig
-
-# Build
 idf.py build
-
-# Flash
-idf.py -p /dev/ttyUSBx flash
-
-# Monitor serial output
-idf.py -p /dev/ttyUSBx monitor
+idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
 ### Firmware Dependencies
 
 Dependencies are managed by the ESP-IDF component manager and resolved automatically during build:
 
-- **[LVGL](https://github.com/lvgl/lvgl)** (v8.4.x) - Light and Versatile Graphics Library
-- **[esp_wifi_remote](https://components.espressif.com/components/espressif/esp_wifi_remote)** - WiFi via ESP-Hosted
-- **[esp_hosted](https://components.espressif.com/components/espressif/esp_hosted)** - ESP32-C6 slave communication
+- **[LVGL](https://github.com/lvgl/lvgl)** (`~8.4.0`) — Light and Versatile Graphics Library, matches the eez-project's `lvglVersion`.
+- **[esp_lcd_ek79007](https://components.espressif.com/components/espressif/esp_lcd_ek79007)** — MIPI-DSI panel driver.
+- **[esp_lcd_touch_gt911](https://components.espressif.com/components/espressif/esp_lcd_touch_gt911)** — capacitive touch driver.
+- **[esp_lvgl_port](https://components.espressif.com/components/espressif/esp_lvgl_port)** — LVGL ↔ esp_lcd glue.
+- **[esp_hosted](https://components.espressif.com/components/espressif/esp_hosted)** (`~2.12.3`) — ESP32-C6 slave communication over SDIO.
+- **[esp_wifi_remote](https://components.espressif.com/components/espressif/esp_wifi_remote)** — WiFi via ESP-Hosted.
+- **[mdns](https://components.espressif.com/components/espressif/mdns)** — mDNS discovery.
 
-### SD Card Configuration
+### On-Device Setup Wizard
 
-WiFi and MQTT settings are provisioned via an SD card. Create a `config.env` file on a FAT-formatted SD card:
+On first boot the device shows a setup wizard that walks the user through:
 
-```
-WIFI_SSID=YourNetworkName
-WIFI_PWD=YourWiFiPassword
-MQTT_HOST=192.168.1.100
-MQTT_PORT=8883
-MQTT_USER=mqttuser
-MQTT_PASS=mqttpassword
-```
+1. **WiFi setup** — scan-and-pick, WPA2 password entry with on-screen keyboard.
+2. **MQTT broker configuration** — host, port, username, password.
 
-Optionally include a `ca.crt` file on the SD card for custom TLS certificate authority.
-
-On boot, the device reads `config.env` from the SD card and stores the values into NVS. Once provisioned, the SD card is not needed for normal operation — it only needs to be reinserted to update settings. The device uses the same `config.env` format as the [TrailCurrent Waveshare ESP32-S3 Remote](https://github.com/trailcurrentoss/TrailCurrentWaveshareEsp32s3Remote).
+Credentials are persisted to NVS, so a rebooted device auto-connects and jumps straight to the dashboard.
 
 ### MQTT
 
@@ -94,33 +78,53 @@ The MQTT client connects over TLS (`mqtts://`) using credentials from NVS. It su
 - `local/airquality/temphumid` — Temperature and humidity
 - `local/airquality/status` — CO2 (eCO2 ppm) and TVOC (ppb)
 - `local/gps/latlon`, `local/gps/alt`, `local/gps/details` — GPS data
+- `local/battery/status` — Battery state from Solstice
 
 Light commands are published to `local/lights/{id}/command`.
 
 ## Project Structure
 
 ```
-├── ASSETS/                       # UI design assets (images, SVGs)
 ├── CAD/                          # FreeCAD enclosure design and STL exports
 ├── DOCS/                         # Documentation and screenshots
-│   └── IMAGES/                   # UI screenshots
 ├── GUI/                          # EEZ Studio UI design files
+│   ├── ASSETS/                   # Fonts (Roboto, FontAwesome) and logo referenced by the eez-project
+│   └── elecrow-esp32-p4-10-in/
+│       └── elecrow-esp32-p4-10-in.eez-project   # single source of truth for the GUI
 ├── components/                   # Custom ESP-IDF components
+│   ├── bsp_display/              # EK79007 MIPI-DSI + LVGL bring-up
 │   ├── bsp_extra/                # Board support package extensions
+│   ├── bsp_i2c/                  # Shared I2C bus init (GT911 + peripherals)
+│   ├── bsp_illuminate/           # Backlight + power sequencing
+│   ├── button_config/            # Configurable UI button metadata (icon, label, MQTT topic)
+│   ├── fireside_config/          # NVS-backed device configuration
 │   ├── mqtt_client/              # MQTT client with TLS, NVS settings, subscriptions, JSON processing
-│   └── sd_config/                # SD card config.env reader, stores to NVS
+│   └── wifi_setup/               # WiFi setup wizard + NVS-backed credential storage
 ├── main/                         # Main application source
-│   ├── main.c                    # Boot sequence, WiFi connect, MQTT init
+│   ├── main.c                    # Boot sequence, BSP init, WiFi connect, MQTT init
 │   ├── actions.c                 # UI action callbacks (light control, settings, themes)
 │   ├── vars.c                    # UI variable bindings and LVGL widget updates
+│   ├── app_state.c               # App state machine + NVS wrappers
+│   ├── alarms.c                  # Alarm handling and notifications
+│   ├── audio.c                   # Audio playback (audio_assets.c holds embedded PCM)
+│   ├── battery.c                 # Battery status handling
 │   ├── mqtt_vars.h               # Declarations for MQTT-sourced variables
 │   ├── idf_component.yml         # Component dependencies
 │   └── ui/                       # EEZ Studio generated UI code (do not edit)
 ├── CMakeLists.txt                # Top-level CMake configuration
 ├── sdkconfig.defaults            # ESP-IDF configuration defaults
-├── partitions.csv                # Flash partition layout (26MB app + 5MB storage)
+├── sdkconfig.defaults.esp32p4    # ESP32-P4 target-specific overrides (SDIO pins, cache geometry)
+├── partitions.csv                # Flash partition layout (8M factory app + 2M spiffs)
 └── LICENSE                       # MIT License
 ```
+
+## GUI Editing
+
+The `.eez-project` is the single source of truth for every screen. Rules:
+
+- Never hand-edit `main/ui/*` — EEZ Studio overwrites those on export.
+- Never call `lv_obj_set_pos`, `lv_obj_set_size`, `lv_obj_set_align`, `lv_obj_move_foreground`, or any style-* geometry override on an `objects.<widget>` from C. Widget geometry lives in the JSON.
+- Colors reference named tokens from the project palette; no hex literals in styles. If a new color is needed, add it via EEZ Studio's Colors panel first, then reference the name in the widget/style.
 
 ## License
 

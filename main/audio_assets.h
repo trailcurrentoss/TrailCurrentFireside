@@ -1,0 +1,32 @@
+#ifndef FIRESIDE_AUDIO_ASSETS_H
+#define FIRESIDE_AUDIO_ASSETS_H
+
+#include <stddef.h>
+#include <stdint.h>
+
+typedef enum {
+    AUDIO_PHRASE_BATTERY_LOW,
+    AUDIO_PHRASE_BATTERY_THRESHOLD,
+    AUDIO_PHRASE_CO_DANGER,
+    AUDIO_PHRASE_CO_WARNING,
+    AUDIO_PHRASE_AIR_UNHEALTHY,
+    AUDIO_PHRASE_CONN_LOST,
+    AUDIO_PHRASE_CABINET_ALARM,
+    AUDIO_PHRASE_DOOR_ALARM,
+    AUDIO_PHRASE_WINDOW_ALARM,
+    AUDIO_PHRASE_COMPARTMENT_ALARM,
+    AUDIO_PHRASE_REFRIGERATOR_ALARM,
+    AUDIO_PHRASE_WATER_ALARM,
+    AUDIO_PHRASE_MOTION_ALARM,
+    AUDIO_PHRASE_SENSOR,
+    AUDIO_PHRASE_COUNT,
+} audio_phrase_t;
+
+typedef struct {
+    const int16_t *pcm;
+    size_t         samples;
+} audio_asset_t;
+
+extern const audio_asset_t audio_assets[AUDIO_PHRASE_COUNT];
+
+#endif /* FIRESIDE_AUDIO_ASSETS_H */
