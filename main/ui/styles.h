@@ -112,6 +112,8 @@ void remove_style_bar_default(lv_obj_t *obj);
 
 // Style: TextareaDefault
 lv_style_t *get_style_textarea_default_MAIN_DEFAULT();
+lv_style_t *get_style_textarea_default_MAIN_FOCUSED();
+lv_style_t *get_style_textarea_default_CURSOR_DEFAULT();
 void add_style_textarea_default(lv_obj_t *obj);
 void remove_style_textarea_default(lv_obj_t *obj);
 

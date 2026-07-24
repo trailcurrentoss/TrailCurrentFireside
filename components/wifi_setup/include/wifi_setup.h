@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#define WIFI_SETUP_MAX_SCAN_RESULTS 12
+#define WIFI_SETUP_MAX_SCAN_RESULTS 24
 #define WIFI_SETUP_SSID_MAX         33
 #define WIFI_SETUP_BSSID_LEN        6
 

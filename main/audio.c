@@ -33,7 +33,12 @@ static const char *TAG = "AUDIO";
 static i2s_chan_handle_t s_tx_chan = NULL;
 static QueueHandle_t     s_req_q   = NULL;
 static bool              s_ready   = false;
-static uint8_t           s_volume_pct = 100;   /* 0..100 */
+/* 30% initial volume: the class-D amp on the CrowPanel P4 clips visibly
+ * on the TTS phrases when driven at 100% — the samples are pre-normalized
+ * to near-full-scale so any additional gain-through drives the amp into
+ * distortion. 30% leaves headroom and matches a comfortable listening
+ * level in a quiet cabin; user can raise via Settings if they want more. */
+static uint8_t           s_volume_pct = 30;   /* 0..100 */
 
 static void play_asset(const audio_asset_t *a) {
     if (!s_tx_chan || !a || !a->pcm || a->samples == 0) return;

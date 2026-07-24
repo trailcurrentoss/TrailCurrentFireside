@@ -49,6 +49,8 @@ extern void action_select_address(lv_event_t * e);
 extern void action_select_channel(lv_event_t * e);
 extern void action_show_factory_reset_confirm(lv_event_t * e);
 extern void action_cancel_factory_reset_confirm(lv_event_t * e);
+extern void action_wifi_toggle_password(lv_event_t * e);
+extern void action_mqtt_toggle_password(lv_event_t * e);
 
 
 #ifdef __cplusplus

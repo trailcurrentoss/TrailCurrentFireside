@@ -51,6 +51,26 @@ void        app_state_start_wifi(void);
 /* Force enter the wizard from anywhere (Reset Connection in Settings). */
 void app_state_reset_connection_and_reenter(void);
 
+/* Immediately hide every scan-result row and put "Scanning..." into the
+ * status line. Call from action_wifi_scan so the user sees the list
+ * clear the moment they tap Rescan — without this the old results linger
+ * on-screen for the whole scan window and it looks like nothing happened. */
+void app_state_paint_wifi_scanning(void);
+
+/* Two-state layout of PageWifiSetup — the page has one card for the
+ * network list and a separate card + keyboard for password entry, and
+ * only one state is visible at a time. Call show_list() when entering
+ * the wizard or cancelling out of password entry; show_password(ssid)
+ * when the user taps a locked network row. */
+void app_state_wifi_show_list(void);
+void app_state_wifi_show_password(const char *ssid);
+
+/* Called by app_state.c's dynamically-created row click handler when
+ * the user taps a network in the scan list. Implemented in actions.c
+ * where the selection state variables live (s_selected_ssid /
+ * s_selected_locked used by action_wifi_submit_password). */
+void wifi_row_selected(const char *ssid, bool locked);
+
 #ifdef __cplusplus
 }
 #endif

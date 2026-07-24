@@ -86,6 +86,15 @@ static int64_t s_last_announced_sw[MAX_BOARDS][SW_SENSORS] = {{0}};
 static int64_t s_last_announced_pk[MAX_BOARDS][PK_SENSORS] = {{0}};
 static int64_t s_last_announced_battery_us = 0;
 
+/* Ack-until timestamps — separate from last_announced so the visibility
+ * gate (badge count + toaster enumeration) is decoupled from the TTS
+ * re-alert gate. 0 = alarm is visible. Non-zero = alarm is hidden until
+ * esp_timer_get_time() reaches this value. Reset to 0 on a falling edge
+ * so a re-rise after the condition clears re-surfaces immediately. */
+static int64_t s_ack_until_sw[MAX_BOARDS][SW_SENSORS] = {{0}};
+static int64_t s_ack_until_pk[MAX_BOARDS][PK_SENSORS] = {{0}};
+static int64_t s_ack_until_battery_us = 0;
+
 /* Re-alert snooze window. Loaded from NVS in load_config(); kept in RAM
  * so the tick can compare against esp_timer_get_time() without a NVS
  * read on every 1-Hz iteration. */
@@ -203,6 +212,7 @@ void alarms_apply_battery(int32_t percent) {
 }
 
 int alarms_active_count(void) {
+    int64_t now = esp_timer_get_time();
     int n = 0;
     for (int a = 0; a < MAX_BOARDS; a++) {
         /* Polarity XOR: alarm fires when (input XOR polarity) is set AND
@@ -212,10 +222,16 @@ int alarms_active_count(void) {
                               s_armed_sw[a]);
         uint16_t active_pk = ((s_inputs_pk[a] ^ s_polarity_pk[a]) &
                               s_armed_pk[a]);
-        n += __builtin_popcount(active_sw) + __builtin_popcount(active_pk);
+        for (int bit = 0; bit < SW_SENSORS; bit++) {
+            if ((active_sw & (1u << bit)) && s_ack_until_sw[a][bit] <= now) n++;
+        }
+        for (int bit = 0; bit < PK_SENSORS; bit++) {
+            if ((active_pk & (1u << bit)) && s_ack_until_pk[a][bit] <= now) n++;
+        }
     }
     if (s_battery_enabled && s_battery_pct >= 0 &&
-        s_battery_pct < s_battery_threshold) {
+        s_battery_pct < s_battery_threshold &&
+        s_ack_until_battery_us <= now) {
         n++;
     }
     return n;
@@ -257,9 +273,11 @@ void alarms_tick_edges(void) {
         for (int bit = 0; bit < SW_SENSORS; bit++) {
             uint16_t mask = 1u << bit;
             if (falling_sw & mask) {
-                /* Condition cleared — reset sticky state so a later
-                 * re-arm rising fires cleanly. */
+                /* Condition cleared — reset both sticky states so a later
+                 * re-rising fires cleanly (TTS) and re-surfaces the row
+                 * in the toaster + badge (visibility) immediately. */
                 s_last_announced_sw[a][bit] = 0;
+                s_ack_until_sw[a][bit]      = 0;
                 continue;
             }
             if (!(active_sw & mask)) continue;   /* not active this tick */
@@ -292,6 +310,7 @@ void alarms_tick_edges(void) {
             uint16_t mask = 1u << bit;
             if (falling_pk & mask) {
                 s_last_announced_pk[a][bit] = 0;
+                s_ack_until_pk[a][bit]      = 0;
                 continue;
             }
             if (!(active_pk & mask)) continue;
@@ -318,6 +337,7 @@ void alarms_tick_edges(void) {
     /* Battery — same three-way (rising / active-with-snooze / falling). */
     if (!new_battery_low && s_prev_battery_low) {
         s_last_announced_battery_us = 0;
+        s_ack_until_battery_us      = 0;
     } else if (new_battery_low) {
         if (!s_prev_battery_low) {
             if (s_edges_baseline_seen) {
@@ -353,13 +373,16 @@ void alarms_set_snooze_secs(int secs) {
 }
 
 int alarms_acknowledge_all(void) {
-    /* Slide the "last announced" timestamp of every currently-active
-     * alarm forward to now. Snooze then measures the next re-alert window
-     * from this tap rather than from the original announcement — so if
-     * the user reacts quickly (say, 5 s after the alarm fired), they
-     * still get a full snooze window of silence rather than an
-     * immediate re-alert on the next tick. */
+    /* Slide both timestamps of every currently-active alarm forward: the
+     * TTS re-alert gate (last_announced) pushes the next spoken re-alert
+     * out by one snooze window, and the visibility gate (ack_until)
+     * hides the alarm from the toaster + badge for the same duration.
+     * If the user reacts quickly (say, 5 s after the alarm fired), they
+     * still get the full snooze window of silence + hidden rather than
+     * an immediate re-appearance on the next tick. */
     int64_t now = esp_timer_get_time();
+    int64_t snooze_us = (int64_t)s_snooze_secs * 1000000LL;
+    int64_t until     = now + snooze_us;
     int acked = 0;
     for (int a = 0; a < MAX_BOARDS; a++) {
         uint16_t active_sw = (s_inputs_sw[a] ^ s_polarity_sw[a]) & s_armed_sw[a];
@@ -367,12 +390,14 @@ int alarms_acknowledge_all(void) {
         for (int bit = 0; bit < SW_SENSORS; bit++) {
             if (active_sw & (1u << bit)) {
                 s_last_announced_sw[a][bit] = now;
+                s_ack_until_sw[a][bit]      = until;
                 acked++;
             }
         }
         for (int bit = 0; bit < PK_SENSORS; bit++) {
             if (active_pk & (1u << bit)) {
                 s_last_announced_pk[a][bit] = now;
+                s_ack_until_pk[a][bit]      = until;
                 acked++;
             }
         }
@@ -380,6 +405,7 @@ int alarms_acknowledge_all(void) {
     if (s_battery_enabled && s_battery_pct >= 0 &&
         s_battery_pct < s_battery_threshold) {
         s_last_announced_battery_us = now;
+        s_ack_until_battery_us      = until;
         acked++;
     }
     ESP_LOGI(TAG, "ack: %d alarm(s) snoozed for %ds", acked, s_snooze_secs);
@@ -401,8 +427,14 @@ bool alarms_acknowledge_sensor(alarm_src_t src, uint8_t addr,
     if (sensor >= max_sensor) return false;
     if (!(active & (1u << sensor))) return false;
     int64_t now = esp_timer_get_time();
-    if (src == ALARM_SRC_SWITCHBACK) s_last_announced_sw[addr][sensor] = now;
-    else                             s_last_announced_pk[addr][sensor] = now;
+    int64_t until = now + (int64_t)s_snooze_secs * 1000000LL;
+    if (src == ALARM_SRC_SWITCHBACK) {
+        s_last_announced_sw[addr][sensor] = now;
+        s_ack_until_sw[addr][sensor]      = until;
+    } else {
+        s_last_announced_pk[addr][sensor] = now;
+        s_ack_until_pk[addr][sensor]      = until;
+    }
     ESP_LOGI(TAG, "ack: %s/%u/%u snoozed for %ds",
              (src == ALARM_SRC_SWITCHBACK) ? "SB" : "PK",
              (unsigned)addr, (unsigned)sensor, s_snooze_secs);
@@ -414,42 +446,46 @@ bool alarms_acknowledge_battery(void) {
           s_battery_pct < s_battery_threshold)) {
         return false;
     }
-    s_last_announced_battery_us = esp_timer_get_time();
+    int64_t now = esp_timer_get_time();
+    s_last_announced_battery_us = now;
+    s_ack_until_battery_us      = now + (int64_t)s_snooze_secs * 1000000LL;
     ESP_LOGI(TAG, "ack: battery snoozed for %ds", s_snooze_secs);
     return true;
 }
 
 int alarms_enumerate_active(alarms_enum_cb_t cb, void *ctx) {
     if (!cb) return 0;
+    int64_t now = esp_timer_get_time();
     int n = 0;
     for (int a = 0; a < MAX_BOARDS; a++) {
         uint16_t active_sw = (s_inputs_sw[a] ^ s_polarity_sw[a]) & s_armed_sw[a];
         for (int bit = 0; bit < SW_SENSORS; bit++) {
-            if (active_sw & (1u << bit)) {
-                alarm_edge_t e = { .is_battery = false,
-                                   .src = ALARM_SRC_SWITCHBACK,
-                                   .addr = (uint8_t)a,
-                                   .sensor = (uint8_t)bit };
-                cb(&e, ctx);
-                n++;
-            }
+            if (!(active_sw & (1u << bit))) continue;
+            if (s_ack_until_sw[a][bit] > now) continue;   /* snoozed */
+            alarm_edge_t e = { .is_battery = false,
+                               .src = ALARM_SRC_SWITCHBACK,
+                               .addr = (uint8_t)a,
+                               .sensor = (uint8_t)bit };
+            cb(&e, ctx);
+            n++;
         }
     }
     for (int a = 0; a < MAX_BOARDS; a++) {
         uint16_t active_pk = (s_inputs_pk[a] ^ s_polarity_pk[a]) & s_armed_pk[a];
         for (int bit = 0; bit < PK_SENSORS; bit++) {
-            if (active_pk & (1u << bit)) {
-                alarm_edge_t e = { .is_battery = false,
-                                   .src = ALARM_SRC_PICKET,
-                                   .addr = (uint8_t)a,
-                                   .sensor = (uint8_t)bit };
-                cb(&e, ctx);
-                n++;
-            }
+            if (!(active_pk & (1u << bit))) continue;
+            if (s_ack_until_pk[a][bit] > now) continue;
+            alarm_edge_t e = { .is_battery = false,
+                               .src = ALARM_SRC_PICKET,
+                               .addr = (uint8_t)a,
+                               .sensor = (uint8_t)bit };
+            cb(&e, ctx);
+            n++;
         }
     }
     if (s_battery_enabled && s_battery_pct >= 0 &&
-        s_battery_pct < s_battery_threshold) {
+        s_battery_pct < s_battery_threshold &&
+        s_ack_until_battery_us <= now) {
         alarm_edge_t e = { .is_battery = true };
         cb(&e, ctx);
         n++;

@@ -1045,14 +1045,52 @@ lv_style_t *get_style_textarea_default_MAIN_DEFAULT() {
     return style;
 };
 
+void init_style_textarea_default_MAIN_FOCUSED(lv_style_t *style) {
+    lv_style_set_border_color(style, lv_color_hex(theme_colors[active_theme_index][9]));
+    lv_style_set_border_width(style, 2);
+    lv_style_set_border_opa(style, 255);
+};
+
+lv_style_t *get_style_textarea_default_MAIN_FOCUSED() {
+    static lv_style_t *style;
+    if (!style) {
+        style = (lv_style_t *)lv_mem_alloc(sizeof(lv_style_t));
+        lv_style_init(style);
+        init_style_textarea_default_MAIN_FOCUSED(style);
+    }
+    return style;
+};
+
+void init_style_textarea_default_CURSOR_DEFAULT(lv_style_t *style) {
+    lv_style_set_border_side(style, LV_BORDER_SIDE_LEFT);
+    lv_style_set_border_color(style, lv_color_hex(theme_colors[active_theme_index][9]));
+    lv_style_set_border_width(style, 2);
+    lv_style_set_border_opa(style, 255);
+    lv_style_set_bg_opa(style, 0);
+};
+
+lv_style_t *get_style_textarea_default_CURSOR_DEFAULT() {
+    static lv_style_t *style;
+    if (!style) {
+        style = (lv_style_t *)lv_mem_alloc(sizeof(lv_style_t));
+        lv_style_init(style);
+        init_style_textarea_default_CURSOR_DEFAULT(style);
+    }
+    return style;
+};
+
 void add_style_textarea_default(lv_obj_t *obj) {
     (void)obj;
     lv_obj_add_style(obj, get_style_textarea_default_MAIN_DEFAULT(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_add_style(obj, get_style_textarea_default_MAIN_FOCUSED(), LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_add_style(obj, get_style_textarea_default_CURSOR_DEFAULT(), LV_PART_CURSOR | LV_STATE_DEFAULT);
 };
 
 void remove_style_textarea_default(lv_obj_t *obj) {
     (void)obj;
     lv_obj_remove_style(obj, get_style_textarea_default_MAIN_DEFAULT(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_remove_style(obj, get_style_textarea_default_MAIN_FOCUSED(), LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_remove_style(obj, get_style_textarea_default_CURSOR_DEFAULT(), LV_PART_CURSOR | LV_STATE_DEFAULT);
 };
 
 //

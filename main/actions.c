@@ -251,19 +251,19 @@ void action_toggle_device(lv_event_t *e) {
         return;
     }
 
-    /* Unconfigured tile — no persistent device to talk to. Flip the local
-     * UI state so the user still gets tap feedback. */
-    int32_t current = get_var_device_brightness((int32_t)(idx + 1));
-    int32_t want    = (current > 0) ? 0 : 255;
-    static void (*const setters[8])(int32_t) = {
-        set_var_device01_status, set_var_device02_status,
-        set_var_device03_status, set_var_device04_status,
-        set_var_device05_status, set_var_device06_status,
-        set_var_device07_status, set_var_device08_status,
-    };
-    setters[idx](want);
-    ESP_LOGI(TAG, "device %ld toggled (local, unconfigured) -> %s",
-             (long)(idx + 1), (want > 0) ? "on" : "off");
+    /* Unconfigured tile — no CAN module bound. Do NOT flip local UI
+     * state: a button's visible state must ONLY reflect the last MQTT
+     * status message for the device it's bound to. Faking a toggle
+     * here would leave the tile "on" indefinitely (no MQTT status
+     * will ever arrive to correct it) and lie to the user about
+     * device state.
+     *
+     * Log-only. When the user visits Settings > Edit Buttons and
+     * binds this slot to a module, subsequent taps will publish CAN
+     * toggles and the UI will update from the status roundtrip. */
+    ESP_LOGI(TAG, "device %ld tap ignored — button unconfigured "
+             "(Settings > Edit Buttons to bind)",
+             (long)(idx + 1));
 }
 
 /* ============================================================
@@ -323,22 +323,16 @@ void action_select_air_metric(lv_event_t *e) {
  * Water pump toggle
  * ============================================================ */
 
-static bool s_pump_on = false;
-
 void action_toggle_pump(lv_event_t *e) {
     (void)e;
-    s_pump_on = !s_pump_on;
-#if __has_include("ui/screens.h")
-    if (objects.water_pump_btn) {
-        if (s_pump_on) lv_obj_add_state(objects.water_pump_btn, LV_STATE_CHECKED);
-        else           lv_obj_clear_state(objects.water_pump_btn, LV_STATE_CHECKED);
-    }
-    if (objects.water_pump_state) {
-        lv_label_set_text(objects.water_pump_state, s_pump_on ? "ON" : "OFF");
-    }
-#endif
-    /* Phase 2: mqtt_client_publish("local/water/pump/set", ...). */
-    ESP_LOGI(TAG, "pump -> %s", s_pump_on ? "ON" : "OFF");
+    /* Same rule as home device tiles: the button's visible state must
+     * only reflect MQTT status coming back for the pump — not
+     * optimistically flip on tap. Phase 2 wires the actual publish
+     * (mqtt_client_publish("local/water/pump/set", ...)) and a matching
+     * status subscription that calls into a set_var_pump_status setter
+     * in vars.c. Until then this is a no-op with a log so the user
+     * doesn't see a fake state change. */
+    ESP_LOGI(TAG, "pump tap ignored — publish/status roundtrip not yet wired");
 }
 
 /* ============================================================
@@ -1073,51 +1067,67 @@ void action_factory_reset(lv_event_t *e) {
 void action_wifi_scan(lv_event_t *e) {
     (void)e;
     ESP_LOGI(TAG, "wifi scan requested");
+    /* Blank the list + set "Scanning..." status BEFORE kicking the scan so
+     * the user gets immediate visual feedback. app_state_paint_wifi_rows
+     * repopulates when the scan callback lands. */
+    app_state_paint_wifi_scanning();
     wifi_setup_scan_start();
 }
 
-void action_wifi_select(lv_event_t *e) {
-    intptr_t idx = (intptr_t)lv_event_get_user_data(e);
-    ESP_LOGI(TAG, "wifi select row=%ld", (long)idx);
-#if __has_include("ui/screens.h")
-    /* Read the SSID + lock state directly off the row label the user tapped.
-     * (wifi_setup_get_scan_results has the same list — either source works.) */
-    lv_obj_t *ssid_labels[8] = {
-        objects.wifi_row1_ssid, objects.wifi_row2_ssid, objects.wifi_row3_ssid,
-        objects.wifi_row4_ssid, objects.wifi_row5_ssid, objects.wifi_row6_ssid,
-        objects.wifi_row7_ssid, objects.wifi_row8_ssid,
-    };
-    lv_obj_t *lock_labels[8] = {
-        objects.wifi_row1_lock, objects.wifi_row2_lock, objects.wifi_row3_lock,
-        objects.wifi_row4_lock, objects.wifi_row5_lock, objects.wifi_row6_lock,
-        objects.wifi_row7_lock, objects.wifi_row8_lock,
-    };
-    if (idx < 0 || idx > 7) return;
-    const char *ssid = ssid_labels[idx] ? lv_label_get_text(ssid_labels[idx]) : NULL;
+/* Stub — kept so the linker resolves the actions[] declaration EEZ
+ * Studio still exports for the WifiSelect action name. Rows are now
+ * created dynamically by app_state.c, which wires wifi_row_selected()
+ * as the per-row click handler; this legacy entry point never fires. */
+void action_wifi_select(lv_event_t *e) { (void)e; }
+
+/* Called from app_state.c's dynamic row click callback when the user
+ * taps a network in the scan list. Same behaviour as the old
+ * action_wifi_select (open → connect, locked → password screen), but
+ * without the row-index-into-authored-widgets lookup. */
+void wifi_row_selected(const char *ssid, bool locked) {
     if (!ssid || !*ssid) return;
     strlcpy(s_selected_ssid, ssid, sizeof(s_selected_ssid));
-    s_selected_locked = lock_labels[idx]
-                     && lv_label_get_text(lock_labels[idx])
-                     && lv_label_get_text(lock_labels[idx])[0] != '\0';
-
-    /* If open network, connect immediately. Otherwise let the user type the
-     * password and hit Connect. */
-    if (!s_selected_locked) {
-        ESP_LOGI(TAG, "wifi open network %s — connecting", s_selected_ssid);
+    s_selected_locked = locked;
+    ESP_LOGI(TAG, "wifi row selected: %s (%s)",
+             s_selected_ssid, locked ? "locked" : "open");
+    if (!locked) {
         app_state_set(APP_STATE_WIFI_CONNECTING);
         fireside_config_set_wifi(s_selected_ssid, "");
         wifi_setup_connect(s_selected_ssid, "");
     } else {
-        /* Focus the password textarea so the keyboard is immediately usable. */
-        if (objects.wifi_pw_input) {
-            lv_textarea_set_text(objects.wifi_pw_input, "");
-            /* Tie the keyboard to the textarea. */
-            if (objects.wifi_setup_kb) {
-                lv_keyboard_set_textarea(objects.wifi_setup_kb,
-                                         objects.wifi_pw_input);
-            }
-        }
+        app_state_wifi_show_password(s_selected_ssid);
     }
+}
+
+/* Show/hide toggle for the two password textareas. Flips
+ * lv_textarea_set_password_mode and rewrites the button's child label
+ * between "Show" (currently masked) and "Hide" (currently visible). */
+#if __has_include("ui/screens.h")
+static void toggle_password_visibility(lv_obj_t *textarea, lv_obj_t *btn_label) {
+    if (!textarea) return;
+    bool now_masked = lv_textarea_get_password_mode(textarea);
+    lv_textarea_set_password_mode(textarea, !now_masked);
+    if (btn_label) {
+        /* If it was masked and we're revealing → label becomes "Hide".
+         * If it was visible and we're masking → label becomes "Show". */
+        lv_label_set_text(btn_label, now_masked ? "Hide" : "Show");
+    }
+}
+#endif
+
+void action_wifi_toggle_password(lv_event_t *e) {
+    (void)e;
+#if __has_include("ui/screens.h")
+    toggle_password_visibility(objects.wifi_pw_input,
+                               objects.wifi_pw_show_btn_lbl);
+#endif
+}
+
+void action_mqtt_toggle_password(lv_event_t *e) {
+    (void)e;
+#if __has_include("ui/screens.h")
+    toggle_password_visibility(objects.mqtt_pass_input,
+                               objects.mqtt_pass_show_btn_lbl);
 #endif
 }
 
@@ -1129,6 +1139,8 @@ void action_wifi_cancel_password(lv_event_t *e) {
 #if __has_include("ui/screens.h")
     if (objects.wifi_pw_input) lv_textarea_set_text(objects.wifi_pw_input, "");
 #endif
+    /* Return to the network list. */
+    app_state_wifi_show_list();
 }
 
 void action_wifi_submit_password(lv_event_t *e) {
@@ -1159,10 +1171,30 @@ void action_wifi_submit_password(lv_event_t *e) {
  * from init_mqtt_setup_bindings() (called from main.c after ui_init). */
 #if __has_include("ui/screens.h")
 static void mqtt_textarea_focus_cb(lv_event_t *e) {
-    lv_obj_t *ta = lv_event_get_target(e);
-    if (objects.mqtt_setup_kb && ta) {
-        lv_keyboard_set_textarea(objects.mqtt_setup_kb, ta);
+    /* Use current_target (the widget the handler was registered on) rather
+     * than target (which can be a child if events bubbled). If the label
+     * or cursor inside the textarea absorbs the tap, target would return
+     * that child and lv_keyboard_set_textarea(kb, label) silently unbinds
+     * the keyboard — which is exactly the "keys stop responding" symptom. */
+    lv_obj_t *ta = lv_event_get_current_target(e);
+    if (!objects.mqtt_setup_kb || !ta) return;
+    /* Guard: only bind if it's one of our authored textareas. */
+    if (ta != objects.mqtt_host_input &&
+        ta != objects.mqtt_user_input &&
+        ta != objects.mqtt_pass_input) return;
+    /* Manually manage LV_STATE_FOCUSED across the three textareas so
+     * the CURSOR.FOCUSED and MAIN.FOCUSED styles in TextareaDefault fire
+     * on ONLY the field being typed into. Without this every field
+     * looks focused simultaneously (they all draw a cursor + highlighted
+     * border). */
+    lv_obj_t *all[3] = { objects.mqtt_host_input,
+                         objects.mqtt_user_input,
+                         objects.mqtt_pass_input };
+    for (int i = 0; i < 3; i++) {
+        if (all[i]) lv_obj_clear_state(all[i], LV_STATE_FOCUSED);
     }
+    lv_obj_add_state(ta, LV_STATE_FOCUSED);
+    lv_keyboard_set_textarea(objects.mqtt_setup_kb, ta);
 }
 #endif
 

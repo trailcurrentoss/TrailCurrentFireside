@@ -160,6 +160,13 @@ void app_main(void) {
         init_wifi_rssi_poll();  /* 5s WiFi RSSI poll → topbar dBm labels */
         init_battery_poll();    /* 10s battery poll → topbar %/icon/bolt */
         init_notif_icon_ack_taps();  /* topbar bell tap → alarms ack */
+        init_touch_target_hit_areas(); /* widen ext_click_area on nav + home dev */
+        {
+            /* Perf probes: LVGL task stall watchdog + keyboard mode-switch
+             * timing. Logs to ESP_LOGW/I under TAG "PERF". */
+            extern void perf_init(void);
+            perf_init();
+        }
         init_screen_timeout();  /* 1s idle poll → blank backlight after
                                  * get_var_screen_timeout_minutes() min */
         {

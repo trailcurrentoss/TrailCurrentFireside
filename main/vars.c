@@ -25,6 +25,7 @@
 #include "mqtt_vars.h"
 #include "alarms.h"
 #include "audio.h"
+#include "app_state.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -1147,7 +1148,18 @@ static void paint_notif_badge(void) {
     alarms_tick_edges();
 
     if (s_baseline_seen) {
-        if (now_mqtt_down && !s_mqtt_announced_outage &&
+        /* Gate audio phrases to APP_STATE_READY. During the setup wizard
+         * MQTT is legitimately "not connected" because the user hasn't
+         * finished entering credentials yet — the CONN_LOST phrase would
+         * fire ~30 s into the wizard on every fresh device, which is
+         * misleading (nothing was lost — nothing was ever established).
+         * Same reasoning applies to CO / air-quality phrases: without an
+         * MQTT connection no CAN sensor readings can arrive, so those
+         * flags are always cleared and this branch is a no-op regardless
+         * — the READY gate just makes the intent explicit. */
+        bool wizard_active = (app_state_get() != APP_STATE_READY);
+        if (!wizard_active &&
+            now_mqtt_down && !s_mqtt_announced_outage &&
             (now_us - s_mqtt_down_since_us) >=
                 (int64_t)MQTT_DOWN_GRACE_SEC * 1000000LL) {
             audio_play_phrase(AUDIO_PHRASE_CONN_LOST);
@@ -1753,6 +1765,7 @@ void init_clock_blink(void) {
 struct fireside_toaster {
     lv_obj_t *notif_icon;
     lv_obj_t *notif_badge;
+    lv_obj_t *theme_btn;
     lv_obj_t *toaster;
     lv_obj_t *empty_msg;
     lv_obj_t *row_panels[FIRESIDE_TOASTER_ROWS];
@@ -1775,6 +1788,7 @@ struct fireside_toaster {
 #define INIT_TB(prefix) do { \
     s_toasters[idx].notif_icon      = objects.prefix##__topbar_notif_icon; \
     s_toasters[idx].notif_badge     = objects.prefix##__topbar_notif_badge; \
+    s_toasters[idx].theme_btn       = objects.prefix##__topbar_theme_btn; \
     s_toasters[idx].toaster         = objects.prefix##__topbar_toaster; \
     s_toasters[idx].empty_msg       = objects.prefix##__topbar_toaster_empty; \
     s_toasters[idx].row_panels[0]   = objects.prefix##__topbar_toaster_row_0; \
@@ -1968,6 +1982,18 @@ void init_notif_icon_ack_taps(void) {
             lv_obj_add_event_cb(tb->notif_badge, notif_icon_click_cb,
                                 LV_EVENT_CLICKED, NULL);
         }
+        /* Theme button is authored 28x22 — too small for a fingertip on the
+         * 10" glass, so users had to aim precisely. Expand the hit zone
+         * without changing the visible size. Kept smaller than the
+         * notif_icon/badge extension so the two zones butt up cleanly
+         * instead of overlapping. */
+        if (tb->theme_btn) {
+            lv_obj_set_ext_click_area(tb->theme_btn, 10);
+        }
+        /* Toaster clip + z-order are authored in the .eez-project:
+         * OVERFLOW_VISIBLE is set on the outer <page>_topbar wrapper and
+         * the wrapper is placed as the last child of its screen so LVGL
+         * draws it above the body. No runtime fix-up needed here. */
         for (int r = 0; r < FIRESIDE_TOASTER_ROWS; r++) {
             if (tb->row_acks[r]) {
                 lv_obj_add_event_cb(tb->row_acks[r], ack_button_click_cb,
@@ -1979,6 +2005,98 @@ void init_notif_icon_ack_taps(void) {
                 lv_obj_add_flag(tb->row_panels[r], LV_OBJ_FLAG_HIDDEN);
             }
         }
+    }
+#endif
+}
+
+/* ============================================================
+ * Touch-target hit-area widening.
+ *
+ * On the 10" 1024x600 glass, capacitive touch registers a single point
+ * that shifts by 1-3 px between finger-down and finger-up as the user
+ * lifts. LVGL only fires LV_EVENT_CLICKED when both events land on the
+ * same widget, so small buttons feel "finicky" — the click gets eaten
+ * whenever the release drifts off the widget's physical rectangle.
+ *
+ * lv_obj_set_ext_click_area extends the invisible hit rectangle without
+ * changing the visible geometry (per the eezstudio skill's Gate 5, this
+ * is one of the operations code IS allowed to do on EEZ-authored
+ * widgets — it's a runtime property, not a canvas divergence). Applied
+ * to the bottom-nav buttons on every page that carries a nav, and the
+ * home page device buttons.
+ * ============================================================ */
+
+#define NAV_INSTANCES(_) \
+    _(home) \
+    _(trailer) \
+    _(power) \
+    _(water) \
+    _(air) \
+    _(settings) \
+    _(page_wifi_setup) \
+    _(page_wifi_connecting) \
+    _(page_mqtt_setup) \
+    _(page_mqtt_connecting) \
+    _(page_alarms)
+
+#define EXPAND_NAV_HITZONE(prefix) do { \
+    if (objects.prefix##_nav__nav_home)     lv_obj_set_ext_click_area(objects.prefix##_nav__nav_home,     8); \
+    if (objects.prefix##_nav__nav_trailer)  lv_obj_set_ext_click_area(objects.prefix##_nav__nav_trailer,  8); \
+    if (objects.prefix##_nav__nav_power)    lv_obj_set_ext_click_area(objects.prefix##_nav__nav_power,    8); \
+    if (objects.prefix##_nav__nav_water)    lv_obj_set_ext_click_area(objects.prefix##_nav__nav_water,    8); \
+    if (objects.prefix##_nav__nav_air)      lv_obj_set_ext_click_area(objects.prefix##_nav__nav_air,      8); \
+    if (objects.prefix##_nav__nav_settings) lv_obj_set_ext_click_area(objects.prefix##_nav__nav_settings, 8); \
+} while (0);
+
+void init_touch_target_hit_areas(void) {
+#if __has_include("ui/screens.h")
+    NAV_INSTANCES(EXPAND_NAV_HITZONE)
+
+    /* Tiered extensions: tiny controls get the widest boost because the
+     * physical target is smallest; medium buttons get a middle bump;
+     * large cards get just a small pad so adjacent tiles don't overlap. */
+
+    /* +10 px — very small controls where a fingertip barely fits (arrows,
+     * switch, wizard rescan). */
+    lv_obj_t *tiny[] = {
+        objects.settings_timeout_up,
+        objects.settings_timeout_down,
+        objects.alarms_bat_switch,
+        objects.wifi_setup_scan_btn,
+    };
+    for (size_t i = 0; i < sizeof(tiny)/sizeof(*tiny); i++) {
+        if (tiny[i]) lv_obj_set_ext_click_area(tiny[i], 10);
+    }
+
+    /* +8 px — standard buttons (~200-250 wide, ~30-46 tall). */
+    lv_obj_t *standard[] = {
+        objects.settings_light_btn,   objects.settings_dark_btn,
+        objects.settings_c_btn,       objects.settings_f_btn,
+        objects.settings_alarms_btn,  objects.settings_reset_btn,
+        objects.alarms_back_btn,
+        objects.wifi_pw_cancel,       objects.wifi_pw_submit,
+        objects.mqtt_submit_btn,      objects.mqtt_skip_btn,
+        objects.btn_edit_buttons_back, objects.btn_edit_save,
+        objects.modal_factory_reset_confirm,
+        objects.modal_factory_reset_cancel,
+    };
+    for (size_t i = 0; i < sizeof(standard)/sizeof(*standard); i++) {
+        if (standard[i]) lv_obj_set_ext_click_area(standard[i], 8);
+    }
+
+    /* +6 px — larger cards / tiles. Kept small so a fingertip near the
+     * seam between two adjacent tiles doesn't land on both. */
+    lv_obj_t *large[] = {
+        objects.home_dev1, objects.home_dev2, objects.home_dev3, objects.home_dev4,
+        objects.home_dev5, objects.home_dev6, objects.home_dev7, objects.home_dev8,
+        objects.btn_settings_edit_buttons,
+        objects.water_pump_btn,
+        objects.btn_edit_tile01, objects.btn_edit_tile02, objects.btn_edit_tile03,
+        objects.btn_edit_tile04, objects.btn_edit_tile05, objects.btn_edit_tile06,
+        objects.btn_edit_tile07, objects.btn_edit_tile08,
+    };
+    for (size_t i = 0; i < sizeof(large)/sizeof(*large); i++) {
+        if (large[i]) lv_obj_set_ext_click_area(large[i], 6);
     }
 #endif
 }

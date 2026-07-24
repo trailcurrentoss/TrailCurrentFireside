@@ -168,6 +168,12 @@ void init_wifi_rssi_poll(void);
  * display lock, after ui_init(). */
 void init_screen_timeout(void);
 
+/* Widen ext_click_area on the touch-critical top-level tappables (bottom
+ * nav buttons + home page device buttons). Doesn't change the visible
+ * widget geometry — only extends the invisible hit rectangle so finger
+ * drift during release doesn't kill the CLICKED event on a 10" glass. */
+void init_touch_target_hit_areas(void);
+
 /* Enable click flag + acknowledge-alarms callback on the topbar bell +
  * badge across all six pages. Call once, under the display lock, after
  * ui_init(). Silences re-alerts for a snooze window; does not clear the
