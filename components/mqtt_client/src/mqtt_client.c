@@ -23,6 +23,7 @@ typedef enum {
     WD_AIRQUALITY,
     WD_GPS,
     WD_WATER,
+    WD_LEVEL,
     WD_COUNT
 } watchdog_id_t;
 
@@ -31,16 +32,18 @@ static const int64_t WATCHDOG_TIMEOUT_US[WD_COUNT] = {
     [WD_AIRQUALITY] = 20LL * 1000000LL,  /* 20 s — Borealis reads at 2 s */
     [WD_GPS]        = 15LL * 1000000LL,  /* 15 s — Milepost at ~1 Hz */
     [WD_WATER]      = 10LL * 1000000LL,  /* 10 s — Reservoir publishes at 1 s */
+    [WD_LEVEL]      = 5LL  * 1000000LL,  /* 5 s  — Plateau ships tilt at 2 Hz */
 };
 
 /* 0 = never seen (watchdog not yet armed for this module) */
 static int64_t s_watchdog_last_seen[WD_COUNT] = {0};
-static bool    s_watchdog_timed_out[WD_COUNT] = {false, false, false, false};
+static bool    s_watchdog_timed_out[WD_COUNT] = {0};
 
 extern void clear_var_energy(void);
 extern void clear_var_airquality(void);
 extern void clear_var_gps(void);
 extern void clear_var_water(void);
+extern void clear_var_leveling(void);
 
 /* MQTT variable setters (mqtt_vars.h / vars.c) */
 extern void set_var_device01_status(int32_t value);
@@ -78,6 +81,8 @@ extern void set_var_current_interior_temperature(int32_t value);
 extern void set_var_gps_time(int year, int month, int day, int hour, int minute, int second);
 extern int32_t get_var_current_device_brightness_identifier(void);
 extern void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black);
+extern void set_var_leveling(float pitch_deg, float roll_deg,
+                             int32_t fb_diff_mm, int32_t lr_diff_mm);
 
 #include "button_config.h"
 
@@ -169,6 +174,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         esp_mqtt_client_subscribe(s_client, "local/gps/details", 0);
         esp_mqtt_client_subscribe(s_client, "local/gps/time", 0);
         esp_mqtt_client_subscribe(s_client, "local/water/status", 0);
+        esp_mqtt_client_subscribe(s_client, "local/level/tilt", 0);
         esp_mqtt_client_subscribe(s_client, "local/relays/+/status", 0);
         /* Alarm-source topics — Switchback digital inputs + Picket reed
          * switches. ESP evaluates the active-alarm list locally against
@@ -552,6 +558,7 @@ void mqtt_client_check_watchdogs(void) {
                 case WD_AIRQUALITY: clear_var_airquality(); break;
                 case WD_GPS:        clear_var_gps();        break;
                 case WD_WATER:      clear_var_water();      break;
+                case WD_LEVEL:      clear_var_leveling();   break;
                 default: break;
             }
         }
@@ -817,6 +824,24 @@ static void process_message(const char *topic, const char *payload, int length) 
 
         lvgl_port_lock(0);
         set_var_water_levels(fresh_v, grey_v, black_v);
+        lvgl_port_unlock();
+    }
+    /* local/level/tilt — Plateau tilt/leveling via can-bridge.
+     * Payload: { front_back, side_to_side, front_back_diff_mm, left_right_diff_mm } */
+    else if (strcmp(topic, "local/level/tilt") == 0) {
+        s_watchdog_last_seen[WD_LEVEL] = esp_timer_get_time();
+        cJSON *fb   = cJSON_GetObjectItem(doc, "front_back");
+        cJSON *ss   = cJSON_GetObjectItem(doc, "side_to_side");
+        cJSON *fbmm = cJSON_GetObjectItem(doc, "front_back_diff_mm");
+        cJSON *lrmm = cJSON_GetObjectItem(doc, "left_right_diff_mm");
+
+        float pitch = fb ? (float)fb->valuedouble : 0.0f;
+        float roll  = ss ? (float)ss->valuedouble : 0.0f;
+        int32_t fbd = fbmm ? (int32_t)fbmm->valuedouble : 0;
+        int32_t lrd = lrmm ? (int32_t)lrmm->valuedouble : 0;
+
+        lvgl_port_lock(0);
+        set_var_leveling(pitch, roll, fbd, lrd);
         lvgl_port_unlock();
     }
     else {

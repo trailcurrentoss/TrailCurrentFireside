@@ -696,6 +696,94 @@ void set_var_gps_time(int y, int mo, int d, int h, int mi, int sec) {
 }
 
 /* ============================================================
+ * Trailer leveling — Plateau (via Headwaters can-bridge)
+ * ============================================================ */
+
+/* Thresholds match the PWA level-indicator: > 5° = danger, > 2° = warning,
+ * else level. */
+#define LEVEL_DEG_LEVEL    2.0f
+#define LEVEL_DEG_WARN     5.0f
+/* Bubble travel calibration. The ring is 150 px across; the bubble is 16 px
+ * with its default position centered on the crosshair. Cap travel so it
+ * never leaves the outer ring, and scale so a ±5° tilt reaches the edge. */
+#define LEVEL_PX_PER_DEG   12
+#define LEVEL_PX_CLAMP     60
+/* Bubble default position within each card, matching the authored coords
+ * in screens.c (both cards use the same local layout). */
+#define LEVEL_BUBBLE_BASE_X 162
+#define LEVEL_BUBBLE_BASE_Y 209
+
+static int level_clamp(int v, int lo, int hi) {
+    return v < lo ? lo : v > hi ? hi : v;
+}
+
+static const char *level_status_text(float abs_deg) {
+    if (abs_deg > LEVEL_DEG_WARN)  return "NOT LEVEL";
+    if (abs_deg > LEVEL_DEG_LEVEL) return "MINOR";
+    return "LEVEL";
+}
+
+/* Format inches-to-raise for one end of an axis. `is_low_end` selects
+ * whether this label represents the side that needs raising given the
+ * signed diff; the HIGH end always reads 0.0" so the driver can see at
+ * a glance which jack to work. */
+static void level_format_inches(char *buf, size_t n,
+                                int32_t diff_mm, bool is_low_end) {
+    if (!is_low_end || diff_mm == 0) {
+        snprintf(buf, n, "0.0\"");
+        return;
+    }
+    float in = fabsf((float)diff_mm) / 25.4f;
+    snprintf(buf, n, "%.1f\"", (double)in);
+}
+
+void set_var_leveling(float pitch_deg, float roll_deg,
+                      int32_t fb_diff_mm, int32_t lr_diff_mm) {
+#if __has_include("ui/screens.h")
+    char buf[16];
+
+    /* --- Side card (pitch → front/back) ---
+     * A physical bubble floats to the HIGH side. Positive pitch means
+     * nose-up (front high), so the bubble slides UP the vline (negative
+     * screen delta). fb_diff_mm > 0 means front high → BACK is the low
+     * end that needs raising. */
+    if (objects.trailer_side_bubble) {
+        int dy = level_clamp((int)(pitch_deg * LEVEL_PX_PER_DEG),
+                             -LEVEL_PX_CLAMP, LEVEL_PX_CLAMP);
+        lv_obj_set_pos(objects.trailer_side_bubble,
+                       LEVEL_BUBBLE_BASE_X,
+                       LEVEL_BUBBLE_BASE_Y - dy);
+    }
+    level_format_inches(buf, sizeof(buf), fb_diff_mm, fb_diff_mm < 0);
+    label_set_text_if_changed(objects.trailer_side_a_value, buf);  /* FRONT */
+    level_format_inches(buf, sizeof(buf), fb_diff_mm, fb_diff_mm > 0);
+    label_set_text_if_changed(objects.trailer_side_b_value, buf);  /* BACK  */
+    label_set_text_if_changed(objects.trailer_side_status,
+                              level_status_text(fabsf(pitch_deg)));
+
+    /* --- Back card (roll → left/right) ---
+     * Positive roll per the Plateau IMU convention means the right side is
+     * high, so the bubble slides right and LEFT is the low end. */
+    if (objects.trailer_back_bubble) {
+        int dx = level_clamp((int)(roll_deg * LEVEL_PX_PER_DEG),
+                             -LEVEL_PX_CLAMP, LEVEL_PX_CLAMP);
+        lv_obj_set_pos(objects.trailer_back_bubble,
+                       LEVEL_BUBBLE_BASE_X + dx,
+                       LEVEL_BUBBLE_BASE_Y);
+    }
+    level_format_inches(buf, sizeof(buf), lr_diff_mm, lr_diff_mm > 0);
+    label_set_text_if_changed(objects.trailer_back_a_value, buf);  /* LEFT  */
+    level_format_inches(buf, sizeof(buf), lr_diff_mm, lr_diff_mm < 0);
+    label_set_text_if_changed(objects.trailer_back_b_value, buf);  /* RIGHT */
+    label_set_text_if_changed(objects.trailer_back_status,
+                              level_status_text(fabsf(roll_deg)));
+#else
+    (void)pitch_deg; (void)roll_deg;
+    (void)fb_diff_mm; (void)lr_diff_mm;
+#endif
+}
+
+/* ============================================================
  * Air Quality — Borealis
  * ============================================================ */
 
@@ -1317,6 +1405,22 @@ void clear_var_gps(void) {
 }
 void clear_var_water(void) {
     set_var_water_levels(0, 0, 0);
+}
+void clear_var_leveling(void) {
+#if __has_include("ui/screens.h")
+    if (objects.trailer_side_bubble)
+        lv_obj_set_pos(objects.trailer_side_bubble,
+                       LEVEL_BUBBLE_BASE_X, LEVEL_BUBBLE_BASE_Y);
+    if (objects.trailer_back_bubble)
+        lv_obj_set_pos(objects.trailer_back_bubble,
+                       LEVEL_BUBBLE_BASE_X, LEVEL_BUBBLE_BASE_Y);
+    label_set_text_if_changed(objects.trailer_side_a_value, "--");
+    label_set_text_if_changed(objects.trailer_side_b_value, "--");
+    label_set_text_if_changed(objects.trailer_back_a_value, "--");
+    label_set_text_if_changed(objects.trailer_back_b_value, "--");
+    label_set_text_if_changed(objects.trailer_side_status, "NO DATA");
+    label_set_text_if_changed(objects.trailer_back_status, "NO DATA");
+#endif
 }
 
 /* ============================================================

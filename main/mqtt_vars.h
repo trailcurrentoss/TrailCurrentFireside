@@ -103,6 +103,14 @@ void set_var_co_flags(bool warn, bool alarm);  /* Borealis safety byte flags */
 /* Water tank levels (0-100 %) */
 void set_var_water_levels(int32_t fresh, int32_t grey, int32_t black);
 
+/* Trailer leveling — Plateau publishes tilt over CAN → Headwaters can-bridge
+ * republishes as local/level/tilt. Payload fields:
+ *   front_back (float, pitch °),   side_to_side (float, roll °),
+ *   front_back_diff_mm (int),      left_right_diff_mm (int).
+ * Drives the Trailer screen's side/back leveling cards. */
+void set_var_leveling(float pitch_deg, float roll_deg,
+                      int32_t fb_diff_mm, int32_t lr_diff_mm);
+
 /* Connection status → topbar wifi/mqtt state chips. */
 void set_var_mqtt_connected(bool connected);
 void set_var_wifi_rssi(int32_t rssi_dbm);
@@ -112,6 +120,7 @@ void clear_var_energy(void);
 void clear_var_airquality(void);
 void clear_var_gps(void);
 void clear_var_water(void);
+void clear_var_leveling(void);
 
 /* Rotation / MAC / clock — main.c calls these once. */
 void set_var_rotation_degrees(int32_t value);
