@@ -47,6 +47,7 @@
 #include "app_mqtt.h"
 #include "mqtt_vars.h"
 #include "button_config.h"
+#include "wifi_health.h"
 
 #if __has_include("ui/screens.h")
 #include "screens.h"
@@ -211,6 +212,14 @@ void app_main(void) {
         ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
         ESP_ERROR_CHECK(esp_wifi_start());
         esp_wifi_set_ps(WIFI_PS_NONE);
+
+        /* Arm the C6 heartbeat monitor + auto-restart recovery. See
+         * wifi_health.c — this catches the case where the C6's RPC
+         * handler task hangs while SDIO stays alive (ESP-Hosted's own
+         * transport-restart safety net only covers SDIO-layer failures).
+         * Must run after esp_wifi_start so the ESP-Hosted transport is
+         * fully up and the heartbeat RPC has somewhere to land. */
+        wifi_health_init();
 
         /* Let C6 slave settle before scan/connect. */
         vTaskDelay(pdMS_TO_TICKS(2000));

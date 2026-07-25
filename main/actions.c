@@ -383,15 +383,13 @@ void action_volume_changed(lv_event_t *e) {
 #endif
 }
 
+/* paint_screen_timeout_label lives in vars.c (next to s_timeout_min). */
+extern void paint_screen_timeout_label(void);
+
 void action_timeout_up(lv_event_t *e)   { (void)e;
     int32_t v = get_var_screen_timeout_minutes(); if (v < 60) v++;
     set_var_screen_timeout_minutes(v);
-#if __has_include("ui/screens.h")
-    if (objects.settings_timeout_value) {
-        char buf[16]; snprintf(buf, sizeof(buf), "%ld min", (long)v);
-        lv_label_set_text(objects.settings_timeout_value, buf);
-    }
-#endif
+    paint_screen_timeout_label();
     nvs_handle_t nvs;
     if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
         nvs_set_i32(nvs, "timeout", v);
@@ -401,14 +399,7 @@ void action_timeout_up(lv_event_t *e)   { (void)e;
 void action_timeout_down(lv_event_t *e) { (void)e;
     int32_t v = get_var_screen_timeout_minutes(); if (v > 0) v--;
     set_var_screen_timeout_minutes(v);
-#if __has_include("ui/screens.h")
-    if (objects.settings_timeout_value) {
-        char buf[16];
-        if (v == 0) snprintf(buf, sizeof(buf), "Never");
-        else        snprintf(buf, sizeof(buf), "%ld min", (long)v);
-        lv_label_set_text(objects.settings_timeout_value, buf);
-    }
-#endif
+    paint_screen_timeout_label();
     nvs_handle_t nvs;
     if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
         nvs_set_i32(nvs, "timeout", v);

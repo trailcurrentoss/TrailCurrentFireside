@@ -1368,6 +1368,14 @@ static void paint_notif_badge(void) {
 }
 
 void set_var_mqtt_connected(bool connected) {
+    /* When the C6/MQTT is in the failing-reconnect loop, esp-mqtt fires
+     * MQTT_EVENT_DISCONNECTED every ~17 s and the client's event task
+     * calls this setter every time — even though the value is already
+     * false. paint_notif_badge() walks 13 badges + 13 counts + the
+     * toaster + the alarm bitmaps under the LVGL lock (~100 ms), and
+     * doing that on the LVGL lock every 17 s is what makes taps feel
+     * sluggish. Bail out when nothing actually changed. */
+    if (connected == s_mqtt_connected) return;
     s_mqtt_connected = connected;
 #if __has_include("ui/screens.h")
     if (objects.mqtt_connecting_status) {
@@ -1501,6 +1509,24 @@ void    set_var_screen_brightness(int32_t v)    { s_brightness = v; }
 int32_t get_var_screen_timeout_minutes(void)    { return s_timeout_min; }
 void    set_var_screen_timeout_minutes(int32_t v) { s_timeout_min = v; }
 
+/* Paint the settings-page timeout value label from the current s_timeout_min.
+ * Called by restore_user_settings() at boot AND by the +/- action handlers so
+ * the label is authoritative — not the placeholder authored in the .eez-project.
+ * (Historical bug: this call was missing from the restore path, so the label
+ * showed the EEZ Studio placeholder text while s_timeout_min carried whatever
+ * value was persisted to NVS. Confirmed on the Waveshare 7B port first and
+ * back-ported here — see that project's DOCS/PORT_NOTES.md.) */
+void paint_screen_timeout_label(void) {
+#if __has_include("ui/screens.h")
+    if (!objects.settings_timeout_value) return;
+    char buf[16];
+    if (s_timeout_min <= 0) snprintf(buf, sizeof(buf), "Never");
+    else                    snprintf(buf, sizeof(buf), "%ld min",
+                                     (long)s_timeout_min);
+    lv_label_set_text(objects.settings_timeout_value, buf);
+#endif
+}
+
 bool apply_timezone(const char *iana) {
     if (!iana || !*iana) return false;
     /* US-only zone set — matches the 5 options authored in the Settings
@@ -1536,6 +1562,10 @@ void restore_user_settings(void) {
 #endif
     }
     if (nvs_get_i32(nvs, "timeout", &v) == ESP_OK && v >= 0) s_timeout_min = v;
+    /* Repaint the settings-page label to match the restored value. Without
+     * this the label shows whatever placeholder the .eez-project authored
+     * (typically "1 min") regardless of the true persisted value. */
+    paint_screen_timeout_label();
     if (nvs_get_i32(nvs, "tempunit", &v) == ESP_OK) s_temp_unit = v ? 1 : 0;
     if (nvs_get_i32(nvs, "volume", &v) == ESP_OK && v >= 0 && v <= 100) {
         audio_set_volume((uint8_t)v);

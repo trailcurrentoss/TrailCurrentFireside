@@ -26,6 +26,7 @@ idf_component_register(
         audio_assets.c
         battery.c
         perf.c
+        wifi_health.c
         ${UI_CORE_SRCS}
         ${UI_FONT_SRCS}
         ${UI_IMAGE_SRCS}
