@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- * Fireside CrowPanel top-level state machine.
+ * Fireside top-level state machine.
  *
  *   BOOT
  *     │

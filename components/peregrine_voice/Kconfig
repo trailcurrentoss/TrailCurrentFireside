@@ -1,0 +1,27 @@
+menu "Peregrine Voice Terminal"
+
+config PEREGRINE_URL
+    string "Peregrine base URL"
+    default "http://peregrine.local:8081"
+    help
+        Base URL of the Peregrine chat service. The client POSTs the
+        captured WAV to ${URL}/api/voice.  No trailing slash.
+
+config PEREGRINE_VOICE_TOKEN
+    string "Peregrine bearer token"
+    default ""
+    help
+        Bearer token sent in the Authorization header. If empty, the
+        Peregrine voice request is skipped (mic capture still runs so
+        the local audio path can be exercised). This value is baked
+        into firmware — for production, override at NVS at runtime.
+
+config PEREGRINE_HTTP_TIMEOUT_MS
+    int "HTTP total timeout (ms)"
+    default 60000
+    help
+        Kills the request if Peregrine hasn't finished streaming the
+        reply within this window. Long enough for a multi-sentence
+        Piper reply (typically ~5-8 s of playback) plus LLM latency.
+
+endmenu

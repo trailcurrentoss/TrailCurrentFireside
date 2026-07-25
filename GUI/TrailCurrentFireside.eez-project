@@ -543,6 +543,22 @@
       "localVariables": [],
       "userProperties": [],
       "name": "MqttTogglePassword"
+    },
+    {
+      "objID": "1907aff5-9976-490d-98fd-995103589e25",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "userProperties": [],
+      "name": "PttPressed"
+    },
+    {
+      "objID": "490848e9-717f-486c-aa92-0a4e5e8b67a4",
+      "components": [],
+      "connectionLines": [],
+      "localVariables": [],
+      "userProperties": [],
+      "name": "PttReleased"
     }
   ],
   "userPages": [
@@ -673,7 +689,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf0f4",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -831,7 +847,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf2e7",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -989,7 +1005,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf090",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1147,7 +1163,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf0eb",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1305,7 +1321,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf54e",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1463,7 +1479,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf1b9",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1621,7 +1637,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf043",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1779,7 +1795,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf0e7",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -2066,7 +2082,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf242",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -2361,7 +2377,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf185",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -2936,6 +2952,197 @@
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
+                    },
+                    {
+                      "objID": "7e9bf026-7fca-405f-8e24-4f245a920692",
+                      "type": "LVGLPanelWidget",
+                      "left": 485,
+                      "top": 195,
+                      "width": 90,
+                      "height": 90,
+                      "customInputs": [],
+                      "customOutputs": [],
+                      "style": {
+                        "objID": "c3254b42-64e2-4d29-b935-3751b6672061",
+                        "useStyle": "default",
+                        "conditionalStyles": [],
+                        "childStyles": []
+                      },
+                      "timeline": [],
+                      "eventHandlers": [
+                        {
+                          "objID": "9f1fccc8-c461-48cd-b375-b559d2640d4e",
+                          "eventName": "PRESSED",
+                          "handlerType": "action",
+                          "action": "PttPressed",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "491d617b-5925-42b6-be9b-958635c5f239",
+                          "eventName": "RELEASED",
+                          "handlerType": "action",
+                          "action": "PttReleased",
+                          "userData": 0
+                        },
+                        {
+                          "objID": "078b2179-b7b9-4d88-b2ea-bd0fc6c2fe63",
+                          "eventName": "PRESS_LOST",
+                          "handlerType": "action",
+                          "action": "PttReleased",
+                          "userData": 0
+                        }
+                      ],
+                      "identifier": "home_ptt_btn",
+                      "leftUnit": "px",
+                      "topUnit": "px",
+                      "widthUnit": "px",
+                      "heightUnit": "px",
+                      "children": [
+                        {
+                          "objID": "5e81ffa6-c3b6-4a4e-950e-7e387537e70d",
+                          "type": "LVGLLabelWidget",
+                          "left": 0,
+                          "top": 18,
+                          "width": 90,
+                          "height": 28,
+                          "customInputs": [],
+                          "customOutputs": [],
+                          "style": {
+                            "objID": "75bcfab9-4cd0-49ed-aff9-968289595377",
+                            "useStyle": "default",
+                            "conditionalStyles": [],
+                            "childStyles": []
+                          },
+                          "timeline": [],
+                          "eventHandlers": [],
+                          "identifier": "home_ptt_icon",
+                          "leftUnit": "px",
+                          "topUnit": "px",
+                          "widthUnit": "px",
+                          "heightUnit": "px",
+                          "children": [],
+                          "widgetFlags": "",
+                          "hiddenFlagType": "literal",
+                          "clickableFlag": false,
+                          "clickableFlagType": "literal",
+                          "flagScrollbarMode": "",
+                          "flagScrollDirection": "",
+                          "scrollSnapX": "",
+                          "scrollSnapY": "",
+                          "checkedStateType": "literal",
+                          "disabledStateType": "literal",
+                          "states": "",
+                          "localStyles": {
+                            "objID": "6d72a14d-42cf-4868-8681-b384d4bf2221",
+                            "definition": {
+                              "MAIN": {
+                                "DEFAULT": {
+                                  "text_font": "fa24",
+                                  "text_align": "CENTER",
+                                  "text_color": "TextPrimary"
+                                }
+                              }
+                            }
+                          },
+                          "group": "",
+                          "groupIndex": 0,
+                          "text": "",
+                          "textType": "literal",
+                          "longMode": "CLIP",
+                          "recolor": false
+                        },
+                        {
+                          "objID": "008c8248-102b-4334-95b1-df41834a2a1b",
+                          "type": "LVGLLabelWidget",
+                          "left": 0,
+                          "top": 54,
+                          "width": 90,
+                          "height": 16,
+                          "customInputs": [],
+                          "customOutputs": [],
+                          "style": {
+                            "objID": "76cb3174-436e-40cf-a091-ccfd922cf0c5",
+                            "useStyle": "default",
+                            "conditionalStyles": [],
+                            "childStyles": []
+                          },
+                          "timeline": [],
+                          "eventHandlers": [],
+                          "identifier": "home_ptt_label",
+                          "leftUnit": "px",
+                          "topUnit": "px",
+                          "widthUnit": "px",
+                          "heightUnit": "px",
+                          "children": [],
+                          "widgetFlags": "",
+                          "hiddenFlagType": "literal",
+                          "clickableFlag": false,
+                          "clickableFlagType": "literal",
+                          "flagScrollbarMode": "",
+                          "flagScrollDirection": "",
+                          "scrollSnapX": "",
+                          "scrollSnapY": "",
+                          "checkedStateType": "literal",
+                          "disabledStateType": "literal",
+                          "states": "",
+                          "localStyles": {
+                            "objID": "6cc548e9-263a-4fc4-ac40-ec2651ee13e0",
+                            "definition": {
+                              "MAIN": {
+                                "DEFAULT": {
+                                  "text_font": "rm11",
+                                  "text_align": "CENTER",
+                                  "text_color": "TextSecondary",
+                                  "text_letter_space": 1
+                                }
+                              }
+                            }
+                          },
+                          "group": "",
+                          "groupIndex": 0,
+                          "text": "TALK",
+                          "textType": "literal",
+                          "longMode": "CLIP",
+                          "recolor": false
+                        }
+                      ],
+                      "widgetFlags": "CLICKABLE|PRESS_LOCK|CLICK_FOCUSABLE|GESTURE_BUBBLE|SNAPPABLE",
+                      "hiddenFlagType": "literal",
+                      "clickableFlag": true,
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "scrollSnapX": "",
+                      "scrollSnapY": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "localStyles": {
+                        "objID": "1790a801-6cf8-4de3-8f73-8fe603f42c75",
+                        "definition": {
+                          "MAIN": {
+                            "DEFAULT": {
+                              "bg_color": "BgCardHover",
+                              "bg_opa": 255,
+                              "border_color": "BorderColor",
+                              "border_width": 1,
+                              "border_opa": 255,
+                              "radius": 999,
+                              "shadow_width": 0,
+                              "outline_width": 0,
+                              "pad_top": 0,
+                              "pad_bottom": 0,
+                              "pad_left": 0,
+                              "pad_right": 0
+                            },
+                            "PRESSED": {
+                              "bg_color": "BorderColor"
+                            }
+                          }
+                        }
+                      },
+                      "group": "",
+                      "groupIndex": 0
                     }
                   ],
                   "widgetFlags": "",
@@ -6363,7 +6570,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Energy \u00b7 last 60 min",
+                  "text": "Energy · last 60 min",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -6493,7 +6700,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf185",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -6804,7 +7011,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf242",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -7115,7 +7322,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf0e7",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -7426,7 +7633,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf0ec",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -9309,7 +9516,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf043",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -10185,7 +10392,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Air Quality \u00b7 last 1 hr",
+                  "text": "Air Quality · last 1 hr",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -10480,7 +10687,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\u00b0F",
+                      "text": "°F",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -12829,7 +13036,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\u00b0F",
+                          "text": "°F",
                           "textType": "literal",
                           "longMode": "CLIP",
                           "recolor": false
@@ -12932,7 +13139,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\u00b0C",
+                          "text": "°C",
                           "textType": "literal",
                           "longMode": "CLIP",
                           "recolor": false
@@ -14254,7 +14461,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "CrowPanel 10.1\" ESP32-P4",
+                      "text": "Waveshare 7\" ESP32-P4",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -14769,7 +14976,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf013",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -16144,6 +16351,7 @@
                       "topUnit": "px",
                       "widthUnit": "px",
                       "heightUnit": "px",
+                      "children": [],
                       "widgetFlags": "SCROLLABLE|SCROLL_ELASTIC|SCROLL_MOMENTUM|GESTURE_BUBBLE|CLICKABLE|PRESS_LOCK",
                       "hiddenFlagType": "literal",
                       "clickableFlag": true,
@@ -16178,8 +16386,7 @@
                         }
                       },
                       "group": "",
-                      "groupIndex": 0,
-                      "children": []
+                      "groupIndex": 0
                     }
                   ],
                   "widgetFlags": "",
@@ -16615,22 +16822,6 @@
                       "topUnit": "px",
                       "widthUnit": "px",
                       "heightUnit": "px",
-                      "widgetFlags": "CLICKABLE|PRESS_LOCK",
-                      "hiddenFlagType": "literal",
-                      "clickableFlag": true,
-                      "clickableFlagType": "literal",
-                      "flagScrollbarMode": "",
-                      "flagScrollDirection": "",
-                      "scrollSnapX": "",
-                      "scrollSnapY": "",
-                      "checkedStateType": "literal",
-                      "disabledStateType": "literal",
-                      "states": "",
-                      "localStyles": {
-                        "objID": "9959b85b-a513-66e2-97ee-5ca99405bb45"
-                      },
-                      "group": "",
-                      "groupIndex": 0,
                       "children": [
                         {
                           "objID": "e7d8eede-918d-ebd0-4701-a228fd7ede4a",
@@ -16684,7 +16875,23 @@
                           "longMode": "CLIP",
                           "recolor": false
                         }
-                      ]
+                      ],
+                      "widgetFlags": "CLICKABLE|PRESS_LOCK",
+                      "hiddenFlagType": "literal",
+                      "clickableFlag": true,
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "scrollSnapX": "",
+                      "scrollSnapY": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "localStyles": {
+                        "objID": "9959b85b-a513-66e2-97ee-5ca99405bb45"
+                      },
+                      "group": "",
+                      "groupIndex": 0
                     }
                   ],
                   "widgetFlags": "HIDDEN",
@@ -18054,22 +18261,6 @@
                       "topUnit": "px",
                       "widthUnit": "px",
                       "heightUnit": "px",
-                      "widgetFlags": "CLICKABLE|PRESS_LOCK",
-                      "hiddenFlagType": "literal",
-                      "clickableFlag": true,
-                      "clickableFlagType": "literal",
-                      "flagScrollbarMode": "",
-                      "flagScrollDirection": "",
-                      "scrollSnapX": "",
-                      "scrollSnapY": "",
-                      "checkedStateType": "literal",
-                      "disabledStateType": "literal",
-                      "states": "",
-                      "localStyles": {
-                        "objID": "27a51455-2072-8867-e5c7-e248c5234e9e"
-                      },
-                      "group": "",
-                      "groupIndex": 0,
                       "children": [
                         {
                           "objID": "832603a7-abc7-d2e6-72f5-96dd9441e258",
@@ -18123,7 +18314,23 @@
                           "longMode": "CLIP",
                           "recolor": false
                         }
-                      ]
+                      ],
+                      "widgetFlags": "CLICKABLE|PRESS_LOCK",
+                      "hiddenFlagType": "literal",
+                      "clickableFlag": true,
+                      "clickableFlagType": "literal",
+                      "flagScrollbarMode": "",
+                      "flagScrollDirection": "",
+                      "scrollSnapX": "",
+                      "scrollSnapY": "",
+                      "checkedStateType": "literal",
+                      "disabledStateType": "literal",
+                      "states": "",
+                      "localStyles": {
+                        "objID": "27a51455-2072-8867-e5c7-e248c5234e9e"
+                      },
+                      "group": "",
+                      "groupIndex": 0
                     }
                   ],
                   "widgetFlags": "",
@@ -19851,7 +20058,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20058,7 +20265,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20265,7 +20472,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20472,7 +20679,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20679,7 +20886,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20886,7 +21093,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21093,7 +21300,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21300,7 +21507,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "\uf7b6",
+                      "text": "",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21892,7 +22099,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf7b6",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -21996,7 +22203,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0eb",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22100,7 +22307,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf185",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22204,7 +22411,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf186",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22308,7 +22515,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0e7",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22412,7 +22619,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1e6",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22516,7 +22723,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf240",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22620,7 +22827,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf2dc",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22724,7 +22931,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf06d",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22828,7 +23035,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf2e7",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22932,7 +23139,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf6fc",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23036,7 +23243,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf5e7",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23140,7 +23347,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0c2",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23244,7 +23451,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf7c0",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23348,7 +23555,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf7e4",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23452,7 +23659,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf5aa",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23556,7 +23763,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf863",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23660,7 +23867,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf54f",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23764,7 +23971,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0f4",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23868,7 +24075,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf015",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23972,7 +24179,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1ad",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24076,7 +24283,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf52a",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24180,7 +24387,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf2f6",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24284,7 +24491,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf023",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24388,7 +24595,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf084",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24492,7 +24699,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1bb",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24596,7 +24803,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf5fd",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24700,7 +24907,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0d1",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24804,7 +25011,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf494",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24908,7 +25115,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1b9",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25012,7 +25219,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf206",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25116,7 +25323,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf06c",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25220,7 +25427,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0ac",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25324,7 +25531,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0e9",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25428,7 +25635,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf083",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25532,7 +25739,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf008",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25636,7 +25843,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf001",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25740,7 +25947,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf025",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25844,7 +26051,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf04b",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25948,7 +26155,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf04a",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26052,7 +26259,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf04d",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26156,7 +26363,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf11b",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26260,7 +26467,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf095",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26364,7 +26571,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0c0",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26468,7 +26675,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf007",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26572,7 +26779,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf183",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26676,7 +26883,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0f3",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26780,7 +26987,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf075",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26884,7 +27091,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf013",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26988,7 +27195,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1de",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27092,7 +27299,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf004",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27196,7 +27403,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf005",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27300,7 +27507,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf164",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27404,7 +27611,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf017",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27508,7 +27715,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf133",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27612,7 +27819,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf073",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27716,7 +27923,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf002",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27820,7 +28027,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf05a",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27924,7 +28131,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf09d",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28028,7 +28235,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0b1",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28132,7 +28339,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0c6",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28236,7 +28443,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf02d",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28340,7 +28547,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf236",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28444,7 +28651,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf2cd",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28548,7 +28755,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf553",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28652,7 +28859,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf794",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28756,7 +28963,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf290",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28860,7 +29067,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0f1",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28964,7 +29171,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf21b",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29068,7 +29275,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf06e",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29172,7 +29379,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf132",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29276,7 +29483,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf3c5",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29380,7 +29587,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf041",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29484,7 +29691,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf072",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29588,7 +29795,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf135",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29692,7 +29899,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf0ee",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29796,7 +30003,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf06b",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29900,7 +30107,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1f8",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30004,7 +30211,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf065",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30108,7 +30315,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf1eb",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30212,7 +30419,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf043",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30316,7 +30523,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\ue005",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30420,7 +30627,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf8ff",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30524,7 +30731,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "\uf773",
+                          "text": "",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -32664,7 +32871,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "\uf0e7",
+              "text": "",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -32717,7 +32924,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "\uf242",
+              "text": "",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -32823,7 +33030,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "\uf1eb",
+              "text": "",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -32979,7 +33186,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "\uf0f3",
+              "text": "",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -33169,7 +33376,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf186",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35358,7 +35565,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf015",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35515,7 +35722,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf1b9",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35672,7 +35879,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf0e7",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35829,7 +36036,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf043",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35986,7 +36193,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf0c2",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -36143,7 +36350,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "\uf013",
+                  "text": "",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -37297,7 +37504,7 @@
       "ascent": 24,
       "descent": 4,
       "glyphs": [],
-      "lvglRanges": "0xe005,0xf001,0xf002,0xf004,0xf005,0xf007,0xf008,0xf00c,0xf00d,0xf011,0xf013,0xf015,0xf017,0xf021,0xf023,0xf025,0xf02d,0xf041,0xf043,0xf04a,0xf04b,0xf04d,0xf053,0xf054,0xf057,0xf05a,0xf065,0xf06a,0xf06b,0xf06c,0xf06d,0xf06e,0xf071,0xf072,0xf073,0xf075,0xf077,0xf078,0xf083,0xf084,0xf090,0xf095,0xf09d,0xf0ac,0xf0b1,0xf0c0,0xf0c2,0xf0c6,0xf0c8,0xf0d1,0xf0e7,0xf0e9,0xf0eb,0xf0ec,0xf0ee,0xf0f1,0xf0f3,0xf0f4,0xf11b,0xf132,0xf133,0xf135,0xf164,0xf183,0xf185,0xf186,0xf1ad,0xf1b9,0xf1bb,0xf1de,0xf1e2,0xf1e6,0xf1eb,0xf1f8,0xf206,0xf21b,0xf236,0xf240,0xf241,0xf242,0xf243,0xf244,0xf290,0xf2cd,0xf2dc,0xf2e7,0xf2f1,0xf2f6,0xf3c5,0xf3fd,0xf494,0xf52a,0xf54e,0xf54f,0xf553,0xf5aa,0xf5b0,0xf5da,0xf5e7,0xf5fd,0xf6fc,0xf773,0xf794,0xf7b6,0xf7c0,0xf7e4,0xf863,0xf8ff",
+      "lvglRanges": "0xe005,0xf001,0xf002,0xf004,0xf005,0xf007,0xf008,0xf00c,0xf00d,0xf011,0xf013,0xf015,0xf017,0xf021,0xf023,0xf025,0xf02d,0xf041,0xf043,0xf04a,0xf04b,0xf04d,0xf053,0xf054,0xf057,0xf05a,0xf065,0xf06a,0xf06b,0xf06c,0xf06d,0xf06e,0xf071,0xf072,0xf073,0xf075,0xf077,0xf078,0xf083,0xf084,0xf090,0xf095,0xf09d,0xf0ac,0xf0b1,0xf0c0,0xf0c2,0xf0c6,0xf0c8,0xf0d1,0xf0e7,0xf0e9,0xf0eb,0xf0ec,0xf0ee,0xf0f1,0xf0f3,0xf0f4,0xf11b,0xf130,0xf132,0xf133,0xf135,0xf164,0xf183,0xf185,0xf186,0xf1ad,0xf1b9,0xf1bb,0xf1de,0xf1e2,0xf1e6,0xf1eb,0xf1f8,0xf206,0xf21b,0xf236,0xf240,0xf241,0xf242,0xf243,0xf244,0xf290,0xf2cd,0xf2dc,0xf2e7,0xf2f1,0xf2f6,0xf3c5,0xf3fd,0xf494,0xf52a,0xf54e,0xf54f,0xf553,0xf5aa,0xf5b0,0xf5da,0xf5e7,0xf5fd,0xf6fc,0xf773,0xf794,0xf7b6,0xf7c0,0xf7e4,0xf863,0xf8ff",
       "lvglSymbols": "",
       "lvglGlyphs": {
         "encodings": []

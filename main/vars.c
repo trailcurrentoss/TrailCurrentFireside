@@ -1,5 +1,5 @@
 /*
- * vars.c — MQTT-fed state layer for Fireside CrowPanel.
+ * vars.c — MQTT-fed state layer for Fireside.
  *
  * Two responsibilities:
  *
@@ -491,8 +491,8 @@ void set_var_time_remaining(int32_t minutes) {
 }
 
 /* ============================================================
- * On-board (Elecrow STC8H1KXX) battery — TopBar cluster.
- * Percent < 0 signals "unknown" (I2C read failed / no battery).
+ * On-board battery (ADC on GPIO 20) — TopBar cluster.
+ * Percent < 0 signals "unknown" (ADC read failed / no battery).
  * ============================================================ */
 
 static int32_t s_int_battery_pct = -1;
@@ -1514,8 +1514,7 @@ void    set_var_screen_timeout_minutes(int32_t v) { s_timeout_min = v; }
  * the label is authoritative — not the placeholder authored in the .eez-project.
  * (Historical bug: this call was missing from the restore path, so the label
  * showed the EEZ Studio placeholder text while s_timeout_min carried whatever
- * value was persisted to NVS. Confirmed on the Waveshare 7B port first and
- * back-ported here — see that project's DOCS/PORT_NOTES.md.) */
+ * value was persisted to NVS. See DOCS/PORT_NOTES.md.) */
 void paint_screen_timeout_label(void) {
 #if __has_include("ui/screens.h")
     if (!objects.settings_timeout_value) return;

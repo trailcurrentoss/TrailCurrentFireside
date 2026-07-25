@@ -1,5 +1,5 @@
 /*
- * app_state.c — Fireside CrowPanel top-level state machine.
+ * app_state.c — Fireside top-level state machine.
  *
  * Boot flow:
  *   BOOT

@@ -1,24 +1,38 @@
 /*
- * CrowPanel Advance ESP32-P4 10.1" — Fireside UI + WiFi.
+ * TrailCurrent Fireside — Waveshare ESP32-P4-WIFI6-Touch-LCD-7B.
  *
- * Bring-up order (Lesson09-first, WiFi last):
- *   1. NVS + fireside_config
- *   2. LDO3 + LDO4
- *   3. I2C
- *   4. touch_init  — GT911
- *   5. display_init — MIPI-DSI + lvgl_port + touch indev
- *   6. set_lcd_blight(80)
- *   7. ui_init      — EEZ screens
- *   8. esp_netif + esp_event + esp_hosted + esp_wifi_start (WiFi LAST)
- *   9. app_state_init + app_state_start_wifi (kicks scan/auto-connect)
- *  10. Main loop: MQTT pump + clock
+ * The board-specific pieces (bring-up order, panel driver, codec IC,
+ * battery-sense path) live in:
  *
- * The failure mode this ordering avoids: bringing up ESP-Hosted / esp_wifi
- * *before* touch_init + lvgl_port_add_touch left LVGL's indev polling dead
- * (verified — GT911 driver reported presses, LVGL saw none). Doing display
- * + touch first, WiFi last, matches Lesson09 for touch and Lesson16 for
- * WiFi and works with both alive.
+ *   - components/bsp_shim       — set_lcd_blight -> bsp_display_brightness_set
+ *   - main/battery.c            — ADC divider on GPIO20
+ *   - main/audio.c              — esp_codec_dev(ES8311)
+ *   - waveshare BSP component   — display, touch, I2C, I2S, PA all in one
+ *
+ * Bring-up order — the Waveshare BSP does most of it for us:
+ *   1. NVS + fireside_config + alarms
+ *   2. default event loop
+ *   3. bsp_i2c_init()               (Waveshare BSP)
+ *   4. battery_init                 (ADC on GPIO 20 — safe to fail)
+ *   5. bsp_display_start_with_config()
+ *        -> creates LDO channel for DSI PHY, EK79007 panel, GT911 touch,
+ *           and LVGL port with touch indev, all in one call.
+ *   6. bsp_display_backlight_on(); (default 100 %)
+ *   7. ui_init  — EEZ screens (under bsp_display_lock)
+ *      + button_config_apply, restore_user_settings, init_*_poll(),
+ *        init_battery_poll (defined in battery.c), audio_init, etc.
+ *   8. WiFi via esp_hosted / esp_wifi_remote (ESP-Hosted SDIO defaults,
+ *      no pin overrides needed)
+ *   9. app_state_init + app_state_start_wifi
+ *  10. Main loop: MQTT watchdog + clock tick
+ *
+ * NB: we do NOT acquire the LDO channels ourselves — bsp_display_new()
+ * acquires LDO channel 3 for the DSI PHY internally
+ * (BSP_MIPI_DSI_PHY_PWR_LDO_CHAN). LDO 4 is used by the SD card path
+ * (bsp_sdcard_mount) if we ever call it; not needed for display
+ * bring-up.
  */
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -26,7 +40,6 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_check.h"
-#include "esp_ldo_regulator.h"
 #include "esp_netif.h"
 #include "esp_event.h"
 #include "esp_app_desc.h"
@@ -34,13 +47,14 @@
 #include "esp_hosted.h"
 #include "esp_netif_sntp.h"
 #include "esp_sntp.h"
+#include "esp_heap_caps.h"
 
 #include "lvgl.h"
 #include "esp_lvgl_port.h"
 
-#include "bsp_i2c.h"
-#include "bsp_display.h"
-#include "bsp_illuminate.h"
+#include "bsp/esp32_p4_wifi6_touch_lcd_7b.h"
+
+#include "bsp_shim.h"          /* set_lcd_blight compatibility */
 
 #include "battery.h"
 #include "fireside_config.h"
@@ -48,6 +62,8 @@
 #include "mqtt_vars.h"
 #include "button_config.h"
 #include "wifi_health.h"
+#include "peregrine_voice.h"
+#include "sd_config.h"
 
 #if __has_include("ui/screens.h")
 #include "screens.h"
@@ -68,9 +84,6 @@ void ota_handle_trigger(void)       {}
 
 extern bool system_time_set;
 extern void restore_user_settings(void);
-
-static esp_ldo_channel_handle_t s_ldo3 = NULL;
-static esp_ldo_channel_handle_t s_ldo4 = NULL;
 
 static void init_fail(const char *module, esp_err_t err) {
     while (1) {
@@ -102,7 +115,7 @@ static void ip_got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) 
 
 void app_main(void) {
     esp_err_t err;
-    ESP_LOGI(TAG, "CrowPanel P4 boot (UI %s, WiFi LAST)",
+    ESP_LOGI(TAG, "Waveshare P4-7B boot (UI %s, WiFi LAST)",
              UI_EXPORT_PRESENT ? "present" : "MISSING");
 
     /* 1. NVS + fireside_config + alarms config. */
@@ -115,34 +128,64 @@ void app_main(void) {
     ESP_ERROR_CHECK(fireside_config_init());
     /* Alarms module reads per-mode arm config from NVS ns "fireside_alarm".
      * Empty on first boot — no alarms fire until user configures via
-     * Settings > Alarms (Phase 2). */
+     * Settings > Alarms. */
     extern void alarms_init(void);
     alarms_init();
 
-    /* 2. LDO3 (DSI PHY) + LDO4 (LCD VCC). */
-    esp_ldo_channel_config_t ldo3_cfg = { .chan_id = 3, .voltage_mv = 2500 };
-    err = esp_ldo_acquire_channel(&ldo3_cfg, &s_ldo3);
-    if (err != ESP_OK) init_fail("ldo3", err);
+    /* 2. Default event loop (WiFi needs it; the BSP doesn't create one). */
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    esp_ldo_channel_config_t ldo4_cfg = { .chan_id = 4, .voltage_mv = 3300 };
-    err = esp_ldo_acquire_channel(&ldo4_cfg, &s_ldo4);
-    if (err != ESP_OK) init_fail("ldo4", err);
+    /* 3. I2C bus — shared between GT911 touch and ES8311 codec. Waveshare
+     *    BSP's own touch/codec init calls this too; it's idempotent. */
+    ESP_ERROR_CHECK(bsp_i2c_init());
 
-    /* 3-6. I2C → touch → LCD+LVGL+touch-indev → backlight. */
-    err = i2c_init();     if (err != ESP_OK) init_fail("i2c", err);
-    /* STC8H1KXX battery + charge status shares the same I2C bus (0x2F). If
-     * no battery board is populated the reg reads will fail later and the
-     * TopBar cluster falls back to "--%" without blocking boot. */
+    /* 4. Battery — ADC on GPIO 20, safe to fail. */
     err = battery_init();
     if (err != ESP_OK) ESP_LOGW(TAG, "battery_init: %s", esp_err_to_name(err));
-    err = touch_init();   if (err != ESP_OK) init_fail("touch", err);
-    err = display_init(); if (err != ESP_OK) init_fail("display", err);
-    err = set_lcd_blight(80);
-    if (err != ESP_OK) ESP_LOGW(TAG, "set_lcd_blight: %s", esp_err_to_name(err));
+
+    /* 5. Display + LVGL + touch — all in one BSP call.
+     *
+     *    task_affinity 1 pins the LVGL port task to core 1 so WiFi/MQTT
+     *    (default core 0) don't share the framebuffer cadence. Draw buffer
+     *    100 lines * 1024 px = 100 KB from PSRAM; double-buffered. sw_rotate
+     *    stays true so we can rotate 180° for enclosures where the display
+     *    is mounted upside-down. */
+    bsp_display_cfg_t disp_cfg = {
+        .lvgl_port_cfg = {
+            .task_priority     = configMAX_PRIORITIES - 4,
+            .task_stack        = 8192 * 2,
+            .task_affinity     = 1,
+            .task_max_sleep_ms = 10,
+            .task_stack_caps   = MALLOC_CAP_INTERNAL | MALLOC_CAP_DEFAULT,
+            .timer_period_ms   = 5,
+        },
+        .buffer_size   = BSP_LCD_H_RES * 100,
+        .double_buffer = true,
+        .flags = {
+            .buff_dma    = false,
+            .buff_spiram = true,
+            .sw_rotate   = true,
+        },
+    };
+    lv_display_t *disp = bsp_display_start_with_config(&disp_cfg);
+    if (!disp) init_fail("display", ESP_FAIL);
+    /* Rotate 180°. The Waveshare 7B ships with the display connector on
+     * the top edge; when the board is mounted in an enclosure with the
+     * MicroSD slot / USB ports facing DOWN (matches the CAD orientation
+     * used by every other TrailCurrent product), the panel physically
+     * ends up upside-down and the UI has to compensate. sw_rotate=true in
+     * disp_cfg above is the prerequisite; the BSP calls
+     * lv_disp_set_rotation under the hood so LVGL does the rotate on
+     * every flush. If you're bench-testing bare-board with the panel
+     * connector at the bottom instead, change this to
+     * LV_DISPLAY_ROTATION_0. */
+    bsp_display_rotate(disp, LV_DISPLAY_ROTATION_180);
+    /* Match Fireside boot brightness (80 %) — BSP defaults to on/100. */
+    set_lcd_blight(80);
 
 #if UI_EXPORT_PRESENT
-    /* 7. ui_init under LVGL lock, land on page_home so we have widgets. */
-    if (lvgl_port_lock(0)) {
+    /* 6. ui_init under LVGL lock, land on page_home. */
+    if (bsp_display_lock(0)) {
         ui_init();
         set_var_rotation_degrees(0);
         const esp_app_desc_t *app = esp_app_get_description();
@@ -150,55 +193,47 @@ void app_main(void) {
             lv_label_set_text(objects.label_version_number, app->version);
         }
         restore_user_settings();
-        /* Load persisted button assignments and paint them onto both the
-         * home tiles and the (optional) Edit Buttons grid. Must run under
-         * the LVGL lock and after ui_init(). */
         button_config_init();
         button_config_apply_to_ui();
         if (objects.page_home) lv_scr_load(objects.page_home);
-        init_clock_blink();     /* start 500ms dot-blink timer */
-        init_metric_charts();   /* create lv_chart in every _chart panel */
-        init_wifi_rssi_poll();  /* 5s WiFi RSSI poll → topbar dBm labels */
-        init_battery_poll();    /* 10s battery poll → topbar %/icon/bolt */
-        init_notif_icon_ack_taps();  /* topbar bell tap → alarms ack */
-        init_touch_target_hit_areas(); /* widen ext_click_area on nav + home dev */
+        init_clock_blink();
+        init_metric_charts();
+        init_wifi_rssi_poll();
+        init_battery_poll();
+        init_notif_icon_ack_taps();
+        init_touch_target_hit_areas();
         {
-            /* Perf probes: LVGL task stall watchdog + keyboard mode-switch
-             * timing. Logs to ESP_LOGW/I under TAG "PERF". */
             extern void perf_init(void);
             perf_init();
         }
-        init_screen_timeout();  /* 1s idle poll → blank backlight after
-                                 * get_var_screen_timeout_minutes() min */
+        init_screen_timeout();
         {
-            /* Bring up the I2S DAC + TTS phrase player. audio_init is
-             * defined in main/audio.c; declared here as an extern rather
-             * than a header include to keep this section self-contained. */
             extern void audio_init(void);
             audio_init();
+            /* Push-to-talk voice terminal — spawns its own worker task,
+             * bound to the TALK button on PageHome via
+             * action_ptt_pressed / action_ptt_released. Safe to call
+             * after audio_init since it uses the same BSP codec paths. */
+            peregrine_voice_init();
+            /* Overlay Peregrine URL + token from /sdcard/environment.conf
+             * on top of the Kconfig defaults. Silently no-ops when the SD
+             * card isn't present or the file isn't there. */
+            sd_config_load();
         }
-        reset_placeholders();   /* clear canvas-only authored placeholders
-                                 * (tank bars 50 % → 0 %, etc.) so the
-                                 * device doesn't show fake data before
-                                 * MQTT arrives */
+        reset_placeholders();
         {
-            /* MQTT setup wizard — wire textareas to the keyboard so tapping
-             * a field re-binds the keyboard target. Declared in actions.c. */
             extern void init_mqtt_setup_bindings(void);
             init_mqtt_setup_bindings();
-            /* Wire the PageButtonEdit textarea → keyboard show/hide
-             * (keyboard is authored HIDDEN so it doesn't cover the
-             * module/address/device selector rows when not typing). */
             extern void init_button_edit_bindings(void);
             init_button_edit_bindings();
         }
-        lvgl_port_unlock();
+        bsp_display_unlock();
     }
 #endif
 
-    /* 8. WiFi bring-up NOW (after touch is proven up). */
+    /* 7. WiFi bring-up. Waveshare uses ESP-Hosted defaults (no pin overrides
+     *    in sdkconfig.defaults.esp32p4), so this is straightforward. */
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_got_ip, NULL);
 
     err = esp_hosted_init();
@@ -213,12 +248,7 @@ void app_main(void) {
         ESP_ERROR_CHECK(esp_wifi_start());
         esp_wifi_set_ps(WIFI_PS_NONE);
 
-        /* Arm the C6 heartbeat monitor + auto-restart recovery. See
-         * wifi_health.c — this catches the case where the C6's RPC
-         * handler task hangs while SDIO stays alive (ESP-Hosted's own
-         * transport-restart safety net only covers SDIO-layer failures).
-         * Must run after esp_wifi_start so the ESP-Hosted transport is
-         * fully up and the heartbeat RPC has somewhere to land. */
+        /* Arm the C6 heartbeat monitor + auto-restart recovery. */
         wifi_health_init();
 
         /* Let C6 slave settle before scan/connect. */
@@ -229,19 +259,19 @@ void app_main(void) {
             ESP_LOGI(TAG, "STA MAC = %02X:%02X:%02X:%02X:%02X:%02X",
                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 #if UI_EXPORT_PRESENT
-            if (lvgl_port_lock(0)) {
+            if (bsp_display_lock(0)) {
                 char macbuf[18];
                 snprintf(macbuf, sizeof(macbuf),
                          "%02X:%02X:%02X:%02X:%02X:%02X",
                          mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
                 set_var_mcu_mac_address(macbuf);
-                lvgl_port_unlock();
+                bsp_display_unlock();
             }
 #endif
         }
 
 #if UI_EXPORT_PRESENT
-        /* 9. State machine + wifi_setup + auto-connect. */
+        /* 8. State machine + wifi_setup + auto-connect. */
         ESP_ERROR_CHECK(app_state_init());
         app_state_start_wifi();
 #endif
@@ -252,19 +282,16 @@ void app_main(void) {
     uint32_t last_tick = 0;
     while (1) {
 #if UI_EXPORT_PRESENT
-        /* mqtt_client_process_messages() is now a no-op — MQTT dispatch
-         * lives on its own FreeRTOS task ("mqtt_dispatch") so status
-         * updates arrive within a few ms of the network delivery instead
-         * of waiting for a main-loop iteration. Watchdogs stay here
-         * (independent of the queue drain). */
+        /* MQTT dispatch runs on its own FreeRTOS task ("mqtt_dispatch");
+         * this call is now a no-op left as a hook. Watchdogs stay here. */
         mqtt_client_check_watchdogs();
 
         uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
         if (now - last_tick >= 1000) {
             last_tick = now;
-            if (lvgl_port_lock(0)) {
+            if (bsp_display_lock(0)) {
                 update_clock_display();
-                lvgl_port_unlock();
+                bsp_display_unlock();
             }
         }
 #endif

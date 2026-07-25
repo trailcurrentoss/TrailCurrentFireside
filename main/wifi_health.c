@@ -8,8 +8,7 @@
  * ESP-Hosted's built-in transport-restart safety net (see
  * CONFIG_ESP_HOSTED_TRANSPORT_RESTART_ON_FAILURE) only fires on SDIO-level
  * failures, so this application-level hang leaves the P4 stranded until a
- * power cycle. Symptoms (documented at length in
- * elecrow-esp32-p4-10-in/DOCS/ElecrowLessonsLearned.md lesson 21): WiFi
+ * power cycle. Symptoms: WiFi
  * shows 0 dBm forever, MQTT keeps failing on DNS with EAI_FAIL, buttons
  * feel sluggish because every 17 s a failed reconnect grabs the LVGL lock,
  * and the app never advances to the wizard because WIFI_EVENT_STA_DISCONNECTED

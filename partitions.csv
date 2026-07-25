@@ -1,7 +1,7 @@
+# Waveshare ESP32-P4-WIFI6-Touch-LCD-7B ships with 32MB flash. 8M app / 2M
+# spiffs layout; the extra headroom is available for a future OTA slot or
+# a larger spiffs.
 # Name,   Type, SubType, Offset,  Size, Flags
-# ESP32-P4 Fireside firmware on Elecrow CrowPanel Advance 10.1". App
-# partition grows to 8M to fit the Fireside UI (fonts + images push the
-# original 4M layout over the limit).
 nvs,      data, nvs,     0x9000,  0x6000,
 phy_init, data, phy,     0xf000,  0x1000,
 factory,  app,  factory, 0x10000, 0x800000,

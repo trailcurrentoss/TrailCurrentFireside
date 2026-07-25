@@ -66,6 +66,9 @@ typedef struct _objects_t {
     lv_obj_t *home_clock_mm;
     lv_obj_t *home_clock_ampm;
     lv_obj_t *home_clock_date;
+    lv_obj_t *home_ptt_btn;
+    lv_obj_t *home_ptt_icon;
+    lv_obj_t *home_ptt_label;
     lv_obj_t *home_water_card;
     lv_obj_t *home_water_card_lbl;
     lv_obj_t *home_water_fresh_name;

@@ -32,8 +32,10 @@ tmp/
 GUI/tmp/
 **/tmp/
 
-# CrowPanel vendor source — third-party reference, don't commit into this repo
-CrowPanel-Advanced-*/
+# Waveshare vendor source is under DOCS/ for reference — don't commit if
+# huge submodules land there. (The wiki-linked ESP-IDF example tree is
+# ~50MB and is not needed by CI.)
+DOCS/ESP32-P4-WIFI6-Touch-LCD-7B-main/build/
 
 # Log files and temporary files
 *.log
@@ -66,3 +68,84 @@ scripts/
 *.FCBak*
 *.FCStd1
 *.FCStd2
+
+# Secrets, credentials, and provisioning data — NEVER commit
+.env
+.env.*
+*.env
+env.local
+secrets/
+credentials/
+*.secret
+*_secret.*
+*_secrets.*
+provisioning.json
+wifi_credentials.*
+mqtt_credentials.*
+
+# Certificates and private keys
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# NVS partition images (often contain baked WiFi PSKs, MQTT creds, TLS keys)
+nvs.bin
+nvs_*.bin
+*.nvs.bin
+nvs_partition/
+factory_nvs/
+
+# Flashed firmware / release artifacts landing outside build/
+*.bin
+*.elf
+*.map
+*.hex
+!partitions.csv
+
+# ESP-IDF core dumps and coredump ELFs
+core_dump.*
+coredump/
+*.coredump
+
+# esp-idf ci / local variants that may embed credentials
+sdkconfig.ci
+sdkconfig.local
+sdkconfig.*.local
+
+# Python virtual environments and tooling
+.venv/
+venv/
+env/
+.python-version
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Coverage and profiling
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.gcov
+*.gcda
+*.gcno
+
+# Editor scratch / crash recovery
+*~
+.*.swp
+.*.swo
+.netrwhist
+Session.vim
+.direnv/
+.envrc
+
+# macOS extended attributes / resource forks
+._*
+.AppleDouble
+.LSOverride

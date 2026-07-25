@@ -29,6 +29,7 @@
 #include "wifi_setup.h"
 #include "app_mqtt.h"
 #include "button_config.h"
+#include "peregrine_voice.h"
 
 #include "nvs.h"
 #include "nvs_flash.h"
@@ -350,7 +351,7 @@ void action_brightness_changed(lv_event_t *e) {
         char buf[16]; snprintf(buf, sizeof(buf), "%ld%%", (long)v);
         lv_label_set_text(objects.settings_brightness_pct, buf);
     }
-    /* CrowPanel BSP backlight PWM (0..100). */
+    /* Waveshare BSP backlight PWM (0..100). */
     extern esp_err_t set_lcd_blight(uint32_t brightness);
     set_lcd_blight((uint32_t)v);
     nvs_handle_t nvs;
@@ -1698,4 +1699,19 @@ void action_back_to_edit_buttons(lv_event_t *e) {
     }
     if (objects.page_settings) lv_scr_load(objects.page_settings);
 #endif
+}
+
+/* Push-to-talk (TALK) button on PageHome. Two separate actions bound to
+ * PRESSED and RELEASED (plus PRESS_LOST -> released, so a finger drag off
+ * the button doesn't leave the mic capturing). Both handlers run under
+ * the LVGL lock; peregrine_voice hands the HTTP work off to its own task
+ * so the UI stays responsive during upload + playback. */
+void action_ptt_pressed(lv_event_t *e) {
+    (void)e;
+    peregrine_voice_press();
+}
+
+void action_ptt_released(lv_event_t *e) {
+    (void)e;
+    peregrine_voice_release();
 }

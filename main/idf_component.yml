@@ -1,43 +1,48 @@
-## IDF Component Manager Manifest — Fireside CrowPanel on Elecrow
-## ESP32-P4 10.1" 1024x600 (EK79007 MIPI-DSI + GT911 capacitive touch).
+## IDF Component Manager Manifest — Fireside firmware for the Waveshare
+## ESP32-P4-WIFI6-Touch-LCD-7B (7" 1024x600 IPS + GT911 touch + ES8311
+## codec).
 ##
-## Phase 1: display + touch only. WiFi (esp_hosted / esp_wifi_remote) is
-## DELIBERATELY LEFT OUT. Re-adding esp_hosted on this board caused the
-## SDIO driver's constructor (__attribute__((constructor)) esp_hosted_host_init)
-## to fail its buf_mp_g mempool allocation before app_main runs, boot-looping
-## the device. Turn WiFi on in Phase 2 with a proper esp_hosted_init() sequence
-## in main.c (see the vendor's Lesson16 for the correct order).
+## Board notes:
+##   - Waveshare publishes a first-party BSP component
+##     (waveshare/esp32_p4_wifi6_touch_lcd_7b) that bundles display, touch,
+##     I2C, I2S, ES8311, ES7210, PA — everything except the battery ADC.
+##   - Battery is a passive divider read via GPIO 20 ADC (see
+##     main/battery.c). No idf_component.yml entry needed for that —
+##     esp_adc is part of ESP-IDF itself.
+
 dependencies:
-  # LVGL 8.4 — matches the eez-project's lvglVersion so the C export's API
-  # (lv_mem_alloc, lv_disp_t, LV_DISP_ROT_*) resolves. CrowPanel vendor
-  # examples run 9.4 with esp_lvgl_port's compat shim, but the shim doesn't
-  # cover the exporter's memory-alloc calls — cleanest fix is to pin both
-  # sides to 8.4 (this is exactly what Fireside does).
+  # Waveshare BSP — pins the LCD/touch/codec driver versions internally.
+  # Constraint matches the FluidCNC Pendant project (also on this board)
+  # and picks up any 1.x. NOTE: this component declares `targets: [esp32p4]`
+  # in its own manifest, so `idf.py set-target esp32p4` MUST be run before
+  # the first build or the dependency solver fails with
+  # "no versions of waveshare/esp32_p4_wifi6_touch_lcd_7b match ^1.0.2".
+  waveshare/esp32_p4_wifi6_touch_lcd_7b:
+    version: "^1.0.2"
+    public: true
+    rules:
+      - if: target == esp32p4
+
+  # LVGL 8.4 — matches the .eez-project's lvglVersion. The Waveshare BSP
+  # declares "lvgl/lvgl: >=8,<10" so this narrower pin still resolves.
   lvgl/lvgl:
     version: "~8.4.0"
     public: true
 
-  # LCD panel driver (EK79007 on MIPI-DSI) + touch driver (GT911 on I2C).
-  espressif/esp_lcd_ek79007: "^1.0.2"
-  espressif/esp_lcd_touch_gt911: "^1.1.3"
-
-  # LVGL <-> ESP-LCD glue. bsp_illuminate uses it directly.
-  espressif/esp_lvgl_port: "*"
-
-  # WiFi over ESP-Hosted — 2.12.3 matches the C6 slave firmware the user
-  # already flashed via the vendor upgrade guide (Advance_P4_On-Board_
-  # ESP32C6_Firmware_V2.12.3). See DOCS/LessonsLearned.md #19 for why the
-  # 2.7 default in vendor Lesson16 is wrong for this device.
+  # WiFi over ESP-Hosted (ESP32-P4 has no native WiFi — bridged to on-board
+  # ESP32-C6 slave over 4-bit SDIO). The Waveshare board uses ESP-Hosted's
+  # default SDIO pin map (CLK=18 CMD=19 D0=14 D1=15 D2=16 D3=17), no
+  # overrides needed in sdkconfig.defaults.esp32p4.
   espressif/esp_hosted:
     rules:
       - if: target in [esp32p4, esp32h2]
-    version: "~2.12.3"
+    version: "*"
   espressif/esp_wifi_remote:
     rules:
       - if: target in [esp32p4, esp32h2]
     version: "*"
 
-  # mDNS — Phase 2 use only (Headwaters discovery). Cheap to keep here.
+  # mDNS — reserved for Headwaters discovery. Cheap to keep here.
   espressif/mdns:
     version: "*"
 

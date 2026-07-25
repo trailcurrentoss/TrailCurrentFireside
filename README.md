@@ -1,13 +1,21 @@
 # TrailCurrent Fireside
 
-Central control display firmware for an ESP32-P4 with a 10.1" touchscreen, providing a dashboard for monitoring and controlling devices on the [TrailCurrent](https://trailcurrent.com) CAN bus via WiFi and MQTT.
+Central control display firmware for the [TrailCurrent](https://trailcurrent.com)
+platform, running on the [Waveshare ESP32-P4-WIFI6-Touch-LCD-7B](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-7b.htm)
+7-inch 1024×600 touchscreen dev board. Provides an on-device dashboard for
+monitoring and controlling devices on the TrailCurrent CAN bus via WiFi and
+MQTT.
 
 ## Hardware Overview
 
-- **Board:** [Elecrow CrowPanel Advance 10.1" ESP32-P4 HMI AI Display (1024×600 IPS + capacitive touch)](https://www.elecrow.com/crowpanel-advanced-10-1-inch-esp32-p4-hmi-ai-display-1024x600-ips-touch-screen.html)
-- **Microcontroller:** ESP32-P4 (16 MB PSRAM, 16 MB flash)
-- **WiFi:** ESP32-C6 slave over 4-bit SDIO via ESP-Hosted (vendor firmware v2.12.3)
-- **Display:** 10.1" 1024×600 MIPI-DSI (EK79007 controller) with GT911 capacitive touch
+- **Board:** [Waveshare ESP32-P4-WIFI6-Touch-LCD-7B](https://www.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-7B) (7", 1024×600 IPS + GT911 capacitive touch)
+- **Microcontroller:** ESP32-P4 (32 MB flash, PSRAM)
+- **WiFi:** ESP32-C6 slave over 4-bit SDIO via ESP-Hosted
+- **Display:** 7" 1024×600 MIPI-DSI (EK79007 controller)
+- **Touch:** GT911 capacitive on I2C
+- **Audio:** ES8311 codec (I2S DAC) + ES7210 ADC + class-D PA (PA enable on GPIO 53)
+- **Battery:** on-board JST connector with charging IC + passive divider (200 kΩ / 100 kΩ) into GPIO 20 for voltage sense
+- **I/O:** CAN, RS485, USB-OTG, USB-to-UART, MicroSD, 2× MIC, screw terminals
 - **Build System:** ESP-IDF v5.3 or newer, target `esp32p4`
 - **Key Features:**
   - Central dashboard for trailer system monitoring
@@ -17,13 +25,12 @@ Central control display firmware for an ESP32-P4 with a 10.1" touchscreen, provi
   - MQTT over TLS (`mqtts://`) for real-time data from the TrailCurrent platform
   - Light control with on/off and brightness via MQTT
   - GPS, energy, and air quality monitoring via MQTT subscriptions
-  - Battery status via MQTT (from Solstice)
-  - Alarm and audio notifications
+  - Battery status via MQTT (from Solstice) **and** on-board battery telemetry via ADC divider
+  - Alarm and TTS audio notifications
   - Color theme switching (light/dark)
   - Screen brightness and timeout controls
   - NVS-persisted user settings (theme, brightness, timeout, WiFi + MQTT credentials)
   - LVGL v8.4 UI designed with EEZ Studio
-  - FreeCAD enclosure design
 
 ## Firmware
 
@@ -33,13 +40,13 @@ This project uses ESP-IDF (not PlatformIO).
 
 - ESP-IDF v5.3 or newer, targeting `esp32p4`.
 - [EEZ Studio](https://github.com/eez-open/studio) — needed to export the UI to C. First-build users **must** run this before `idf.py build`.
-- ESP32-C6 slave firmware **v2.12.3** flashed to the on-board C6. See the Elecrow "Advance P4 On-Board ESP32C6 Firmware V2.12.3" upgrade guide — the SDIO pin map in `sdkconfig.defaults.esp32p4` targets this revision.
+- ESP32-C6 slave firmware flashed to the on-board C6 (per the [Waveshare wiki](https://www.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-7B) setup instructions).
 
 **Setup:**
 
 ```bash
 # 1. Export the UI from EEZ Studio.
-#    Open GUI/elecrow-esp32-p4-10-in/elecrow-esp32-p4-10-in.eez-project
+#    Open GUI/TrailCurrentFireside.eez-project
 #    then File → Build (Ctrl+B). Output lands in main/ui/.
 
 # 2. Build + flash + monitor.
@@ -50,15 +57,15 @@ idf.py -p /dev/ttyUSB0 flash monitor
 
 ### Firmware Dependencies
 
-Dependencies are managed by the ESP-IDF component manager and resolved automatically during build:
+Resolved automatically by the ESP-IDF component manager. See
+[`main/idf_component.yml`](main/idf_component.yml) for the full list.
+Key ones:
 
-- **[LVGL](https://github.com/lvgl/lvgl)** (`~8.4.0`) — Light and Versatile Graphics Library, matches the eez-project's `lvglVersion`.
-- **[esp_lcd_ek79007](https://components.espressif.com/components/espressif/esp_lcd_ek79007)** — MIPI-DSI panel driver.
-- **[esp_lcd_touch_gt911](https://components.espressif.com/components/espressif/esp_lcd_touch_gt911)** — capacitive touch driver.
-- **[esp_lvgl_port](https://components.espressif.com/components/espressif/esp_lvgl_port)** — LVGL ↔ esp_lcd glue.
-- **[esp_hosted](https://components.espressif.com/components/espressif/esp_hosted)** (`~2.12.3`) — ESP32-C6 slave communication over SDIO.
-- **[esp_wifi_remote](https://components.espressif.com/components/espressif/esp_wifi_remote)** — WiFi via ESP-Hosted.
-- **[mdns](https://components.espressif.com/components/espressif/mdns)** — mDNS discovery.
+- **[waveshare/esp32_p4_wifi6_touch_lcd_7b](https://components.espressif.com/components/waveshare/esp32_p4_wifi6_touch_lcd_7b)** — first-party BSP for this board. Bundles the LCD panel driver (`esp_lcd_ek79007`), touch driver (`esp_lcd_touch_gt911`), LVGL port (`esp_lvgl_port`), and audio codec (`esp_codec_dev` with ES8311 + ES7210 support).
+- **[lvgl/lvgl](https://github.com/lvgl/lvgl)** (`~8.4.0`) — pinned to match the `.eez-project`'s `lvglVersion`.
+- **[espressif/esp_hosted](https://components.espressif.com/components/espressif/esp_hosted)** — ESP32-C6 slave communication over SDIO.
+- **[espressif/esp_wifi_remote](https://components.espressif.com/components/espressif/esp_wifi_remote)** — WiFi via ESP-Hosted.
+- **[espressif/mdns](https://components.espressif.com/components/espressif/mdns)** — mDNS discovery.
 
 ### On-Device Setup Wizard
 
@@ -85,37 +92,42 @@ Light commands are published to `local/lights/{id}/command`.
 ## Project Structure
 
 ```
-├── CAD/                          # FreeCAD enclosure design and STL exports
-├── DOCS/                         # Documentation and screenshots
-├── GUI/                          # EEZ Studio UI design files
-│   ├── ASSETS/                   # Fonts (Roboto, FontAwesome) and logo referenced by the eez-project
-│   └── elecrow-esp32-p4-10-in/
-│       └── elecrow-esp32-p4-10-in.eez-project   # single source of truth for the GUI
-├── components/                   # Custom ESP-IDF components
-│   ├── bsp_display/              # EK79007 MIPI-DSI + LVGL bring-up
-│   ├── bsp_extra/                # Board support package extensions
-│   ├── bsp_i2c/                  # Shared I2C bus init (GT911 + peripherals)
-│   ├── bsp_illuminate/           # Backlight + power sequencing
-│   ├── button_config/            # Configurable UI button metadata (icon, label, MQTT topic)
-│   ├── fireside_config/          # NVS-backed device configuration
-│   ├── mqtt_client/              # MQTT client with TLS, NVS settings, subscriptions, JSON processing
-│   └── wifi_setup/               # WiFi setup wizard + NVS-backed credential storage
-├── main/                         # Main application source
-│   ├── main.c                    # Boot sequence, BSP init, WiFi connect, MQTT init
-│   ├── actions.c                 # UI action callbacks (light control, settings, themes)
-│   ├── vars.c                    # UI variable bindings and LVGL widget updates
-│   ├── app_state.c               # App state machine + NVS wrappers
-│   ├── alarms.c                  # Alarm handling and notifications
-│   ├── audio.c                   # Audio playback (audio_assets.c holds embedded PCM — see DOCS/AUDIO_PHRASES.md)
-│   ├── battery.c                 # Battery status handling
-│   ├── mqtt_vars.h               # Declarations for MQTT-sourced variables
-│   ├── idf_component.yml         # Component dependencies
-│   └── ui/                       # EEZ Studio generated UI code (do not edit)
-├── CMakeLists.txt                # Top-level CMake configuration
-├── sdkconfig.defaults            # ESP-IDF configuration defaults
-├── sdkconfig.defaults.esp32p4    # ESP32-P4 target-specific overrides (SDIO pins, cache geometry)
-├── partitions.csv                # Flash partition layout (8M factory app + 2M spiffs)
-└── LICENSE                       # MIT License
+├── DOCS/                                        # Documentation + vendor reference
+│   ├── AUDIO_PHRASES.md                         #   TTS alarm phrase list + regeneration recipe
+│   ├── PORT_NOTES.md                            #   Board bring-up notes (audio, battery, WiFi, etc.)
+│   ├── ESP32-P4-WIFI6-Touch-LCD-7B.pdf          #   Waveshare board schematic
+│   ├── ESP32-P4-WIFI6-Touch-LCD-7B-main/        #   Waveshare vendor examples (reference)
+│   └── IMAGES/                                  #   Screenshots
+├── GUI/                                         # EEZ Studio UI design files
+│   ├── ASSETS/                                  #   Fonts (Roboto, FontAwesome) and images
+│   └── TrailCurrentFireside.eez-project         #   Single source of truth for the GUI
+├── ASSETS/                                      # Runtime backdrop / bar-graphic assets
+├── components/                                  # Local components
+│   ├── bsp_shim/                                #   Thin shim over the Waveshare BSP (`set_lcd_blight` → `bsp_display_brightness_set`)
+│   ├── button_config/                           #   Configurable UI button metadata (icon, label, MQTT topic)
+│   ├── fireside_config/                         #   NVS-backed device configuration
+│   ├── mqtt_client/                             #   MQTT client with TLS + JSON dispatch
+│   ├── peregrine_voice/                         #   Voice input pipeline (ES7210 ADC + wake-word)
+│   └── wifi_setup/                              #   WiFi setup wizard + NVS-backed credentials
+├── main/                                        # Application source
+│   ├── main.c                                   #   Waveshare BSP bring-up + boot orchestration
+│   ├── actions.c                                #   UI action callbacks (light control, settings, themes)
+│   ├── vars.c                                   #   UI variable bindings + LVGL widget updates
+│   ├── app_state.c                              #   App state machine + NVS wrappers
+│   ├── alarms.c                                 #   Alarm handling + notifications
+│   ├── audio.c                                  #   ES8311 codec playback via esp_codec_dev
+│   ├── audio_assets.c                           #   Embedded PCM for TTS phrases (see DOCS/AUDIO_PHRASES.md)
+│   ├── battery.c                                #   Local battery telemetry — ADC divider on GPIO 20
+│   ├── perf.c                                   #   Perf probes
+│   ├── sd_config.c                              #   MicroSD-based config import (optional)
+│   ├── wifi_health.c                            #   C6 heartbeat / auto-restart
+│   ├── mqtt_vars.h                              #   MQTT variable declarations
+│   └── ui/                                      #   EEZ Studio generated UI code (do NOT edit)
+├── CMakeLists.txt                               # Top-level CMake configuration
+├── sdkconfig.defaults                           # ESP-IDF configuration defaults
+├── sdkconfig.defaults.esp32p4                   # ESP32-P4 target-specific overrides
+├── partitions.csv                               # Flash partition layout (8M factory app + 2M spiffs)
+└── LICENSE                                      # MIT License
 ```
 
 ## GUI Editing
@@ -123,12 +135,16 @@ Light commands are published to `local/lights/{id}/command`.
 The `.eez-project` is the single source of truth for every screen. Rules:
 
 - Never hand-edit `main/ui/*` — EEZ Studio overwrites those on export.
-- Never call `lv_obj_set_pos`, `lv_obj_set_size`, `lv_obj_set_align`, `lv_obj_move_foreground`, or any style-* geometry override on an `objects.<widget>` from C. Widget geometry lives in the JSON.
-- Colors reference named tokens from the project palette; no hex literals in styles. If a new color is needed, add it via EEZ Studio's Colors panel first, then reference the name in the widget/style.
+- Never call `lv_obj_set_pos`, `lv_obj_set_size`, `lv_obj_set_align`,
+  `lv_obj_move_foreground`, or any style-\* geometry override on an
+  `objects.<widget>` from C. Widget geometry lives in the JSON.
+- Colors reference named tokens from the project palette; no hex literals
+  in styles. If a new color is needed, add it via EEZ Studio's Colors
+  panel first, then reference the name in the widget/style.
 
 ## License
 
-MIT License - See LICENSE file for details.
+MIT License — See LICENSE file for details.
 
 ## Contributing
 

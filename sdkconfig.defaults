@@ -1,19 +1,13 @@
-# CrowPanel Advance ESP32-P4 10.1" — sdkconfig defaults.
-#
-# Mirrors the vendor's Lesson07 (Turn_on_the_screen) example, which is the
-# canonical known-good sdkconfig for this board's LDO + MIPI-DSI + PSRAM
-# setup. Trimmed to the flags that actually matter for boot; anything omitted
-# uses ESP-IDF defaults.
+# Waveshare ESP32-P4-WIFI6-Touch-LCD-7B — sdkconfig defaults.
 #
 # Edit THIS file, never sdkconfig — IDF regenerates sdkconfig on every build
 # and any direct edit is silently overwritten.
 
 CONFIG_IDF_TARGET="esp32p4"
 
-# --- Flash — the CrowPanel Advance ships with 16MB. partitions.csv wants
-#     8M factory + 2M spiffs = doesn't fit in the 2MB default. ---
-CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+# --- Flash — Waveshare board ships with 32MB. ---
+CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="32MB"
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 
 # --- Experimental-features gate. On ESP32-P4, CONFIG_SPIRAM_SPEED_200M is
@@ -25,44 +19,38 @@ CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_IDF_EXPERIMENTAL_FEATURES=y
 
 # --- PSRAM — required. LCD framebuffer is ~1.2 MB per buffer (1024x600x2);
-#     with no PSRAM, display_init returns ESP_ERR_NO_MEM at boot. ---
+#     with no PSRAM, display init returns ESP_ERR_NO_MEM at boot. ---
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_HEX=y
 CONFIG_SPIRAM_SPEED_200M=y
 CONFIG_SPIRAM_BOOT_INIT=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
-CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
 CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY=y
 
 # --- L2 cache geometry — Espressif's recommended P4 config for MIPI-DSI
-#     + PSRAM bandwidth. 256 KB gives more room to keep hot framebuffer
-#     lines resident between paints; 128 B cache lines line up with the
-#     PSRAM burst length so refill traffic uses full bursts instead of
-#     truncated ones (was 64 B previously, which halved effective PSRAM
-#     read throughput for framebuffer scans). MMU page size stays 64 KB
-#     via sdkconfig.defaults.esp32p4.
+#     + PSRAM bandwidth.
 CONFIG_CACHE_L2_CACHE_256KB=y
 CONFIG_CACHE_L2_CACHE_LINE_128B=y
 
-# --- Custom partitions (partitions.csv already in the project root). ---
+# --- Custom partitions (partitions.csv in project root). ---
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 
-# --- LVGL color depth: 16-bit RGB565 (matches EK79007 panel and every
-#     working CrowPanel example). ---
+# --- LVGL color depth: 16-bit RGB565 matches EK79007 panel setup used by
+#     the Waveshare BSP. ---
 CONFIG_LV_COLOR_DEPTH_16=y
 
-# --- Main task pinned to core 0. The lvgl_port task will pin itself to
-#     core 1 inside display_init(), giving the panel refresh its own core. ---
+# --- Main task pinned to core 0. lvgl_port task will pin itself to core 1
+#     inside bsp_display_start_with_config, giving panel refresh its own core.
 CONFIG_ESP_MAIN_TASK_AFFINITY_CPU0=y
 
-# --- sys_evt task stack (LessonsLearned #20). ESP-Hosted marshals big
-#     wifi_ap_record_t batches on this task; the 2816-byte default overflows
-#     on the first scan-done event. Bump to 6144.
+# --- sys_evt task stack. ESP-Hosted marshals big wifi_ap_record_t batches
+#     on this task; the default 2816 bytes overflows on the first scan-done
+#     event. Bump to 6144.
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=6144
 
-# --- Internal-RAM reserve + mbedtls in PSRAM (LessonsLearned #20).
+# --- Internal-RAM reserve + mbedtls in PSRAM.
 #     Keeps 128 KB internal available for DMA-critical allocations that
 #     can't live in PSRAM. mbedtls (used by mqtts:// TLS) is a big
 #     internal-RAM consumer by default; push it to PSRAM.
@@ -73,84 +61,83 @@ CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
 CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
 
 # --- TLS insecure — accept the Headwaters MQTT broker's self-signed cert
-#     (LAN-only deployment). Same flags Fireside uses. Do NOT extend this to
-#     Internet-facing hosts. mqtt_client.c also sets
+#     (LAN-only deployment). mqtt_client.c also sets
 #     skip_cert_common_name_check=true so the CN doesn't have to match.
 CONFIG_ESP_TLS_INSECURE=y
 CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY=y
 
-# --- Compiler at -O2 for size/speed. Assertions kept ON so field failures
-#     still trip ESP_ERROR_CHECK + LVGL asserts; only the optimization
-#     level changed. Flip assertions off in a later pass if you want the
-#     final couple percent. ---
+# --- Compiler at -O2 for size/speed. Assertions kept ON. ---
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_ENABLE=y
 
-# --- FreeRTOS tick rate. Default 100 Hz gives 10 ms granularity to
-#     vTaskDelay and the lock handoffs inside esp_lvgl_port (touch dispatch,
-#     paint commit). 1000 Hz drops that to 1 ms so UI-visible operations
-#     stop landing on tick boundaries. Costs one extra timer IRQ per ms;
-#     on P4 that's noise vs the rest of the load. ---
+# --- FreeRTOS 1000 Hz tick. ---
 CONFIG_FREERTOS_HZ=1000
 
-# --- IRAM-safe ISR flags NOT enabled (yet) ------------------------------
-# The natural fix for "NVS commit from UI handler stalls the DSI ISR" is:
-#     CONFIG_LCD_DSI_ISR_IRAM_SAFE=y
-#     CONFIG_GDMA_ISR_IRAM_SAFE=y
-#     CONFIG_GDMA_CTRL_FUNC_IN_IRAM=y
-# We tried these and had to back out — they enforce a hard requirement
-# that every registered callback (and its user_ctx) live in internal RAM:
-#   - esp_lvgl_port's `lvgl_port_flush_dpi_panel_ready_callback` (in
-#     managed_components/espressif__esp_lvgl_port) is NOT marked
-#     IRAM_ATTR, so esp_lcd_dpi_panel_register_event_callbacks() refuses
-#     it and draw_buf_flush() hangs waiting for a done-signal that never
-#     fires → LVGL task blocks → task_wdt fires on IDLE0.
-#   - i2s_std's DMA callback context is malloc'd (PSRAM-eligible), so
-#     gdma_register_tx_event_callbacks() rejects the registration and
-#     i2s_channel_init_std_mode() fails → no audio.
-# Turning these on requires either (a) patching esp_lvgl_port + i2s_std
-# with IRAM_ATTR callbacks and DIRAM-only context, or (b) moving NVS
-# writes off the UI thread into a lower-priority task that pre-commits
-# outside the DSI refresh window.  Option (b) is the cleaner path; leave
-# the flags off until it lands.
+# --- Task WDT — ui_init() builds ~14 screens with hundreds of widgets and
+#     takes ~6.5s on core 0; the default 5s timeout fires during boot.
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=15
 
-# --- LVGL memory — use system malloc so LVGL's heap comes from PSRAM.
-#     Default is a fixed 64KB LV_MEM pool which is nowhere near enough for
-#     22 styles + 10 pages of widgets. Symptom of running out: NULL deref
-#     inside lv_obj_add_style (obj->styles = lv_mem_realloc(...) returns
-#     NULL) during the first lv_obj_create at boot. ---
+# --- LVGL memory — use system malloc so LVGL's heap comes from PSRAM. ---
 CONFIG_LV_MEM_CUSTOM=y
 
-# --- LVGL refresh period. Default is 30 ms (~33 fps). With the DPI panel
-#     now double-buffered (num_fbs=2) and the per-frame PSRAM->PSRAM memcpy
-#     removed, a full paint fits well under 16 ms, so tick the display at
-#     ~60 fps to smooth animations, chart updates, and slider drags. Safe
-#     only after the memcpy is gone — at 30 ms the vendor code was already
-#     bandwidth-limited by the copy.
+# --- LVGL refresh period 16 ms (~60fps). ---
 CONFIG_LV_DISP_DEF_REFR_PERIOD=16
 
-# --- LVGL indev polling period. Default is 30 ms, which means LVGL reads the
-#     GT911 roughly every other refresh frame. With the touch indev in
-#     polling mode (Touch_GPIO_INT set to NC, see LessonsLearned #28), a light
-#     or brief tap can start and end inside a single 30 ms window and LVGL
-#     misses it, so the tap "doesn't take" and the user learns to press
-#     harder / longer. Drop to 10 ms — three reads per frame at 30 fps,
-#     enough to catch a quick capacitive contact without meaningful CPU cost
-#     (each read is one small I2C transaction). ---
+# --- LVGL indev polling period 10 ms. Waveshare board leaves GT911 INT
+#     unconnected (BSP_LCD_TOUCH_INT = GPIO_NUM_NC), so LVGL is in polling
+#     mode. 10 ms cadence keeps quick taps from being missed. ---
 CONFIG_LV_INDEV_DEF_READ_PERIOD=10
 
 # --- LVGL default theme kept ENABLED. EEZ Studio's C export calls
 #     lv_theme_default_init() unconditionally in screens.c; disabling
-#     LV_USE_THEME_DEFAULT breaks that call. Our named styles override
-#     what we care about; the design-polish "kill blue chrome" pass will
-#     use lv_disp_set_theme(NULL) at runtime or bind to lv_theme_basic
-#     via C code instead of via Kconfig.
+#     LV_USE_THEME_DEFAULT breaks that call.
 CONFIG_LV_USE_THEME_DEFAULT=y
 
-# --- All UI fonts are custom Roboto / FontAwesome via ui_font_*.c files
-#     (Roboto Light/Regular/Medium + FA solid subset). No Montserrat built-ins
-#     referenced. lv_font_montserrat_14 is still needed as the LVGL library's
-#     internal default (theme fallback) but every other size is disabled to
+# --- All UI fonts are custom Roboto / FontAwesome via ui_font_*.c files.
+#     lv_font_montserrat_14 is still needed as the LVGL library's internal
+#     default (theme fallback); other Montserrat sizes stay disabled to
 #     keep flash footprint tight.
 CONFIG_LV_FONT_MONTSERRAT_14=y
 CONFIG_LV_FONT_DEFAULT_MONTSERRAT_14=y
+
+# --- ESP-Hosted WiFi (ESP32-P4 has no native WiFi — bridged to C6 slave).
+CONFIG_ESP_WIFI_REMOTE_LIBRARY_HOSTED=y
+CONFIG_SLAVE_IDF_TARGET_ESP32C6=y
+
+# --- ESP-Hosted SDIO for Waveshare 7B (default slot 1 pin map — no override
+#     needed). CLK=18 CMD=19 D0=14 D1=15 D2=16 D3=17. RESET_SLAVE comes from
+#     the ESP-Hosted defaults on this board too.
+CONFIG_ESP_HOSTED_P4_DEV_BOARD_NONE=y
+CONFIG_ESP_HOSTED_SDIO_HOST_INTERFACE=y
+CONFIG_ESP_HOSTED_SDIO_SLOT_1=y
+
+# --- Waveshare BSP: LCD color format & display buffer strategy ---
+# 2 = double buffered in the LVGL port (BSP forwards to esp_lvgl_port).
+CONFIG_BSP_LCD_DPI_BUFFER_NUMS=2
+
+# Leave WiFi IRAM room for LVGL
+CONFIG_ESP_WIFI_IRAM_OPT=n
+CONFIG_ESP_WIFI_RX_IRAM_OPT=n
+
+# Keep Hosted worker tasks out of internal RAM.
+CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM=y
+
+# --- ESP-Hosted SDIO buffer pool sizing.
+#     Default 20/20 needs (20+11) × 1536 ≈ 47 KB of DMA-capable internal
+#     SRAM, allocated in ESP-Hosted's __attribute__((constructor)) before
+#     app_main. On this board (256 KB internal SRAM, 128 KB reserved for
+#     DMA per CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL) the boot-time linker
+#     BSS + startup thread stacks leave the pool alloc barely fitting.
+#     Adding another IRAM consumer (fatfs, sdmmc) tips it over into
+#     `assert failed: sdio_mempool_create sdio_drv.c:255 (buf_mp_g)` at
+#     boot. 12/12 leaves ~30 % headroom, no observable throughput loss on
+#     the local MQTT + HTTP traffic this device does.
+CONFIG_ESP_HOSTED_SDIO_TX_Q_SIZE=12
+CONFIG_ESP_HOSTED_SDIO_RX_Q_SIZE=12
+
+# --- FATFS long file names — required so we can fopen("/sdcard/environment.conf")
+#     by its real name. Without LFN, FATFS reports the DOS 8.3 short name
+#     (ENVIRO~1.CON) and the open fails.
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+CONFIG_FATFS_API_ENCODING_UTF_8=y
