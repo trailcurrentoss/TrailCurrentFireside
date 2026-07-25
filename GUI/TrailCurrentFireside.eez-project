@@ -17520,7 +17520,7 @@
                       "left": 150,
                       "top": 70,
                       "width": 830,
-                      "height": 32,
+                      "height": 40,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -17621,7 +17621,7 @@
                       "left": 150,
                       "top": 110,
                       "width": 830,
-                      "height": 32,
+                      "height": 40,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -17722,7 +17722,7 @@
                       "left": 150,
                       "top": 150,
                       "width": 740,
-                      "height": 32,
+                      "height": 40,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -17975,10 +17975,10 @@
                     {
                       "objID": "6ab4bc62-6960-05b3-d727-0d4ffa057583",
                       "type": "LVGLKeyboardWidget",
-                      "left": 20,
+                      "left": 12,
                       "top": 244,
-                      "width": 960,
-                      "height": 230,
+                      "width": 1000,
+                      "height": 250,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -18012,10 +18012,10 @@
                           "MAIN": {
                             "DEFAULT": {
                               "align": "TOP_LEFT",
-                              "min_width": 960,
-                              "max_width": 960,
-                              "min_height": 230,
-                              "max_height": 230
+                              "min_width": 1000,
+                              "max_width": 1000,
+                              "min_height": 250,
+                              "max_height": 250
                             }
                           }
                         }
@@ -18030,7 +18030,7 @@
                       "left": 896,
                       "top": 150,
                       "width": 84,
-                      "height": 32,
+                      "height": 40,
                       "customInputs": [],
                       "customOutputs": [],
                       "style": {
@@ -18075,7 +18075,7 @@
                           "objID": "832603a7-abc7-d2e6-72f5-96dd9441e258",
                           "type": "LVGLLabelWidget",
                           "left": 0,
-                          "top": 8,
+                          "top": 12,
                           "width": 84,
                           "height": 16,
                           "customInputs": [],

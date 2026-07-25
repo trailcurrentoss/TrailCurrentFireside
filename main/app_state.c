@@ -53,12 +53,44 @@ static void set_wifi_status_text(const char *text) {
 #endif
 }
 
-/* MQTT state callback — flip to Home once we're connected to the broker. */
+/* MQTT state callback — flip to Home on connect, or bounce back to
+ * MQTT_SETUP after repeated failures so the user can correct the
+ * hostname / credentials rather than being stranded on the "Connecting
+ * to broker..." screen indefinitely. */
+static int s_mqtt_fail_count = 0;
+#define MQTT_FAIL_BOUNCE_THRESHOLD 3
+
 static void on_mqtt_state(bool connected) {
     ESP_LOGI(TAG, "MQTT state: %s", connected ? "connected" : "disconnected");
-    if (connected && s_state == APP_STATE_MQTT_CONNECTING) {
-        app_state_set(APP_STATE_READY);
+    if (connected) {
+        s_mqtt_fail_count = 0;
+        if (s_state == APP_STATE_MQTT_CONNECTING) {
+            app_state_set(APP_STATE_READY);
+        }
+        return;
     }
+    /* Disconnect. Only act on it during the initial wizard bring-up —
+     * post-READY disconnects mean a running session lost the broker and
+     * mqtt_client's own retry loop should recover without disturbing
+     * the user's UI. */
+    if (s_state != APP_STATE_MQTT_CONNECTING) return;
+    s_mqtt_fail_count++;
+    ESP_LOGW(TAG, "MQTT connect attempt %d/%d failed",
+             s_mqtt_fail_count, MQTT_FAIL_BOUNCE_THRESHOLD);
+    if (s_mqtt_fail_count < MQTT_FAIL_BOUNCE_THRESHOLD) return;
+
+    /* Give up — kill the retry loop and go back to the credentials
+     * screen with an inline error the user can act on. */
+    s_mqtt_fail_count = 0;
+    mqtt_client_stop();
+    app_state_set(APP_STATE_MQTT_SETUP);
+#if __has_include("ui/screens.h")
+    if (objects.mqtt_setup_hint) {
+        lv_label_set_text(objects.mqtt_setup_hint,
+            "Couldn't reach the broker. Check the hostname, username, "
+            "and password, then try again.");
+    }
+#endif
 }
 
 /* WiFi state callback — advance the state machine as scan/connect progresses. */

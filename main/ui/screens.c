@@ -4834,7 +4834,7 @@ void create_screen_page_mqtt_setup() {
                             lv_obj_t *obj = lv_textarea_create(parent_obj);
                             objects.mqtt_host_input = obj;
                             lv_obj_set_pos(obj, 150, 70);
-                            lv_obj_set_size(obj, 830, 32);
+                            lv_obj_set_size(obj, 830, 40);
                             lv_textarea_set_max_length(obj, 128);
                             lv_textarea_set_placeholder_text(obj, "headwaters.local");
                             lv_textarea_set_one_line(obj, true);
@@ -4861,7 +4861,7 @@ void create_screen_page_mqtt_setup() {
                             lv_obj_t *obj = lv_textarea_create(parent_obj);
                             objects.mqtt_user_input = obj;
                             lv_obj_set_pos(obj, 150, 110);
-                            lv_obj_set_size(obj, 830, 32);
+                            lv_obj_set_size(obj, 830, 40);
                             lv_textarea_set_max_length(obj, 128);
                             lv_textarea_set_placeholder_text(obj, "admin");
                             lv_textarea_set_one_line(obj, true);
@@ -4888,7 +4888,7 @@ void create_screen_page_mqtt_setup() {
                             lv_obj_t *obj = lv_textarea_create(parent_obj);
                             objects.mqtt_pass_input = obj;
                             lv_obj_set_pos(obj, 150, 150);
-                            lv_obj_set_size(obj, 740, 32);
+                            lv_obj_set_size(obj, 740, 40);
                             lv_textarea_set_max_length(obj, 128);
                             lv_textarea_set_placeholder_text(obj, "Enter password");
                             lv_textarea_set_one_line(obj, true);
@@ -4954,22 +4954,22 @@ void create_screen_page_mqtt_setup() {
                             // mqtt_setup_kb
                             lv_obj_t *obj = lv_keyboard_create(parent_obj);
                             objects.mqtt_setup_kb = obj;
-                            lv_obj_set_pos(obj, 20, 244);
-                            lv_obj_set_size(obj, 960, 230);
+                            lv_obj_set_pos(obj, 12, 244);
+                            lv_obj_set_size(obj, 1000, 250);
                             lv_obj_clear_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
                             add_style_keyboard_default(obj);
                             lv_obj_set_style_align(obj, LV_ALIGN_TOP_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_obj_set_style_min_width(obj, 960, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_obj_set_style_max_width(obj, 960, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_obj_set_style_min_height(obj, 230, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_obj_set_style_max_height(obj, 230, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_obj_set_style_min_width(obj, 1000, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_obj_set_style_max_width(obj, 1000, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_obj_set_style_min_height(obj, 250, LV_PART_MAIN | LV_STATE_DEFAULT);
+                            lv_obj_set_style_max_height(obj, 250, LV_PART_MAIN | LV_STATE_DEFAULT);
                         }
                         {
                             // mqtt_pass_show_btn
                             lv_obj_t *obj = lv_btn_create(parent_obj);
                             objects.mqtt_pass_show_btn = obj;
                             lv_obj_set_pos(obj, 896, 150);
-                            lv_obj_set_size(obj, 84, 32);
+                            lv_obj_set_size(obj, 84, 40);
                             lv_obj_add_event_cb(obj, action_mqtt_toggle_password, LV_EVENT_CLICKED, (void *)0);
                             lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_ON_FOCUS|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
                             add_style_button_default(obj);
@@ -4979,7 +4979,7 @@ void create_screen_page_mqtt_setup() {
                                     // mqtt_pass_show_btn_lbl
                                     lv_obj_t *obj = lv_label_create(parent_obj);
                                     objects.mqtt_pass_show_btn_lbl = obj;
-                                    lv_obj_set_pos(obj, 0, 8);
+                                    lv_obj_set_pos(obj, 0, 12);
                                     lv_obj_set_size(obj, 84, 16);
                                     lv_label_set_long_mode(obj, LV_LABEL_LONG_CLIP);
                                     lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_PRESS_LOCK|LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_SCROLL_CHAIN_HOR|LV_OBJ_FLAG_SCROLL_CHAIN_VER|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);
@@ -9976,8 +9976,6 @@ void change_color_theme(uint32_t theme_index) {
     lv_style_set_text_color(get_style_textarea_default_MAIN_DEFAULT(), lv_color_hex(theme_colors[theme_index][6]));
     
     lv_style_set_border_color(get_style_textarea_default_MAIN_FOCUSED(), lv_color_hex(theme_colors[theme_index][9]));
-    
-    lv_style_set_border_color(get_style_textarea_default_CURSOR_DEFAULT(), lv_color_hex(theme_colors[theme_index][9]));
     
     lv_style_set_bg_color(get_style_keyboard_default_MAIN_DEFAULT(), lv_color_hex(theme_colors[theme_index][2]));
     

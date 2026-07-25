@@ -1062,11 +1062,8 @@ lv_style_t *get_style_textarea_default_MAIN_FOCUSED() {
 };
 
 void init_style_textarea_default_CURSOR_DEFAULT(lv_style_t *style) {
-    lv_style_set_border_side(style, LV_BORDER_SIDE_LEFT);
-    lv_style_set_border_color(style, lv_color_hex(theme_colors[active_theme_index][9]));
-    lv_style_set_border_width(style, 2);
-    lv_style_set_border_opa(style, 255);
     lv_style_set_bg_opa(style, 0);
+    lv_style_set_border_opa(style, 0);
 };
 
 lv_style_t *get_style_textarea_default_CURSOR_DEFAULT() {
