@@ -64,6 +64,7 @@
 #include "wifi_health.h"
 #include "peregrine_voice.h"
 #include "sd_config.h"
+#include "discovery.h"
 
 #if __has_include("ui/screens.h")
 #include "screens.h"
@@ -77,9 +78,8 @@
 
 static const char *TAG = "MAIN";
 
-/* mqtt_client component pulls these symbols in. Stub them here since we
- * don't wire discovery/OTA on this port yet. */
-void discovery_handle_trigger(void) {}
+/* mqtt_client component pulls this in — OTA isn't ported to Fireside yet.
+ * discovery_handle_trigger() is provided by main/discovery.c. */
 void ota_handle_trigger(void)       {}
 
 extern bool system_time_set;
@@ -101,11 +101,19 @@ static void on_sntp_sync(struct timeval *tv) {
 static void ip_got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
     (void)arg; (void)base; (void)id; (void)data;
     static bool sntp_started = false;
+    static bool mdns_started = false;
     if (!sntp_started) {
         esp_sntp_config_t cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
         cfg.sync_cb = on_sntp_sync;
         esp_netif_sntp_init(&cfg);
         sntp_started = true;
+    }
+    /* mDNS resolver needs netif to be up — first IP is the earliest safe
+     * point to start it. Advertising the _trailcurrent service is deferred
+     * until discovery_handle_trigger() fires (via MQTT). */
+    if (!mdns_started) {
+        discovery_mdns_init();
+        mdns_started = true;
     }
     if (fireside_config_has_mqtt()) {
         mqtt_client_load_settings();
@@ -275,6 +283,11 @@ void app_main(void) {
         ESP_ERROR_CHECK(app_state_init());
         app_state_start_wifi();
 #endif
+        /* Discovery — armed here so the MQTT subscription (in mqtt_client.c)
+         * has a real handler once WiFi/MQTT come up. The mDNS resolver and
+         * per-request advert are started later (see ip_got_ip and
+         * discovery_task_fn). */
+        discovery_init();
     }
 
     ESP_LOGI(TAG, "Setup done — entering main loop");

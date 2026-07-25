@@ -23,6 +23,7 @@ idf_component_register(
         perf.c
         wifi_health.c
         sd_config.c
+        discovery.c
         ${UI_CORE_SRCS}
         ${UI_FONT_SRCS}
         ${UI_IMAGE_SRCS}
@@ -55,6 +56,10 @@ idf_component_register(
         # but list it here too so main can #include esp_http_client.h if
         # needed for other integrations (currently not, but future-proof).
         esp_http_client
+        # Discovery: mDNS advert + HTTP server on port 80 so Headwaters can
+        # locate and confirm this module (see main/discovery.c).
+        esp_http_server
+        espressif__mdns
     PRIV_REQUIRES
         # ADC driver used by battery.c (voltage divider on GPIO 20).
         esp_adc
