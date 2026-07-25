@@ -200,7 +200,12 @@ static metric_chart_binding_t s_metric_charts[] = {
      * values overflow at the top which is fine for a history view. */
     { METRIC_TEMP,  &objects.air_temp_chart,   0xFF5453,    40,  100, NULL, NULL },
     { METRIC_HUM,   &objects.air_hum_chart,    0x48E6FE,    20,   80, NULL, NULL },
-    { METRIC_ECO2,  &objects.air_eco2_chart,   0x52A441,   400, 1500, NULL, NULL },
+    /* SGP41 clean-air baseline is 400 ppm; with y_min=400 every bar at
+     * baseline renders at zero height and the chart looks empty even
+     * though samples are landing. Pull y_min to 0 so the baseline shows
+     * as a visible bar (~27% of chart height) and rises/falls read as
+     * proportional deltas. */
+    { METRIC_ECO2,  &objects.air_eco2_chart,   0x52A441,     0, 1500, NULL, NULL },
     { METRIC_TVOC,  &objects.air_tvoc_chart,   0xFFC107,     0,  500, NULL, NULL },
     { METRIC_CO,    &objects.air_co_chart,     0x505050,     0,   20, NULL, NULL },
     /* Power metrics. VOLTS is stored ×100 in the ring (int16 packing). */
@@ -524,10 +529,10 @@ void set_var_internal_battery_soc(int32_t percent) {
     s_last_pct_painted      = percent;
     s_last_charging_painted = s_int_charging;
 
-    /* Fan out across the six main pages that carry the TopBar. Wizards
-     * (WiFi setup, MQTT setup, Alarms, Edit Buttons) also carry it but
-     * aren't visited during steady-state use — extend the list if the
-     * cluster needs to update there too. */
+    /* Fan out across every page that carries the TopBar. The wizard pages
+     * (WiFi/MQTT setup, Alarms, Edit Buttons, Button Edit) are visited
+     * during setup and user-facing configuration flows and must show the
+     * same live status as the main pages. */
     lv_obj_t *pct_labels[] = {
         objects.home_topbar__topbar_battery_pct,
         objects.trailer_topbar__topbar_battery_pct,
@@ -535,6 +540,13 @@ void set_var_internal_battery_soc(int32_t percent) {
         objects.water_topbar__topbar_battery_pct,
         objects.air_topbar__topbar_battery_pct,
         objects.settings_topbar__topbar_battery_pct,
+        objects.page_wifi_setup_topbar__topbar_battery_pct,
+        objects.page_wifi_connecting_topbar__topbar_battery_pct,
+        objects.page_mqtt_setup_topbar__topbar_battery_pct,
+        objects.page_mqtt_connecting_topbar__topbar_battery_pct,
+        objects.page_alarms_topbar__topbar_battery_pct,
+        objects.page_edit_buttons_topbar__topbar_battery_pct,
+        objects.page_button_edit_topbar__topbar_battery_pct,
     };
     lv_obj_t *icons[] = {
         objects.home_topbar__topbar_battery_icon,
@@ -543,6 +555,13 @@ void set_var_internal_battery_soc(int32_t percent) {
         objects.water_topbar__topbar_battery_icon,
         objects.air_topbar__topbar_battery_icon,
         objects.settings_topbar__topbar_battery_icon,
+        objects.page_wifi_setup_topbar__topbar_battery_icon,
+        objects.page_wifi_connecting_topbar__topbar_battery_icon,
+        objects.page_mqtt_setup_topbar__topbar_battery_icon,
+        objects.page_mqtt_connecting_topbar__topbar_battery_icon,
+        objects.page_alarms_topbar__topbar_battery_icon,
+        objects.page_edit_buttons_topbar__topbar_battery_icon,
+        objects.page_button_edit_topbar__topbar_battery_icon,
     };
     /* Clamp so the compiler's format-truncation checker sees a bounded
      * int fitting in the buffer; battery_poll_cb already caps to 0..100
@@ -601,6 +620,13 @@ void set_var_internal_charging(bool charging) {
         objects.water_topbar__topbar_charge_icon,
         objects.air_topbar__topbar_charge_icon,
         objects.settings_topbar__topbar_charge_icon,
+        objects.page_wifi_setup_topbar__topbar_charge_icon,
+        objects.page_wifi_connecting_topbar__topbar_charge_icon,
+        objects.page_mqtt_setup_topbar__topbar_charge_icon,
+        objects.page_mqtt_connecting_topbar__topbar_charge_icon,
+        objects.page_alarms_topbar__topbar_charge_icon,
+        objects.page_edit_buttons_topbar__topbar_charge_icon,
+        objects.page_button_edit_topbar__topbar_charge_icon,
     };
     lv_obj_t *icons[] = {
         objects.home_topbar__topbar_battery_icon,
@@ -609,6 +635,13 @@ void set_var_internal_charging(bool charging) {
         objects.water_topbar__topbar_battery_icon,
         objects.air_topbar__topbar_battery_icon,
         objects.settings_topbar__topbar_battery_icon,
+        objects.page_wifi_setup_topbar__topbar_battery_icon,
+        objects.page_wifi_connecting_topbar__topbar_battery_icon,
+        objects.page_mqtt_setup_topbar__topbar_battery_icon,
+        objects.page_mqtt_connecting_topbar__topbar_battery_icon,
+        objects.page_alarms_topbar__topbar_battery_icon,
+        objects.page_edit_buttons_topbar__topbar_battery_icon,
+        objects.page_button_edit_topbar__topbar_battery_icon,
     };
     /* Success green when charging, palette TextSecondary otherwise. Hex-lits
      * are theme-invariant on purpose — charging status has the same meaning
@@ -1167,17 +1200,14 @@ static audio_phrase_t pick_sensor_phrase(const char *label) {
 }
 
 static int notif_count(void) {
-    int n = 0;
-    if (!s_mqtt_connected)                          n++;
-    /* Battery-critical is owned by alarms.c so the threshold is
-     * configurable per mode. Don't double-count from here. */
-    if (s_co_alarm || s_co_warn ||
-        (s_co_ppm > 0 && s_co_ppm >= 70))           n++;
-    if (overall_aq_class() == AQ_BAD)               n++;
-    /* Configurable sensor-input alarms + battery-critical (per-mode arm
-     * config, evaluated in alarms.c). */
-    n += alarms_active_count();
-    return n;
+    /* The badge count must match what the toaster actually enumerates
+     * (alarms_enumerate_active → sensor arms + battery-critical). MQTT-
+     * down and CO / air-quality events drive their own TTS phrases and
+     * dedicated on-screen surfaces (status bar, Home CO card, Air page
+     * badges) but do NOT appear as toaster rows, so counting them here
+     * inflated the badge past the visible toaster row count and the
+     * user saw a "1" on the bell with an empty toaster panel. */
+    return alarms_active_count();
 }
 
 static void paint_notif_badge(void) {
@@ -1290,23 +1320,38 @@ static void paint_notif_badge(void) {
      * range (0..9) instead of int's full range. */
     snprintf(buf, sizeof(buf), "%u", (unsigned)n);
 
-    lv_obj_t *badges[6] = {
+    lv_obj_t *badges[] = {
         objects.home_topbar__topbar_notif_badge,
         objects.trailer_topbar__topbar_notif_badge,
         objects.power_topbar__topbar_notif_badge,
         objects.water_topbar__topbar_notif_badge,
         objects.air_topbar__topbar_notif_badge,
         objects.settings_topbar__topbar_notif_badge,
+        objects.page_wifi_setup_topbar__topbar_notif_badge,
+        objects.page_wifi_connecting_topbar__topbar_notif_badge,
+        objects.page_mqtt_setup_topbar__topbar_notif_badge,
+        objects.page_mqtt_connecting_topbar__topbar_notif_badge,
+        objects.page_alarms_topbar__topbar_notif_badge,
+        objects.page_edit_buttons_topbar__topbar_notif_badge,
+        objects.page_button_edit_topbar__topbar_notif_badge,
     };
-    lv_obj_t *counts[6] = {
+    lv_obj_t *counts[] = {
         objects.home_topbar__topbar_notif_badge_count,
         objects.trailer_topbar__topbar_notif_badge_count,
         objects.power_topbar__topbar_notif_badge_count,
         objects.water_topbar__topbar_notif_badge_count,
         objects.air_topbar__topbar_notif_badge_count,
         objects.settings_topbar__topbar_notif_badge_count,
+        objects.page_wifi_setup_topbar__topbar_notif_badge_count,
+        objects.page_wifi_connecting_topbar__topbar_notif_badge_count,
+        objects.page_mqtt_setup_topbar__topbar_notif_badge_count,
+        objects.page_mqtt_connecting_topbar__topbar_notif_badge_count,
+        objects.page_alarms_topbar__topbar_notif_badge_count,
+        objects.page_edit_buttons_topbar__topbar_notif_badge_count,
+        objects.page_button_edit_topbar__topbar_notif_badge_count,
     };
-    for (int i = 0; i < 6; i++) {
+    const int n_badges = (int)(sizeof(badges) / sizeof(*badges));
+    for (int i = 0; i < n_badges; i++) {
         if (badges[i]) {
             if (n > 0) lv_obj_clear_flag(badges[i], LV_OBJ_FLAG_HIDDEN);
             else       lv_obj_add_flag(badges[i], LV_OBJ_FLAG_HIDDEN);
@@ -1352,17 +1397,23 @@ void set_var_wifi_rssi(int32_t rssi_dbm) {
     /* EEZ Studio's per-instance name is `<uwi_identifier>__<child_identifier>`
      * — no page-name prefix. My generator passes page_id="home" (etc.) to
      * wrap_page so the UWWs are `home_topbar`/`trailer_topbar`/... */
-    lv_obj_t *labels[10] = {
+    lv_obj_t *labels[] = {
         objects.home_topbar__topbar_wifi_rssi,
         objects.trailer_topbar__topbar_wifi_rssi,
         objects.power_topbar__topbar_wifi_rssi,
         objects.water_topbar__topbar_wifi_rssi,
         objects.air_topbar__topbar_wifi_rssi,
         objects.settings_topbar__topbar_wifi_rssi,
-        NULL, NULL, NULL, NULL,
+        objects.page_wifi_setup_topbar__topbar_wifi_rssi,
+        objects.page_wifi_connecting_topbar__topbar_wifi_rssi,
+        objects.page_mqtt_setup_topbar__topbar_wifi_rssi,
+        objects.page_mqtt_connecting_topbar__topbar_wifi_rssi,
+        objects.page_alarms_topbar__topbar_wifi_rssi,
+        objects.page_edit_buttons_topbar__topbar_wifi_rssi,
+        objects.page_button_edit_topbar__topbar_wifi_rssi,
     };
     char buf[16]; snprintf(buf, sizeof(buf), "%ld dBm", (long)rssi_dbm);
-    for (int i = 0; i < 10; i++) {
+    for (size_t i = 0; i < sizeof(labels)/sizeof(*labels); i++) {
         if (labels[i]) label_set_text_if_changed(labels[i], buf);
     }
 #else
@@ -1583,6 +1634,13 @@ void update_clock_display(void) {
             objects.water_topbar__topbar_clock,
             objects.air_topbar__topbar_clock,
             objects.settings_topbar__topbar_clock,
+            objects.page_wifi_setup_topbar__topbar_clock,
+            objects.page_wifi_connecting_topbar__topbar_clock,
+            objects.page_mqtt_setup_topbar__topbar_clock,
+            objects.page_mqtt_connecting_topbar__topbar_clock,
+            objects.page_alarms_topbar__topbar_clock,
+            objects.page_edit_buttons_topbar__topbar_clock,
+            objects.page_button_edit_topbar__topbar_clock,
         };
         for (size_t i = 0; i < sizeof(clocks)/sizeof(*clocks); i++) {
             if (clocks[i]) label_set_text_if_changed(clocks[i], short_buf);
@@ -1631,15 +1689,22 @@ void update_clock_display(void) {
         else if (t.tm_hour < 17) greet = "Good Afternoon";
         else if (t.tm_hour < 21) greet = "Good Evening";
         else                     greet = "Good Night";
-        lv_obj_t *greets[6] = {
+        lv_obj_t *greets[] = {
             objects.home_topbar__topbar_greeting,
             objects.trailer_topbar__topbar_greeting,
             objects.power_topbar__topbar_greeting,
             objects.water_topbar__topbar_greeting,
             objects.air_topbar__topbar_greeting,
             objects.settings_topbar__topbar_greeting,
+            objects.page_wifi_setup_topbar__topbar_greeting,
+            objects.page_wifi_connecting_topbar__topbar_greeting,
+            objects.page_mqtt_setup_topbar__topbar_greeting,
+            objects.page_mqtt_connecting_topbar__topbar_greeting,
+            objects.page_alarms_topbar__topbar_greeting,
+            objects.page_edit_buttons_topbar__topbar_greeting,
+            objects.page_button_edit_topbar__topbar_greeting,
         };
-        for (int i = 0; i < 6; i++) {
+        for (size_t i = 0; i < sizeof(greets)/sizeof(*greets); i++) {
             if (greets[i]) label_set_text_if_changed(greets[i], greet);
         }
     }

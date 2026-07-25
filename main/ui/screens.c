@@ -3605,8 +3605,8 @@ void create_screen_page_settings() {
                             // slider_screen_brightness
                             lv_obj_t *obj = lv_slider_create(parent_obj);
                             objects.slider_screen_brightness = obj;
-                            lv_obj_set_pos(obj, 12, 30);
-                            lv_obj_set_size(obj, 471, 8);
+                            lv_obj_set_pos(obj, 36, 30);
+                            lv_obj_set_size(obj, 423, 8);
                             lv_slider_set_range(obj, 10, 100);
                             lv_slider_set_value(obj, 80, LV_ANIM_OFF);
                             lv_obj_add_event_cb(obj, action_brightness_changed, LV_EVENT_VALUE_CHANGED, (void *)0);
@@ -3646,8 +3646,8 @@ void create_screen_page_settings() {
                             // slider_speaker_volume
                             lv_obj_t *obj = lv_slider_create(parent_obj);
                             objects.slider_speaker_volume = obj;
-                            lv_obj_set_pos(obj, 12, 60);
-                            lv_obj_set_size(obj, 471, 8);
+                            lv_obj_set_pos(obj, 36, 60);
+                            lv_obj_set_size(obj, 423, 8);
                             lv_slider_set_value(obj, 30, LV_ANIM_OFF);
                             lv_obj_add_event_cb(obj, action_volume_changed, LV_EVENT_VALUE_CHANGED, (void *)0);
                             lv_obj_clear_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLL_ELASTIC|LV_OBJ_FLAG_SCROLL_MOMENTUM|LV_OBJ_FLAG_SCROLL_WITH_ARROW|LV_OBJ_FLAG_SNAPPABLE);

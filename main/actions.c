@@ -562,6 +562,16 @@ static void alarms_build_snooze_row(void) {
     lv_obj_align(s_snooze_slider, LV_ALIGN_LEFT_MID, 340, -10);
     lv_obj_add_event_cb(s_snooze_slider, snooze_slider_cb,
                         LV_EVENT_VALUE_CHANGED, NULL);
+    /* Match SliderDefault (EEZ-authored style): track = BgCardHover grey,
+     * indicator + knob = AccentPrimary green. Without this the runtime-
+     * created slider uses LVGL's built-in theme (bright blue), which
+     * clashes with the rest of the sliders on this screen. */
+    lv_obj_set_style_bg_color(s_snooze_slider,
+                              lv_color_hex(0xEDEDED), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_snooze_slider,
+                              lv_color_hex(0x52A441), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(s_snooze_slider,
+                              lv_color_hex(0x52A441), LV_PART_KNOB);
 
     /* Sync label text on build. */
     {
@@ -739,6 +749,72 @@ static void alarms_open_rename_modal(alarm_src_t src, uint8_t addr,
     lv_obj_align(kb, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_keyboard_set_textarea(kb, ta);
 
+    /* The theme cascades rr14 (Roboto) onto every child, but Roboto is
+     * ASCII-only. Every LVGL LV_SYMBOL_* on the keyboard (backspace,
+     * shift, keyboard, OK) is a codepoint in the built-in Montserrat 14
+     * subset, so pin the buttonmatrix items to that font or they render
+     * as rectangles. */
+    lv_obj_set_style_text_font(kb, &lv_font_montserrat_14,
+                               LV_PART_ITEMS);
+
+    /* LVGL's default keyboard maps use three symbols that AREN'T in the
+     * Montserrat 14 built-in subset: LV_SYMBOL_LEFT (0xF060), _RIGHT
+     * (0xF061), and _NEW_LINE (0xF149). They render as rectangles.
+     * Override the lc/uc/spec/num maps to drop LEFT+RIGHT (bottom-row
+     * cursor nav — user can still tap in the textarea to place the
+     * caret) and replace NEW_LINE with LV_SYMBOL_OK (both submit — the
+     * textarea is single-line so newline has no semantic meaning). */
+    static const char *fireside_kb_map_lc[] = {
+        "1#", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", LV_SYMBOL_BACKSPACE, "\n",
+        "ABC", "a", "s", "d", "f", "g", "h", "j", "k", "l", LV_SYMBOL_OK, "\n",
+        "_", "-", "z", "x", "c", "v", "b", "n", "m", ".", ",", ":", "\n",
+        LV_SYMBOL_KEYBOARD, " ", LV_SYMBOL_OK, ""
+    };
+    static const lv_btnmatrix_ctrl_t fireside_kb_ctrl_lc[] = {
+        LV_KEYBOARD_CTRL_BTN_FLAGS | 5, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, LV_BTNMATRIX_CTRL_CHECKED | 7,
+        LV_KEYBOARD_CTRL_BTN_FLAGS | 6, 3, 3, 3, 3, 3, 3, 3, 3, 3, LV_BTNMATRIX_CTRL_CHECKED | 7,
+        LV_BTNMATRIX_CTRL_CHECKED | 1, LV_BTNMATRIX_CTRL_CHECKED | 1, 1, 1, 1, 1, 1, 1, 1, LV_BTNMATRIX_CTRL_CHECKED | 1, LV_BTNMATRIX_CTRL_CHECKED | 1, LV_BTNMATRIX_CTRL_CHECKED | 1,
+        LV_KEYBOARD_CTRL_BTN_FLAGS | 2, 8, LV_KEYBOARD_CTRL_BTN_FLAGS | 2
+    };
+    static const char *fireside_kb_map_uc[] = {
+        "1#", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", LV_SYMBOL_BACKSPACE, "\n",
+        "abc", "A", "S", "D", "F", "G", "H", "J", "K", "L", LV_SYMBOL_OK, "\n",
+        "_", "-", "Z", "X", "C", "V", "B", "N", "M", ".", ",", ":", "\n",
+        LV_SYMBOL_KEYBOARD, " ", LV_SYMBOL_OK, ""
+    };
+    static const char *fireside_kb_map_spec[] = {
+        "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", LV_SYMBOL_BACKSPACE, "\n",
+        "abc", "+", "&", "/", "*", "=", "%", "!", "?", "#", "<", ">", "\n",
+        "\\",  "@", "$", "(", ")", "{", "}", "[", "]", ";", "\"", "'", "\n",
+        LV_SYMBOL_KEYBOARD, " ", LV_SYMBOL_OK, ""
+    };
+    static const lv_btnmatrix_ctrl_t fireside_kb_ctrl_spec[] = {
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, LV_BTNMATRIX_CTRL_CHECKED | 2,
+        LV_KEYBOARD_CTRL_BTN_FLAGS | 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+        LV_KEYBOARD_CTRL_BTN_FLAGS | 2, 8, LV_KEYBOARD_CTRL_BTN_FLAGS | 2
+    };
+    static const char *fireside_kb_map_num[] = {
+        "1", "2", "3", LV_SYMBOL_KEYBOARD, "\n",
+        "4", "5", "6", LV_SYMBOL_OK, "\n",
+        "7", "8", "9", LV_SYMBOL_BACKSPACE, "\n",
+        "+/-", "0", ".", ""
+    };
+    static const lv_btnmatrix_ctrl_t fireside_kb_ctrl_num[] = {
+        1, 1, 1, LV_KEYBOARD_CTRL_BTN_FLAGS | 2,
+        1, 1, 1, LV_KEYBOARD_CTRL_BTN_FLAGS | 2,
+        1, 1, 1, 2,
+        1, 1, 1
+    };
+    lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_TEXT_LOWER,
+                        fireside_kb_map_lc, fireside_kb_ctrl_lc);
+    lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_TEXT_UPPER,
+                        fireside_kb_map_uc, fireside_kb_ctrl_lc);
+    lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_SPECIAL,
+                        fireside_kb_map_spec, fireside_kb_ctrl_spec);
+    lv_keyboard_set_map(kb, LV_KEYBOARD_MODE_NUMBER,
+                        fireside_kb_map_num, fireside_kb_ctrl_num);
+
     /* Stash the sensor identity + which label widget to repaint on save. */
     rename_ctx_t *ctx = (rename_ctx_t *)malloc(sizeof(*ctx));
     if (!ctx) { lv_obj_del(root); return; }
@@ -875,6 +951,12 @@ static void alarms_ui_populate(void) {
                 lv_obj_set_style_shadow_width(btn_edit, 0, LV_PART_MAIN);
                 lv_obj_t *edit_lbl = lv_label_create(btn_edit);
                 lv_label_set_text(edit_lbl, LV_SYMBOL_EDIT);
+                /* LV_SYMBOL_EDIT (U+F304) is only in LVGL's Montserrat
+                 * built-ins; the theme's rr14 (Roboto Regular) is ASCII-
+                 * only, so without an explicit font override the glyph
+                 * renders as a rectangle. */
+                lv_obj_set_style_text_font(edit_lbl, &lv_font_montserrat_14,
+                                           LV_PART_MAIN);
                 lv_obj_set_style_text_color(edit_lbl, lv_color_hex(0x1a1a1a),
                                             LV_PART_MAIN);
                 lv_obj_center(edit_lbl);

@@ -13056,9 +13056,9 @@
                     {
                       "objID": "0ee4be0b-94c8-5f52-c145-f55bdbbfc88a",
                       "type": "LVGLSliderWidget",
-                      "left": 12,
+                      "left": 36,
                       "top": 30,
-                      "width": 471,
+                      "width": 423,
                       "height": 8,
                       "customInputs": [],
                       "customOutputs": [],
@@ -13222,9 +13222,9 @@
                     {
                       "objID": "d76962d3-245f-7dc1-9ee4-6e47ff0b9b6c",
                       "type": "LVGLSliderWidget",
-                      "left": 12,
+                      "left": 36,
                       "top": 60,
-                      "width": 471,
+                      "width": 423,
                       "height": 8,
                       "customInputs": [],
                       "customOutputs": [],
