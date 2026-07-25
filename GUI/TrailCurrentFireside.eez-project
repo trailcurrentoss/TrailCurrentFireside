@@ -19079,7 +19079,7 @@
                       "widthUnit": "px",
                       "heightUnit": "px",
                       "children": [],
-                      "widgetFlags": "CLICKABLE|PRESS_LOCK",
+                      "widgetFlags": "CLICKABLE|PRESS_LOCK|CHECKABLE",
                       "hiddenFlagType": "literal",
                       "clickableFlag": true,
                       "clickableFlagType": "literal",
