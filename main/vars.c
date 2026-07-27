@@ -721,7 +721,19 @@ void set_var_gps_time(int y, int mo, int d, int h, int mi, int sec) {
     if (y < 2020) return;
     struct tm t = {.tm_year = y - 1900, .tm_mon = mo - 1, .tm_mday = d,
                    .tm_hour = h, .tm_min = mi, .tm_sec = sec};
+    /* GPS time is UTC. mktime() interprets `t` as *local* time under the
+     * currently-installed TZ, so calling it directly would bake the local
+     * offset into the epoch — the RTC would be wrong and localtime_r()
+     * would render UTC hours regardless of which timezone the user picks
+     * in Settings. Swap TZ to UTC around the conversion and restore. */
+    const char *saved = getenv("TZ");
+    char saved_buf[48] = {0};
+    if (saved) strncpy(saved_buf, saved, sizeof(saved_buf) - 1);
+    setenv("TZ", "UTC0", 1); tzset();
     time_t epoch = mktime(&t);
+    if (saved_buf[0]) setenv("TZ", saved_buf, 1);
+    else              unsetenv("TZ");
+    tzset();
     struct timeval tv = {.tv_sec = epoch};
     settimeofday(&tv, NULL);
     s_system_time_set = true;

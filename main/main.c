@@ -45,8 +45,6 @@
 #include "esp_app_desc.h"
 #include "esp_wifi.h"
 #include "esp_hosted.h"
-#include "esp_netif_sntp.h"
-#include "esp_sntp.h"
 #include "esp_heap_caps.h"
 
 #include "lvgl.h"
@@ -82,7 +80,6 @@ static const char *TAG = "MAIN";
  * discovery_handle_trigger() is provided by main/discovery.c. */
 void ota_handle_trigger(void)       {}
 
-extern bool system_time_set;
 extern void restore_user_settings(void);
 
 static void init_fail(const char *module, esp_err_t err) {
@@ -92,26 +89,20 @@ static void init_fail(const char *module, esp_err_t err) {
     }
 }
 
-static void on_sntp_sync(struct timeval *tv) {
-    (void)tv;
-    system_time_set = true;
-    ESP_LOGI(TAG, "SNTP synced");
-}
-
 static void ip_got_ip(void *arg, esp_event_base_t base, int32_t id, void *data) {
     (void)arg; (void)base; (void)id; (void)data;
-    static bool sntp_started = false;
     static bool mdns_started = false;
-    if (!sntp_started) {
-        esp_sntp_config_t cfg = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
-        cfg.sync_cb = on_sntp_sync;
-        esp_netif_sntp_init(&cfg);
-        sntp_started = true;
-    }
-    /* mDNS resolver needs netif to be up — first IP is the earliest safe
-     * point to start it. Advertising the _trailcurrent service is deferred
-     * until discovery_handle_trigger() fires (via MQTT). */
+    /* No SNTP here: Fireside is offline-first and the wall clock comes from
+     * Bearing (GNSS → MQTT local/gps/time). MQTT's TLS handshake works with
+     * an unset RTC because CONFIG_ESP_TLS_SKIP_SERVER_CERT_VERIFY and the
+     * absence of CONFIG_MBEDTLS_HAVE_TIME_DATE together disable X.509
+     * validity-date checks — so we don't need a pre-connection time source
+     * to bootstrap MQTT. If cert validity checking is ever re-enabled,
+     * re-introduce a time source (SNTP or a build-time epoch floor) here. */
     if (!mdns_started) {
+        /* mDNS resolver needs netif to be up — first IP is the earliest
+         * safe point to start it. Advertising the _trailcurrent service is
+         * deferred until discovery_handle_trigger() fires (via MQTT). */
         discovery_mdns_init();
         mdns_started = true;
     }

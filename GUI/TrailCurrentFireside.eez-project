@@ -689,7 +689,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf0f4",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -847,7 +847,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf2e7",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1005,7 +1005,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf090",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1163,7 +1163,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf0eb",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1321,7 +1321,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf54e",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1479,7 +1479,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf1b9",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1637,7 +1637,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf043",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -1795,7 +1795,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf0e7",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -2082,7 +2082,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf242",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -2377,7 +2377,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf185",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -3046,7 +3046,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf130",
                           "textType": "literal",
                           "longMode": "CLIP",
                           "recolor": false
@@ -4053,7 +4053,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "LEVELING - SIDE",
+                      "text": "LEVELING - FRONT/BACK",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -4739,7 +4739,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "LEVELING - BACK",
+                      "text": "LEVELING - LEFT/RIGHT",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -6570,7 +6570,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Energy · last 60 min",
+                  "text": "Energy \u00b7 last 60 min",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -6700,7 +6700,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf185",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -7011,7 +7011,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf242",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -7322,7 +7322,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf0e7",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -7633,7 +7633,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf0ec",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -9516,7 +9516,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf043",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -10392,7 +10392,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "Air Quality · last 1 hr",
+                  "text": "Air Quality \u00b7 last 1 hr",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -10687,7 +10687,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "°F",
+                      "text": "\u00b0F",
                       "textType": "literal",
                       "longMode": "CLIP",
                       "recolor": false
@@ -13036,7 +13036,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "°F",
+                          "text": "\u00b0F",
                           "textType": "literal",
                           "longMode": "CLIP",
                           "recolor": false
@@ -13139,7 +13139,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "°C",
+                          "text": "\u00b0C",
                           "textType": "literal",
                           "longMode": "CLIP",
                           "recolor": false
@@ -14976,7 +14976,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf013",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20058,7 +20058,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20265,7 +20265,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20472,7 +20472,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20679,7 +20679,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -20886,7 +20886,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21093,7 +21093,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21300,7 +21300,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -21507,7 +21507,7 @@
                       },
                       "group": "",
                       "groupIndex": 0,
-                      "text": "",
+                      "text": "\uf7b6",
                       "textType": "literal",
                       "longMode": "WRAP",
                       "recolor": false
@@ -22099,7 +22099,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf7b6",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22203,7 +22203,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0eb",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22307,7 +22307,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf185",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22411,7 +22411,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf186",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22515,7 +22515,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0e7",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22619,7 +22619,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1e6",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22723,7 +22723,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf240",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22827,7 +22827,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf2dc",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -22931,7 +22931,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf06d",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23035,7 +23035,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf2e7",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23139,7 +23139,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf6fc",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23243,7 +23243,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf5e7",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23347,7 +23347,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0c2",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23451,7 +23451,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf7c0",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23555,7 +23555,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf7e4",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23659,7 +23659,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf5aa",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23763,7 +23763,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf863",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23867,7 +23867,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf54f",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -23971,7 +23971,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0f4",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24075,7 +24075,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf015",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24179,7 +24179,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1ad",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24283,7 +24283,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf52a",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24387,7 +24387,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf2f6",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24491,7 +24491,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf023",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24595,7 +24595,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf084",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24699,7 +24699,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1bb",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24803,7 +24803,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf5fd",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -24907,7 +24907,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0d1",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25011,7 +25011,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf494",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25115,7 +25115,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1b9",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25219,7 +25219,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf206",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25323,7 +25323,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf06c",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25427,7 +25427,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0ac",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25531,7 +25531,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0e9",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25635,7 +25635,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf083",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25739,7 +25739,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf008",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25843,7 +25843,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf001",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -25947,7 +25947,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf025",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26051,7 +26051,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf04b",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26155,7 +26155,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf04a",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26259,7 +26259,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf04d",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26363,7 +26363,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf11b",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26467,7 +26467,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf095",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26571,7 +26571,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0c0",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26675,7 +26675,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf007",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26779,7 +26779,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf183",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26883,7 +26883,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0f3",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -26987,7 +26987,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf075",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27091,7 +27091,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf013",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27195,7 +27195,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1de",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27299,7 +27299,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf004",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27403,7 +27403,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf005",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27507,7 +27507,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf164",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27611,7 +27611,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf017",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27715,7 +27715,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf133",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27819,7 +27819,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf073",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -27923,7 +27923,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf002",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28027,7 +28027,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf05a",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28131,7 +28131,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf09d",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28235,7 +28235,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0b1",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28339,7 +28339,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0c6",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28443,7 +28443,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf02d",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28547,7 +28547,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf236",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28651,7 +28651,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf2cd",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28755,7 +28755,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf553",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28859,7 +28859,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf794",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -28963,7 +28963,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf290",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29067,7 +29067,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0f1",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29171,7 +29171,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf21b",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29275,7 +29275,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf06e",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29379,7 +29379,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf132",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29483,7 +29483,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf3c5",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29587,7 +29587,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf041",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29691,7 +29691,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf072",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29795,7 +29795,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf135",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -29899,7 +29899,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf0ee",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30003,7 +30003,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf06b",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30107,7 +30107,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1f8",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30211,7 +30211,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf065",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30315,7 +30315,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf1eb",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30419,7 +30419,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf043",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30523,7 +30523,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\ue005",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30627,7 +30627,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf8ff",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -30731,7 +30731,7 @@
                           },
                           "group": "",
                           "groupIndex": 0,
-                          "text": "",
+                          "text": "\uf773",
                           "textType": "literal",
                           "longMode": "WRAP",
                           "recolor": false
@@ -32871,7 +32871,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "",
+              "text": "\uf0e7",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -32924,7 +32924,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "",
+              "text": "\uf242",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -33030,7 +33030,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "",
+              "text": "\uf1eb",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -33186,7 +33186,7 @@
               },
               "group": "",
               "groupIndex": 0,
-              "text": "",
+              "text": "\uf0f3",
               "textType": "literal",
               "longMode": "CLIP",
               "recolor": false
@@ -33376,7 +33376,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf186",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35565,7 +35565,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf015",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35722,7 +35722,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf1b9",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -35879,7 +35879,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf0e7",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -36036,7 +36036,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf043",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -36193,7 +36193,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf0c2",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false
@@ -36350,7 +36350,7 @@
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "",
+                  "text": "\uf013",
                   "textType": "literal",
                   "longMode": "CLIP",
                   "recolor": false

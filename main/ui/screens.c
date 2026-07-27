@@ -1001,7 +1001,7 @@ void create_screen_page_trailer() {
                             lv_obj_set_style_text_color(obj, lv_color_hex(theme_colors[active_theme_index][8]), LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_letter_space(obj, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text(obj, "LEVELING - SIDE");
+                            lv_label_set_text(obj, "LEVELING - FRONT/BACK");
                         }
                         {
                             // trailer_side_ring
@@ -1202,7 +1202,7 @@ void create_screen_page_trailer() {
                             lv_obj_set_style_text_color(obj, lv_color_hex(theme_colors[active_theme_index][8]), LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_letter_space(obj, 1, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN | LV_STATE_DEFAULT);
-                            lv_label_set_text(obj, "LEVELING - BACK");
+                            lv_label_set_text(obj, "LEVELING - LEFT/RIGHT");
                         }
                         {
                             // trailer_back_ring
