@@ -749,10 +749,14 @@ static void process_message(const char *topic, const char *payload, int length) 
         cJSON *crs  = cJSON_GetObjectItem(doc, "courseOverGround");
         cJSON *gnss = cJSON_GetObjectItem(doc, "gnssMode");
 
-        int32_t sats_v = sats ? sats->valueint            : 0;
-        float   spd_v  = spd  ? (float)spd->valuedouble   : 0.0f;
-        float   crs_v  = crs  ? (float)crs->valuedouble   : 0.0f;
-        int     gnss_v = gnss ? gnss->valueint            : 0;
+        /* Bearing encodes CAN 0x07 as speed = knots x 100 and course =
+         * degrees x 10; Headwaters' can-bridge forwards those raw scaled
+         * integers to local/gps/details untouched. Scale back to the native
+         * units set_var_speed()/set_var_course() expect. */
+        int32_t sats_v = sats ? sats->valueint                   : 0;
+        float   spd_v  = spd  ? (float)spd->valuedouble * 0.01f  : 0.0f;
+        float   crs_v  = crs  ? (float)crs->valuedouble * 0.1f   : 0.0f;
+        int     gnss_v = gnss ? gnss->valueint                   : 0;
 
         lvgl_port_lock(0);
         if (sats) set_var_satellite_count(sats_v);
