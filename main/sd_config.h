@@ -25,6 +25,8 @@
  * Returns ESP_OK on any successful boot-config pass (including "no card").
  */
 
+#include <stdbool.h>
+
 #include "esp_err.h"
 
 #ifdef __cplusplus
@@ -32,6 +34,16 @@ extern "C" {
 #endif
 
 esp_err_t sd_config_load(void);
+
+/* True only when the most recent sd_config_load() found BOTH
+ * PEREGRINE_URL and PEREGRINE_VOICE_TOKEN with non-empty values in
+ * /sdcard/environment.conf. False when the card is absent, the file is
+ * missing, or either key is missing/blank.
+ *
+ * main.c uses this to decide whether the PageHome TALK button is visible:
+ * without a URL + token there is nothing for push-to-talk to talk to, so
+ * the button is hidden rather than offered and left dead. */
+bool sd_config_peregrine_present(void);
 
 #ifdef __cplusplus
 }

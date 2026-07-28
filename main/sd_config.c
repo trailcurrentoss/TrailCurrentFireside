@@ -25,6 +25,11 @@ static const char *TAG = "SDCONF";
 #define CONF_PATH BSP_SD_MOUNT_POINT "/environment.conf"
 #define MAX_LINE  256
 
+/* Set while parsing; read afterwards by sd_config_peregrine_present() so
+ * the UI can hide the TALK button when the card carries no voice config. */
+static bool s_peregrine_url   = false;
+static bool s_peregrine_token = false;
+
 /* Strip leading + trailing ASCII whitespace in place. Returns the trimmed
  * pointer (may be past the buffer start). */
 static char *trim(char *s) {
@@ -39,8 +44,10 @@ static char *trim(char *s) {
 static void apply(const char *key, const char *val) {
     if (strcmp(key, "PEREGRINE_URL") == 0) {
         peregrine_voice_set_url(val);
+        if (val[0] != '\0') s_peregrine_url = true;
     } else if (strcmp(key, "PEREGRINE_VOICE_TOKEN") == 0) {
         peregrine_voice_set_token(val);
+        if (val[0] != '\0') s_peregrine_token = true;
     } else {
         /* Not an error — the same file is expected to carry other product
          * secrets over time (MQTT creds, Headwaters tokens, ...). */
@@ -48,7 +55,16 @@ static void apply(const char *key, const char *val) {
     }
 }
 
+bool sd_config_peregrine_present(void) {
+    return s_peregrine_url && s_peregrine_token;
+}
+
 esp_err_t sd_config_load(void) {
+    /* Every early-return path below leaves these false, which is exactly
+     * what we want: no card / no file == no Peregrine config. */
+    s_peregrine_url   = false;
+    s_peregrine_token = false;
+
     esp_err_t err = bsp_sdcard_mount();
     if (err == ESP_ERR_INVALID_STATE) {
         /* Already mounted by an earlier caller — that's fine, keep reading. */
@@ -101,6 +117,9 @@ esp_err_t sd_config_load(void) {
     }
     fclose(f);
     ESP_LOGI(TAG, "applied %d key(s) from %s", applied, CONF_PATH);
+    ESP_LOGI(TAG, "Peregrine voice config %s (url=%d token=%d)",
+             sd_config_peregrine_present() ? "present" : "incomplete",
+             (int)s_peregrine_url, (int)s_peregrine_token);
 
     /* Unmount so the FAT driver's cached state doesn't tie up the SD bus
      * for the rest of the boot — we don't need it after this. */

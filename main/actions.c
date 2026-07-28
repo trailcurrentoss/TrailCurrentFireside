@@ -38,6 +38,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -1714,4 +1716,116 @@ void action_ptt_pressed(lv_event_t *e) {
 void action_ptt_released(lv_event_t *e) {
     (void)e;
     peregrine_voice_release();
+}
+
+/* ============================================================
+ * TALK button "thinking" glow.
+ *
+ * While the released utterance is in flight to Peregrine (state ==
+ * PRG_VOICE_UPLOADING) the button wears a pulsating green ring so the user
+ * knows the request is being worked on rather than dropped.
+ *
+ * Appearance is entirely EEZ-authored: home_ptt_glow1..6 are six concentric
+ * ring overlays on the button, each a frame of the pulse (border thickness
+ * 2..7 px, opacity 70..255, AccentPrimary). All six are authored HIDDEN, so
+ * the EEZ Studio canvas shows the idle button exactly as the device does at
+ * rest. This code only un-hides one frame at a time — no lv_obj_set_style_*
+ * calls, per the CLAUDE.md "code controls STATE, EEZ Studio controls
+ * APPEARANCE" rule.
+ *
+ * Frame order 1-2-3-4-5-6-5-4-3-2 at 90 ms = ~900 ms breathe cycle.
+ * ============================================================ */
+
+#if __has_include("ui/screens.h")
+
+#define PTT_GLOW_FRAMES 6
+#define PTT_GLOW_STEP_MS 90
+
+/* Ping-pong ramp: index into the frame array, up then back down. */
+static const uint8_t s_ptt_glow_seq[] = { 0, 1, 2, 3, 4, 5, 4, 3, 2, 1 };
+
+static lv_obj_t *ptt_glow_frame(int i) {
+    switch (i) {
+    case 0: return objects.home_ptt_glow1;
+    case 1: return objects.home_ptt_glow2;
+    case 2: return objects.home_ptt_glow3;
+    case 3: return objects.home_ptt_glow4;
+    case 4: return objects.home_ptt_glow5;
+    case 5: return objects.home_ptt_glow6;
+    default: return NULL;
+    }
+}
+
+static void ptt_glow_hide_all(void) {
+    for (int i = 0; i < PTT_GLOW_FRAMES; i++) {
+        lv_obj_t *o = ptt_glow_frame(i);
+        if (o) lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void ptt_glow_cb(lv_timer_t *t) {
+    (void)t;
+    static bool     active = false;
+    static uint32_t step   = 0;
+
+    /* "Waiting for the LLM" is precisely the upload/response window: the
+     * button has been released, the WAV is on the wire, nothing has come
+     * back yet. LISTENING already has its own PRESSED look, and PLAYING
+     * means the answer is arriving. */
+    bool want = (peregrine_voice_get_state() == PRG_VOICE_UPLOADING);
+
+    if (!want) {
+        if (active) {
+            ptt_glow_hide_all();
+            active = false;
+        }
+        step = 0;
+        return;
+    }
+
+    if (!active) {
+        active = true;
+        step   = 0;
+    }
+
+    int prev = s_ptt_glow_seq[step % (sizeof(s_ptt_glow_seq) / sizeof(*s_ptt_glow_seq))];
+    step++;
+    int cur  = s_ptt_glow_seq[step % (sizeof(s_ptt_glow_seq) / sizeof(*s_ptt_glow_seq))];
+
+    if (prev != cur) {
+        lv_obj_t *po = ptt_glow_frame(prev);
+        if (po) lv_obj_add_flag(po, LV_OBJ_FLAG_HIDDEN);
+    }
+    lv_obj_t *co = ptt_glow_frame(cur);
+    if (co) lv_obj_clear_flag(co, LV_OBJ_FLAG_HIDDEN);
+}
+
+#endif /* __has_include("ui/screens.h") */
+
+/* Called once from app_main, under the display lock. */
+void init_ptt_glow(void) {
+#if __has_include("ui/screens.h")
+    ptt_glow_hide_all();
+    lv_timer_create(ptt_glow_cb, PTT_GLOW_STEP_MS, NULL);
+#endif
+}
+
+/* Show or hide the PageHome TALK button based on whether the microSD card
+ * supplied a Peregrine URL + token. Called once from app_main immediately
+ * after sd_config_load(), before the first flush, so the button never
+ * flashes into view on a card-less boot. */
+void apply_ptt_availability(bool available) {
+#if __has_include("ui/screens.h")
+    if (!objects.home_ptt_btn) return;
+    if (available) {
+        lv_obj_clear_flag(objects.home_ptt_btn, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(objects.home_ptt_btn, LV_OBJ_FLAG_HIDDEN);
+    }
+    ESP_LOGI(TAG, "TALK button %s (Peregrine SD config %s)",
+             available ? "visible" : "hidden",
+             available ? "found" : "missing");
+#else
+    (void)available;
+#endif
 }

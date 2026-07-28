@@ -218,6 +218,15 @@ void app_main(void) {
              * on top of the Kconfig defaults. Silently no-ops when the SD
              * card isn't present or the file isn't there. */
             sd_config_load();
+            /* No card / no Peregrine keys -> nothing for push-to-talk to
+             * talk to, so the PageHome TALK button stays hidden rather
+             * than sitting there dead. Still inside the display lock and
+             * before the first flush, so it never flashes into view. */
+            extern void apply_ptt_availability(bool available);
+            apply_ptt_availability(sd_config_peregrine_present());
+            /* Pulsating "thinking" ring while an utterance is in flight. */
+            extern void init_ptt_glow(void);
+            init_ptt_glow();
         }
         reset_placeholders();
         {

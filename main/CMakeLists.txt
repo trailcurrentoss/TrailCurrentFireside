@@ -6,7 +6,7 @@
 # the export runs — before that, the __has_include guards in main.c and
 # other files collapse the UI symbols to placeholders so the project still
 # links to a boot-clean state.
-file(GLOB UI_FONT_SRCS "vars.c" "ui/ui_font_*.c")
+file(GLOB UI_FONT_SRCS "main.c" "actions.c" "sd_config.c" "vars.c" "ui/ui_font_*.c")
 file(GLOB UI_IMAGE_SRCS "ui/ui_image_*.c")
 file(GLOB UI_CORE_SRCS "ui/screens.c" "ui/styles.c" "ui/images.c" "ui/ui.c")
 
