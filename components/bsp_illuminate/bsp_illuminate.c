@@ -177,7 +177,17 @@ static esp_err_t lvgl_init()  // Initialize LVGL
         .io_handle = mipi_dbi_io,                // IO handle
         .panel_handle = panel_handle,            // Panel handle
         .control_handle = panel_handle,          // Control handle
+        /* Tear-free path: esp_lvgl_port hands LVGL the two full-frame
+         * panel FBs, so buffer_size covers the whole screen. Partial
+         * path (AVOID_TEAR=n): two 100-line PSRAM draw buffers + async
+         * DMA2D blit into the panel FB — the config the Waveshare build
+         * runs, where keyboard entry is responsive. buffer_size is in
+         * PIXELS (esp_lvgl_port multiplies by color depth itself). */
+#if CONFIG_DISPLAY_LVGL_AVOID_TEAR
         .buffer_size = (H_size * V_size * ((BITS_PER_PIXEL + 7) / 8)),  // Frame buffer size
+#else
+        .buffer_size = (H_size * 100),           // 100-line partial draw buffer
+#endif
         .double_buffer = true,                   // Enable double buffer
         .hres = H_size,                          // Horizontal resolution
         .vres = V_size,                          // Vertical resolution
@@ -204,13 +214,17 @@ static esp_err_t lvgl_init()  // Initialize LVGL
             .swap_bytes = false,                  // Swap bytes (LVGL v9+)
 #endif
 
-#if CONFIG_DISPLAY_LVGL_FULL_REFRESH
+            /* direct_mode / full_refresh require full-frame buffers, so
+             * they are only valid on the tear-free path. With AVOID_TEAR
+             * off (partial buffers) both must stay false or
+             * lvgl_port_add_disp_dsi rejects the config. */
+#if CONFIG_DISPLAY_LVGL_FULL_REFRESH && CONFIG_DISPLAY_LVGL_AVOID_TEAR
             .full_refresh = true,                // Enable full refresh
 #else
             .full_refresh = false,               // Disable full refresh
 #endif
 
-#if CONFIG_DISPLAY_LVGL_DIRECT_MODE
+#if CONFIG_DISPLAY_LVGL_DIRECT_MODE && CONFIG_DISPLAY_LVGL_AVOID_TEAR
             .direct_mode = true,                 // Enable direct mode
 #else
             .direct_mode = false,                // Disable direct mode

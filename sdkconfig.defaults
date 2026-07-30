@@ -114,6 +114,17 @@ CONFIG_FREERTOS_HZ=1000
 # outside the DSI refresh window.  Option (b) is the cleaner path; leave
 # the flags off until it lands.
 
+# --- Display pipeline A/B test: partial-buffer path (Waveshare-style).
+#     The tear-free direct-mode path (AVOID_TEAR=y + DIRECT_MODE=y, the
+#     prior default) renders full-frame into the PSRAM panel FBs and
+#     blocks the LVGL task on refresh-done (vsync) every flush; measured
+#     200ms-order stalls on keyboard mode switches (see main/perf.c).
+#     The Waveshare build runs partial 100-line draw buffers + async
+#     DMA2D blit and is fully responsive. Test that pipeline here.
+#     Flip both back to =y to restore the tear-free path.
+CONFIG_DISPLAY_LVGL_AVOID_TEAR=n
+CONFIG_DISPLAY_LVGL_DIRECT_MODE=n
+
 # --- LVGL memory — use system malloc so LVGL's heap comes from PSRAM.
 #     Default is a fixed 64KB LV_MEM pool which is nowhere near enough for
 #     22 styles + 10 pages of widgets. Symptom of running out: NULL deref

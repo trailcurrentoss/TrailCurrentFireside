@@ -96,6 +96,67 @@ static void touch_sampler_cb(lv_timer_t *t) {
     last = st;
 }
 
+/* -------- Touch coordinate glitch filter ----------------------------- */
+
+/* The 10" glass's GT911 emits two kinds of coordinate error:
+ *   1. Gradual drift under a stationary finger (handled by scroll_limit).
+ *   2. Single-sample jumps, worst at lift-off — the release-adjacent
+ *      sample can teleport 100+ px (observed: DOWN (936,415) → UP
+ *      (947,277), a 138 px jump). btnmatrix tracks the point while
+ *      pressed, so a lift-off jump changes WHICH KEY fires.
+ * This wrapper around esp_lvgl_port's read_cb rejects any in-press jump
+ * larger than JUMP_REJECT_PX unless it persists for two consecutive
+ * samples. A real fast drag keeps reporting the new position, so it's
+ * accepted one sample (~10 ms) late; a lift-off glitch is followed by
+ * RELEASE, never gets confirmed, and is discarded. */
+
+#define JUMP_REJECT_PX 60
+
+static void (*s_orig_read_cb)(lv_indev_drv_t *drv, lv_indev_data_t *data);
+
+static void filtered_touch_read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
+    static bool have_last = false;    /* inside a press, last_pt valid   */
+    static bool have_pending = false; /* unconfirmed jump candidate      */
+    static lv_point_t last_pt;
+    static lv_point_t pending_pt;
+
+    s_orig_read_cb(drv, data);
+
+    if (data->state != LV_INDEV_STATE_PRESSED) {
+        have_last = false;
+        have_pending = false;
+        return;
+    }
+
+    if (!have_last) {                 /* first sample of the press */
+        have_last = true;
+        last_pt = data->point;
+        return;
+    }
+
+    int32_t dx = data->point.x - last_pt.x;
+    int32_t dy = data->point.y - last_pt.y;
+    if (dx * dx + dy * dy <= JUMP_REJECT_PX * JUMP_REJECT_PX) {
+        last_pt = data->point;        /* normal movement */
+        have_pending = false;
+        return;
+    }
+
+    if (have_pending) {
+        int32_t px = data->point.x - pending_pt.x;
+        int32_t py = data->point.y - pending_pt.y;
+        if (px * px + py * py <= JUMP_REJECT_PX * JUMP_REJECT_PX) {
+            last_pt = data->point;    /* jump confirmed — real fast drag */
+            have_pending = false;
+            return;
+        }
+    }
+
+    pending_pt = data->point;         /* hold position until confirmed */
+    have_pending = true;
+    data->point = last_pt;
+}
+
 /* -------- Public init ---------------------------------------------- */
 
 void perf_init(void) {
@@ -117,8 +178,9 @@ void perf_init(void) {
      * tapped again." The DOWN/UP pair is present in the touch log —
      * LVGL just refused to convert it into a click.
      *
-     * scroll_limit=100 covers ~1.5 fingertip widths (~13 mm at 223 dpi)
-     * of drift tolerance — matches iPhone/Android-class forgiveness.
+     * scroll_limit=150 covers the full observed drift range (up to
+     * ~140 px measured on this glass) with margin — presses that drift
+     * up to two fingertip widths still register as clicks.
      * LVGL's PRESS_LOCK guarantees the CLICKED event still fires on the
      * ORIGINAL widget under the press (not whatever the finger drifted
      * onto) so this doesn't cause wrong-key registrations. Genuine
@@ -134,11 +196,16 @@ void perf_init(void) {
         ptr = lv_indev_get_next(ptr);
     }
     if (ptr && ptr->driver) {
-        ptr->driver->scroll_limit    = 100;
+        ptr->driver->scroll_limit    = 150;
         ptr->driver->long_press_time = 800;
+        /* Interpose the glitch filter between esp_lvgl_port's GT911 read
+         * and LVGL's indev processing. */
+        s_orig_read_cb = ptr->driver->read_cb;
+        ptr->driver->read_cb = filtered_touch_read_cb;
         ESP_LOGI(TAG,
-            "touch: scroll_limit=%u long_press_time=%u ms",
-            ptr->driver->scroll_limit, ptr->driver->long_press_time);
+            "touch: scroll_limit=%u long_press_time=%u ms jump_filter=%d px",
+            ptr->driver->scroll_limit, ptr->driver->long_press_time,
+            JUMP_REJECT_PX);
     }
 
 #if __has_include("ui/screens.h")
