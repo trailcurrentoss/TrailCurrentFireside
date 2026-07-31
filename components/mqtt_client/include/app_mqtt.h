@@ -24,11 +24,14 @@ void mqtt_client_set_state_callback(mqtt_client_state_cb_t cb);
  * Builds mqtts:// URI, creates client with TLS, subscribes on connect.
  * Call this after WiFi has obtained an IP address.
  *
- * Idempotent and thread-safe: if a client already exists for the same
- * broker and username this is a no-op, so the several independent callers
- * (IP-got-IP handler, WiFi state machine, discovery resume) cannot tear
- * down each other's session. Use mqtt_client_reconnect() when the broker
- * settings themselves have changed.
+ * Thread-safe, and idempotent only where that is actually correct: a
+ * duplicate request is ignored when the existing client is connected or was
+ * started moments ago (the two boot callers fire ~36 ms apart), but a client
+ * that has been disconnected for longer is rebuilt. That distinction matters
+ * — after a WiFi reassociation the old client is bound to a dead socket, and
+ * treating its mere existence as "nothing to do" strands the display
+ * offline. Use mqtt_client_reconnect() when the broker settings themselves
+ * have changed.
  */
 void mqtt_client_connect(void);
 

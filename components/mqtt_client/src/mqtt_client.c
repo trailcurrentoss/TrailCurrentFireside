@@ -459,6 +459,27 @@ static portMUX_TYPE      s_conn_lock_init_mux = portMUX_INITIALIZER_UNLOCKED;
 static char s_active_uri[192]  = {0};
 static char s_active_user[64]  = {0};
 
+/* When the live client was started. Used to tell the boot double-fire (two
+ * calls tens of ms apart) apart from a genuine recovery request arriving
+ * much later — see the window constant below. */
+static int64_t s_client_started_us = 0;
+
+/* Deduplication window for back-to-back connect requests.
+ *
+ * A client that merely EXISTS is not necessarily usable: after a WiFi drop
+ * and reassociation, IP_EVENT_STA_GOT_IP fires again and the old client is
+ * still bound to a socket that died with the previous association. Treating
+ * "s_client != NULL" as "nothing to do" strands the display offline until
+ * something else rebuilds it — which nothing does, because the screen
+ * timeout only drives the backlight.
+ *
+ * So the no-op case is narrower than it first appears: skip only when the
+ * client is actually CONNECTED, or when it was started so recently that
+ * this must be the duplicate half of the boot pair. Measured gap between
+ * those two boot calls is ~36 ms; 3 s is a wide margin around that while
+ * staying far below any real drop-and-recover cycle. */
+#define MQTT_CONNECT_DEDUP_WINDOW_US (3 * 1000000LL)
+
 static SemaphoreHandle_t conn_lock(void) {
     /* xSemaphoreCreateMutexStatic does not allocate, so it is safe inside
      * a critical section — unlike the dynamic variant. */
@@ -518,18 +539,28 @@ static void mqtt_connect_locked(bool force) {
     char uri[192];
     snprintf(uri, sizeof(uri), "mqtts://%s:%d", s_host, s_port);
 
-    /* Idempotency check. A live client for this same broker + user needs no
-     * action: if it is connected we would be tearing down a working
-     * session, and if it is between attempts esp-mqtt's own retry loop is
-     * already handling it. Everything above this point (queue creation,
-     * dispatch task) is self-guarding, so returning here is safe. */
+    /* Idempotency check — see MQTT_CONNECT_DEDUP_WINDOW_US above. Skip only
+     * when the existing client is genuinely still usable: connected, or so
+     * freshly started that this is the duplicate half of the boot pair. A
+     * client that exists but has been disconnected for a while is bound to a
+     * dead socket and MUST be rebuilt, otherwise a WiFi reassociation leaves
+     * the display permanently offline. Everything above this point (queue
+     * creation, dispatch task) is self-guarding, so returning here is safe. */
     if (!force && s_client &&
         strcmp(s_active_uri, uri) == 0 &&
         strcmp(s_active_user, s_username) == 0) {
-        ESP_LOGI(TAG, "Connect requested for %s as %s — client already "
-                      "active, ignoring duplicate",
-                 uri, s_username);
-        return;
+        int64_t age_us = esp_timer_get_time() - s_client_started_us;
+        if (s_connected || age_us < MQTT_CONNECT_DEDUP_WINDOW_US) {
+            ESP_LOGI(TAG, "Connect requested for %s as %s — client already "
+                          "%s, ignoring duplicate",
+                     uri, s_username,
+                     s_connected ? "connected" : "starting");
+            return;
+        }
+        ESP_LOGW(TAG, "Connect requested for %s as %s — existing client has "
+                      "been disconnected for %lld s, rebuilding it",
+                 uri, s_username, (long long)(age_us / 1000000));
+        /* fall through to teardown + rebuild */
     }
 
     /* Generate client ID from MAC. Use the full 6-byte MAC so no two
@@ -613,6 +644,7 @@ static void mqtt_connect_locked(bool force) {
     /* Record what this client was built for — the idempotency key above. */
     strlcpy(s_active_uri,  uri,        sizeof(s_active_uri));
     strlcpy(s_active_user, s_username, sizeof(s_active_user));
+    s_client_started_us = esp_timer_get_time();
 
     esp_mqtt_client_register_event(s_client, ESP_EVENT_ANY_ID,
                                    mqtt_event_handler, NULL);
@@ -701,6 +733,7 @@ void mqtt_client_stop(void) {
      * discovery.c depends on this: it stops the client for its HTTP window
      * and then calls mqtt_client_connect() to resume. */
     s_active_uri[0] = s_active_user[0] = '\0';
+    s_client_started_us = 0;
     s_connected = false;
     xSemaphoreGive(conn_lock());
     lvgl_port_lock(0);
