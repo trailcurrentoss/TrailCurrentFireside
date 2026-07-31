@@ -1359,7 +1359,10 @@ void action_mqtt_submit(lv_event_t *e) {
     fireside_config_set_mqtt(host, user, pass, 8883);
     mqtt_client_load_settings();
     app_state_set(APP_STATE_MQTT_CONNECTING);
-    mqtt_client_connect();
+    /* Force: the user just changed the broker settings, and re-submitting
+     * the same ones is a deliberate "try again" that should rebuild the
+     * client rather than be absorbed by the idempotency check. */
+    mqtt_client_reconnect();
 
     if (objects.mqtt_connecting_host)
         lv_label_set_text(objects.mqtt_connecting_host, host);

@@ -23,8 +23,20 @@ void mqtt_client_set_state_callback(mqtt_client_state_cb_t cb);
  * Connect to the MQTT broker using loaded settings.
  * Builds mqtts:// URI, creates client with TLS, subscribes on connect.
  * Call this after WiFi has obtained an IP address.
+ *
+ * Idempotent and thread-safe: if a client already exists for the same
+ * broker and username this is a no-op, so the several independent callers
+ * (IP-got-IP handler, WiFi state machine, discovery resume) cannot tear
+ * down each other's session. Use mqtt_client_reconnect() when the broker
+ * settings themselves have changed.
  */
 void mqtt_client_connect(void);
+
+/**
+ * Force a full teardown and reconnect, ignoring the idempotency check.
+ * Call after changing broker host, port, or credentials.
+ */
+void mqtt_client_reconnect(void);
 
 /**
  * Process queued incoming MQTT messages.

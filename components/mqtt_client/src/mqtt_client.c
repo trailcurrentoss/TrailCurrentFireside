@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "nvs.h"
 #include "cJSON.h"
 #include "freertos/FreeRTOS.h"
@@ -130,6 +131,83 @@ void mqtt_client_set_state_callback(mqtt_client_state_cb_t cb)
     s_state_cb = cb;
 }
 
+/* --- Session / TLS diagnostics -------------------------------------------
+ *
+ * Purpose: distinguish the three ways a long-lived mqtts:// session can die
+ * on this board, from the serial log alone, without needing the broker log.
+ *
+ *   1. mbedTLS could not allocate a record buffer   -> stack_err 0x7F00
+ *   2. TLS crypto state went bad mid-stream         -> stack_err 0x7180/0x7200
+ *   3. The link or the keepalive dropped us         -> stack_err 0, sock errno set
+ *
+ * (1) and (2) are the two failure modes reachable through
+ * CONFIG_MBEDTLS_DYNAMIC_BUFFER, which allocates and frees a right-sized
+ * RX buffer per TLS record and carries 8 bytes of in_ctr + 8 bytes of
+ * in_iv through a small cache buffer across every swap. Because
+ * CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC routes mbedtls_calloc to
+ * heap_caps_calloc(MALLOC_CAP_SPIRAM) with no internal fallback, every one
+ * of those per-record allocations competes with the LVGL heap and the DPI
+ * framebuffers for PSRAM. So the heap snapshot is logged alongside the
+ * error: if largest-free-block has collapsed relative to total free, the
+ * PSRAM heap is fragmented and (1) is the likely mechanism.
+ *
+ * Session uptime + a cumulative reconnect count make the "is this unit
+ * drifting?" question answerable on-device rather than by diffing broker
+ * logs across displays. */
+
+static uint32_t s_connect_count = 0;
+static uint32_t s_disconnect_count = 0;
+static int64_t  s_session_start_us = 0;
+
+/* Cached RSSI from vars.c's 5 s poller — read, never polled from here. See
+ * the comment on get_var_wifi_rssi_cached() for why this must not do the
+ * cross-chip RPC itself. 0 = not associated / not yet sampled. */
+extern int32_t get_var_wifi_rssi_cached(void);
+
+/* esp-tls stores the NEGATED mbedTLS return code (see
+ * esp_tls_mbedtls.c: ESP_INT_EVENT_TRACKER_CAPTURE(..., -ret)), so the
+ * values below are the positive magnitudes as they appear in the log. */
+static const char *tls_stack_err_name(int err) {
+    switch (err) {
+    case 0x0000: return "none";
+    case 0x7F00: return "SSL_ALLOC_FAILED";      /* out of PSRAM for a record */
+    case 0x7180: return "SSL_INVALID_MAC";       /* crypto state corrupted */
+    case 0x7200: return "SSL_INVALID_RECORD";    /* crypto state corrupted */
+    case 0x7280: return "SSL_CONN_EOF";
+    case 0x7780: return "SSL_FATAL_ALERT";
+    case 0x7880: return "SSL_PEER_CLOSE_NOTIFY"; /* broker closed cleanly */
+    case 0x6800: return "SSL_TIMEOUT";
+    case 0x6C00: return "SSL_INTERNAL_ERROR";
+    case 0x004C: return "NET_RECV_FAILED";
+    case 0x004E: return "NET_SEND_FAILED";
+    case 0x0050: return "NET_CONN_RESET";
+    default:     return "unknown";
+    }
+}
+
+/* Fragmentation is the ratio, not the total: PSRAM free can sit flat for
+ * hours while largest-free-block erodes. A healthy heap keeps largest at a
+ * large fraction of free; a fragmented one does not, and that is when a
+ * 16 KB handshake allocation starts failing even though "free" looks fine. */
+static void log_heap_snapshot(const char *phase) {
+    size_t ps_free  = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    size_t ps_large = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+    size_t ps_min   = heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM);
+    size_t in_free  = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    size_t in_large = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    size_t in_min   = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+    ESP_LOGW(TAG,
+        "heap[%s] psram free=%u largest=%u (%u%%) min_ever=%u | "
+        "internal free=%u largest=%u (%u%%) min_ever=%u",
+        phase,
+        (unsigned)ps_free, (unsigned)ps_large,
+        (unsigned)(ps_free ? (ps_large * 100u) / ps_free : 0u),
+        (unsigned)ps_min,
+        (unsigned)in_free, (unsigned)in_large,
+        (unsigned)(in_free ? (in_large * 100u) / in_free : 0u),
+        (unsigned)in_min);
+}
+
 /* Queue for passing received messages from MQTT task to main loop */
 typedef struct {
     char topic[128];
@@ -152,7 +230,14 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
-        ESP_LOGI(TAG, "Connected to broker");
+        s_connect_count++;
+        s_session_start_us = esp_timer_get_time();
+        ESP_LOGI(TAG, "Connected to broker (session #%u)",
+                 (unsigned)s_connect_count);
+        /* Baseline immediately after the handshake — the handshake is the
+         * largest single TLS allocation of the session (cert chain), so this
+         * is the high-water mark to compare later samples against. */
+        log_heap_snapshot("connect");
         s_connected = true;
         if (s_state_cb) s_state_cb(true);
 
@@ -201,18 +286,36 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
          *   3. WiFi drop — check for a preceding WIFI_EVENT_STA_DISCONNECTED
          *      in the log.
          *   4. Broker session eviction / ACL revocation. */
-        if (event && event->error_handle) {
-            ESP_LOGW(TAG,
-                "Disconnected. err_type=%d transport_sock_errno=%d "
-                "tls_last_esp_err=0x%x tls_stack_err=0x%x conn_return=%d",
-                event->error_handle->error_type,
-                event->error_handle->esp_transport_sock_errno,
-                event->error_handle->esp_tls_last_esp_err,
-                event->error_handle->esp_tls_stack_err,
-                event->error_handle->connect_return_code);
-        } else {
-            ESP_LOGW(TAG, "Disconnected from broker (no error handle)");
+        s_disconnect_count++;
+        {
+            int64_t up_s = s_session_start_us
+                         ? (esp_timer_get_time() - s_session_start_us) / 1000000
+                         : -1;
+            if (event && event->error_handle) {
+                int stack_err = event->error_handle->esp_tls_stack_err;
+                ESP_LOGW(TAG,
+                    "Disconnected #%u after %lld s (rssi=%ld dBm). "
+                    "err_type=%d transport_sock_errno=%d "
+                    "tls_last_esp_err=0x%x tls_stack_err=0x%x (%s) "
+                    "conn_return=%d",
+                    (unsigned)s_disconnect_count, (long long)up_s,
+                    (long)get_var_wifi_rssi_cached(),
+                    event->error_handle->error_type,
+                    event->error_handle->esp_transport_sock_errno,
+                    event->error_handle->esp_tls_last_esp_err,
+                    stack_err, tls_stack_err_name(stack_err),
+                    event->error_handle->connect_return_code);
+            } else {
+                ESP_LOGW(TAG, "Disconnected #%u after %lld s "
+                              "(rssi=%ld dBm, no error handle)",
+                         (unsigned)s_disconnect_count, (long long)up_s,
+                         (long)get_var_wifi_rssi_cached());
+            }
+            /* Snapshot the heap at the moment of failure, before esp-mqtt's
+             * retry loop reconnects and perturbs it. */
+            log_heap_snapshot("disconnect");
         }
+        s_session_start_us = 0;
         s_connected = false;
         if (s_state_cb) s_state_cb(false);
         lvgl_port_lock(0);
@@ -321,7 +424,74 @@ bool mqtt_client_load_settings(void) {
     return has_config;
 }
 
+/* --- Connect serialization + idempotency -------------------------------
+ *
+ * mqtt_client_connect() is reachable from four task contexts:
+ *
+ *   main.c:ip_got_ip           (sys_evt task, on IP_EVENT_STA_GOT_IP)
+ *   app_state.c:on_wifi_state  (sys_evt task, WIFI_SETUP_STATE_CONNECTED —
+ *                               which wifi_setup.c raises from that SAME
+ *                               IP_EVENT_STA_GOT_IP)
+ *   actions.c:action_mqtt_submit (LVGL/UI task, after a credential change)
+ *   discovery.c:discovery_task_fn (discovery worker, resuming after its
+ *                                  HTTP window; calls mqtt_client_stop()
+ *                                  first, so it always needs a real connect)
+ *
+ * The first two both fire off one event, in registration order, on every
+ * boot — main.c registers first. Measured on-device: two connects 36 ms
+ * apart, both completing, so the broker really did see a duplicate
+ * client_id and evict the first session. Guarding here rather than
+ * deleting a call site keeps both paths working: main.c's is outside the
+ * UI_EXPORT_PRESENT guard and is the only connect on a no-UI build, and
+ * app_state's is what drives APP_STATE_MQTT_CONNECTING for the wizard.
+ *
+ * So: if a client already exists for the same broker + user, this is a
+ * no-op. A credential change goes through mqtt_client_reconnect(), which
+ * forces the teardown. The mutex additionally stops the UI task and the
+ * discovery worker from racing each other's esp_mqtt_client_destroy(),
+ * which would leave the publish path holding a freed handle. */
+
+static StaticSemaphore_t s_conn_lock_buf;
+static SemaphoreHandle_t s_conn_lock = NULL;
+static portMUX_TYPE      s_conn_lock_init_mux = portMUX_INITIALIZER_UNLOCKED;
+
+/* Config the live client was built with — the idempotency key. */
+static char s_active_uri[192]  = {0};
+static char s_active_user[64]  = {0};
+
+static SemaphoreHandle_t conn_lock(void) {
+    /* xSemaphoreCreateMutexStatic does not allocate, so it is safe inside
+     * a critical section — unlike the dynamic variant. */
+    if (!s_conn_lock) {
+        portENTER_CRITICAL(&s_conn_lock_init_mux);
+        if (!s_conn_lock) {
+            s_conn_lock = xSemaphoreCreateMutexStatic(&s_conn_lock_buf);
+        }
+        portEXIT_CRITICAL(&s_conn_lock_init_mux);
+    }
+    return s_conn_lock;
+}
+
+static void mqtt_connect_locked(bool force);
+
 void mqtt_client_connect(void) {
+    xSemaphoreTake(conn_lock(), portMAX_DELAY);
+    mqtt_connect_locked(false);
+    xSemaphoreGive(conn_lock());
+}
+
+/* Force a full teardown + reconnect. Use after the broker host, port, or
+ * credentials change — the idempotency check in mqtt_connect_locked()
+ * would otherwise correctly conclude there is nothing to do only when the
+ * config actually matches, but callers that just rewrote fireside_config
+ * should not have to reason about that. */
+void mqtt_client_reconnect(void) {
+    xSemaphoreTake(conn_lock(), portMAX_DELAY);
+    mqtt_connect_locked(true);
+    xSemaphoreGive(conn_lock());
+}
+
+static void mqtt_connect_locked(bool force) {
     if (strlen(s_host) == 0 || strlen(s_username) == 0) {
         ESP_LOGW(TAG, "Cannot connect - missing MQTT configuration");
         return;
@@ -347,6 +517,20 @@ void mqtt_client_connect(void) {
     /* Build URI */
     char uri[192];
     snprintf(uri, sizeof(uri), "mqtts://%s:%d", s_host, s_port);
+
+    /* Idempotency check. A live client for this same broker + user needs no
+     * action: if it is connected we would be tearing down a working
+     * session, and if it is between attempts esp-mqtt's own retry loop is
+     * already handling it. Everything above this point (queue creation,
+     * dispatch task) is self-guarding, so returning here is safe. */
+    if (!force && s_client &&
+        strcmp(s_active_uri, uri) == 0 &&
+        strcmp(s_active_user, s_username) == 0) {
+        ESP_LOGI(TAG, "Connect requested for %s as %s — client already "
+                      "active, ignoring duplicate",
+                 uri, s_username);
+        return;
+    }
 
     /* Generate client ID from MAC. Use the full 6-byte MAC so no two
      * Fireside displays (or any other tc-display-* client someone spins
@@ -422,8 +606,13 @@ void mqtt_client_connect(void) {
     s_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!s_client) {
         ESP_LOGE(TAG, "Failed to init MQTT client");
+        s_active_uri[0] = s_active_user[0] = '\0';
         return;
     }
+
+    /* Record what this client was built for — the idempotency key above. */
+    strlcpy(s_active_uri,  uri,        sizeof(s_active_uri));
+    strlcpy(s_active_user, s_username, sizeof(s_active_user));
 
     esp_mqtt_client_register_event(s_client, ESP_EVENT_ANY_ID,
                                    mqtt_event_handler, NULL);
@@ -501,12 +690,19 @@ bool mqtt_client_is_connected(void) {
 }
 
 void mqtt_client_stop(void) {
+    xSemaphoreTake(conn_lock(), portMAX_DELAY);
     if (s_client) {
         esp_mqtt_client_stop(s_client);
         esp_mqtt_client_destroy(s_client);
         s_client = NULL;
     }
+    /* Clear the idempotency key so the next connect actually reconnects
+     * rather than concluding the (now destroyed) client is still good.
+     * discovery.c depends on this: it stops the client for its HTTP window
+     * and then calls mqtt_client_connect() to resume. */
+    s_active_uri[0] = s_active_user[0] = '\0';
     s_connected = false;
+    xSemaphoreGive(conn_lock());
     lvgl_port_lock(0);
     set_var_mqtt_connected(false);
     lvgl_port_unlock();
@@ -521,11 +717,22 @@ const char *mqtt_client_hostname(char *out, size_t out_len) {
 }
 
 int mqtt_client_publish(const char *topic, const char *payload, int payload_len) {
+    /* Bounded take, never portMAX_DELAY: a connect in progress holds the
+     * lock across esp_mqtt_client_stop(), which itself waits on the MQTT
+     * task, and this can be called from the dispatch task. A short wait
+     * keeps s_client from being destroyed mid-publish without ever being
+     * able to wedge a caller. */
+    if (xSemaphoreTake(conn_lock(), pdMS_TO_TICKS(100)) != pdTRUE) {
+        ESP_LOGW(TAG, "Publish to %s skipped — client is reconnecting", topic);
+        return -1;
+    }
     if (!s_connected || !s_client) {
         ESP_LOGW(TAG, "Not connected, cannot publish to %s", topic);
+        xSemaphoreGive(conn_lock());
         return -1;
     }
     int msg_id = esp_mqtt_client_publish(s_client, topic, payload, payload_len, 0, 0);
+    xSemaphoreGive(conn_lock());
     ESP_LOGI(TAG, "Published to %s (msg_id=%d)", topic, msg_id);
     return msg_id;
 }

@@ -42,6 +42,7 @@
 
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -1782,8 +1783,54 @@ void update_clock_display(void) {
 static _Atomic int32_t s_cached_rssi       = 0;
 static _Atomic bool    s_cached_rssi_dirty = true;
 
+/* Heap trend sampling piggybacks on this task rather than getting one of its
+ * own. Two reasons, one of them learned the hard way:
+ *
+ *   - Internal RAM at startup is the scarcest resource on this board.
+ *     CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384 routes every sub-16 KB
+ *     allocation to internal RAM, so ui_init()'s widget tree drains it long
+ *     before WiFi comes up, and ESP-Hosted's SDIO mempool allocation is
+ *     already running on fumes. A separate 3 KB task stack here is enough to
+ *     make esp_hosted_init() fail its mempool assert and boot-loop the
+ *     board. Reusing an existing task costs zero additional RAM.
+ *   - This task is already what the probe needs to be: a standalone
+ *     FreeRTOS task, not an lv_timer. If PSRAM pressure ever stalls or
+ *     wedges the LVGL task, this keeps sampling — an LVGL-hosted probe
+ *     would go silent exactly when its data mattered most.
+ *
+ * What to read in the output: largest-free-block as a PERCENTAGE of free,
+ * not the totals. Free can sit flat for hours while the largest contiguous
+ * block erodes, and that erosion is what makes a big allocation fail while
+ * "free memory" still looks healthy. Relevant because
+ * CONFIG_MBEDTLS_DYNAMIC_BUFFER allocates and frees a right-sized RX buffer
+ * per TLS record, and CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC sends those to PSRAM
+ * with no internal fallback — the same heap holding the DPI framebuffers and
+ * (via CONFIG_LV_MEM_CUSTOM) all of LVGL's. */
+
+#define HEAP_LOG_EVERY_N_POLLS 12   /* 12 x 5 s = one sample per minute */
+
+static void log_heap_trend(void) {
+    size_t ps_free  = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    size_t ps_large = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+    size_t ps_min   = heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM);
+    size_t in_free  = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    size_t in_large = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    size_t in_min   = heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL);
+    ESP_LOGI(TAG,
+        "heap t=%llds psram free=%u largest=%u (%u%%) min_ever=%u | "
+        "internal free=%u largest=%u (%u%%) min_ever=%u",
+        (long long)(esp_timer_get_time() / 1000000),
+        (unsigned)ps_free, (unsigned)ps_large,
+        (unsigned)(ps_free ? (ps_large * 100u) / ps_free : 0u),
+        (unsigned)ps_min,
+        (unsigned)in_free, (unsigned)in_large,
+        (unsigned)(in_free ? (in_large * 100u) / in_free : 0u),
+        (unsigned)in_min);
+}
+
 static void wifi_rssi_poll_task(void *arg) {
     (void)arg;
+    uint32_t polls = 0;
     while (1) {
         wifi_ap_record_t ap;
         int32_t rssi = 0;
@@ -1792,6 +1839,7 @@ static void wifi_rssi_poll_task(void *arg) {
         }
         atomic_store(&s_cached_rssi, rssi);
         atomic_store(&s_cached_rssi_dirty, true);
+        if (polls++ % HEAP_LOG_EVERY_N_POLLS == 0) log_heap_trend();
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
@@ -1800,6 +1848,19 @@ static void wifi_rssi_apply_cb(lv_timer_t *t) {
     (void)t;
     if (!atomic_exchange(&s_cached_rssi_dirty, false)) return;
     set_var_wifi_rssi(atomic_load(&s_cached_rssi));
+}
+
+/* Read-only accessor for the cached value, for diagnostics that must not
+ * make the cross-chip RPC themselves. mqtt_client.c logs this on
+ * MQTT_EVENT_DISCONNECTED to separate "the TLS session died" from "the
+ * radio link degraded" — and calling esp_wifi_sta_get_ap_info() there
+ * would be the worst possible place for it, since a downed C6 is one of
+ * the things that causes the disconnect in the first place, and the RPC
+ * would then block the MQTT task for its full timeout before the retry.
+ * Returns 0 when not associated or not yet polled, matching the
+ * placeholder convention above. */
+int32_t get_var_wifi_rssi_cached(void) {
+    return atomic_load(&s_cached_rssi);
 }
 
 void init_wifi_rssi_poll(void) {
