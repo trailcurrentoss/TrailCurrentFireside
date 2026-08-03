@@ -22,6 +22,7 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "settings_store.h"
 #include <string.h>
 
 static const char *TAG = "ALARMS";
@@ -207,6 +208,14 @@ void alarms_apply_inputs(alarm_src_t src, uint8_t addr, uint16_t bits) {
      * tick, so no cross-module coupling is needed here. */
 }
 
+void alarms_set_battery_enabled(bool enabled) {
+    s_battery_enabled = enabled;
+}
+
+void alarms_set_battery_threshold(uint8_t percent) {
+    s_battery_threshold = percent;
+}
+
 void alarms_apply_battery(int32_t percent) {
     s_battery_pct = percent;
 }
@@ -365,11 +374,7 @@ void alarms_set_snooze_secs(int secs) {
     if (secs > ALARM_SNOOZE_SECS_MAX) secs = ALARM_SNOOZE_SECS_MAX;
     if (secs == s_snooze_secs) return;
     s_snooze_secs = secs;
-    nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
-        nvs_set_u16(h, "snooze_s", (uint16_t)secs);
-        nvs_commit(h); nvs_close(h);
-    }
+    settings_store_set_u16(NVS_NS, "snooze_s", (uint16_t)secs);
 }
 
 int alarms_acknowledge_all(void) {
@@ -528,17 +533,12 @@ void alarms_set_armed(alarm_src_t src, uint8_t addr, uint8_t sensor,
     if (armed) *bits |= (1u << sensor);
     else       *bits &= ~(1u << sensor);
 
-    /* Persist the whole board's bitmap. Compact enough that one u16 write
-     * per toggle is fine. */
-    nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
-        char k[16];
-        snprintf(k, sizeof(k),
-                 (src == ALARM_SRC_SWITCHBACK) ? "sw_arm_%d" : "pk_arm_%d",
-                 addr);
-        nvs_set_u16(h, k, *bits);
-        nvs_commit(h); nvs_close(h);
-    }
+    /* Persist the whole board's bitmap — deferred, off the LVGL task. */
+    char k[16];
+    snprintf(k, sizeof(k),
+             (src == ALARM_SRC_SWITCHBACK) ? "sw_arm_%d" : "pk_arm_%d",
+             addr);
+    settings_store_set_u16(NVS_NS, k, *bits);
 }
 
 bool alarms_is_inverted(alarm_src_t src, uint8_t addr, uint8_t sensor) {
@@ -555,15 +555,11 @@ void alarms_set_inverted(alarm_src_t src, uint8_t addr, uint8_t sensor,
                                                    : &s_polarity_pk[addr];
     if (inverted) *bits |= (1u << sensor);
     else          *bits &= ~(1u << sensor);
-    nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
-        char k[16];
-        snprintf(k, sizeof(k),
-                 (src == ALARM_SRC_SWITCHBACK) ? "sw_pol_%d" : "pk_pol_%d",
-                 addr);
-        nvs_set_u16(h, k, *bits);
-        nvs_commit(h); nvs_close(h);
-    }
+    char k[16];
+    snprintf(k, sizeof(k),
+             (src == ALARM_SRC_SWITCHBACK) ? "sw_pol_%d" : "pk_pol_%d",
+             addr);
+    settings_store_set_u16(NVS_NS, k, *bits);
 }
 
 void alarms_get_label(alarm_src_t src, uint8_t addr, uint8_t sensor,
@@ -608,15 +604,11 @@ void alarms_set_label(alarm_src_t src, uint8_t addr, uint8_t sensor,
     } else {
         slot[0] = '\0';
     }
-    nvs_handle_t h;
-    if (nvs_open(NVS_NS, NVS_READWRITE, &h) == ESP_OK) {
-        char k[16];
-        snprintf(k, sizeof(k),
-                 (src == ALARM_SRC_SWITCHBACK) ? "sw_lbl_%d_%d"
-                                               : "pk_lbl_%d_%d",
-                 addr, sensor);
-        if (slot[0]) nvs_set_str(h, k, slot);
-        else         nvs_erase_key(h, k);
-        nvs_commit(h); nvs_close(h);
-    }
+    char k[16];
+    snprintf(k, sizeof(k),
+             (src == ALARM_SRC_SWITCHBACK) ? "sw_lbl_%d_%d"
+                                           : "pk_lbl_%d_%d",
+             addr, sensor);
+    if (slot[0]) settings_store_set_str(NVS_NS, k, slot);
+    else         settings_store_erase(NVS_NS, k);
 }

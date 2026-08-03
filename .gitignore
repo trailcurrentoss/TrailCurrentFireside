@@ -34,6 +34,7 @@ GUI/tmp/
 
 # CrowPanel vendor source — third-party reference, don't commit into this repo
 CrowPanel-Advanced-*/
+DOCS/elecrow-p4/
 
 # Log files and temporary files
 *.log

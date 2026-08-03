@@ -22,7 +22,9 @@ dependencies:
   espressif/esp_lcd_touch_gt911: "^1.1.3"
 
   # LVGL <-> ESP-LCD glue. bsp_illuminate uses it directly.
-  espressif/esp_lvgl_port: "*"
+  # Pinned to the 2.8.x line (2.8.0 is the tested/locked version) so
+  # builds are reproducible — "*" allowed silent major-version jumps.
+  espressif/esp_lvgl_port: "~2.8.0"
 
   # WiFi over ESP-Hosted — 2.12.3 matches the C6 slave firmware the user
   # already flashed via the vendor upgrade guide (Advance_P4_On-Board_

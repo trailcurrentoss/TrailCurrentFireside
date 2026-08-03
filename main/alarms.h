@@ -49,6 +49,12 @@ void alarms_apply_inputs(alarm_src_t src, uint8_t addr, uint16_t bits);
  * battery-alarm switch is enabled AND percent < threshold. */
 void alarms_apply_battery(int32_t percent);
 
+/* Live (RAM) battery-alarm config setters for the UI. Take effect
+ * immediately; persistence is the caller's job (settings_store), so these
+ * never touch flash and are safe in LVGL event callbacks. */
+void alarms_set_battery_enabled(bool enabled);
+void alarms_set_battery_threshold(uint8_t percent);
+
 /* Current active-alarm count (0..N). Consumed by paint_notif_badge() in
  * vars.c to render the topbar bell + count. */
 int alarms_active_count(void);

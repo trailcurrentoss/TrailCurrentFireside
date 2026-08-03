@@ -4,7 +4,7 @@
 # SRCS or the linker won't find their symbols. Because font conversion is
 # owned by tmp/gen_eez_project.py (not EEZ Studio's auto-embed), we glob for
 # every `ui_font_*.c` and `ui_image_*.c` the generator emits.
-file(GLOB UI_FONT_SRCS "wifi_health.c" "vars.c" "alarms.c" "ui/ui_font_*.c")
+file(GLOB UI_FONT_SRCS "ui/ui_font_*.c")
 file(GLOB UI_IMAGE_SRCS "ui/ui_image_*.c")
 
 # The core EEZ export produces screens.c / styles.c / images.c / ui.c.
@@ -26,6 +26,8 @@ idf_component_register(
         audio_assets.c
         battery.c
         perf.c
+        sd_config.c
+        settings_store.c
         wifi_health.c
         ${UI_CORE_SRCS}
         ${UI_FONT_SRCS}
@@ -43,11 +45,17 @@ idf_component_register(
         espressif__esp_lcd_touch_gt911
         # Fireside connectivity stack (copied into local components/)
         wifi_setup mqtt_client fireside_config button_config
+        # Peregrine push-to-talk voice terminal client
+        peregrine_voice
         # WiFi over ESP-Hosted (C6 coprocessor on SDIO)
         espressif__esp_hosted
         # IDF stack for MQTT/WiFi/NVS/HTTP
         esp_wifi esp_netif esp_event esp_timer nvs_flash json
         esp_app_format app_update esp_partition
+    PRIV_REQUIRES
+        # FATFS + SDMMC — sd_config.c reads /sdcard/environment.conf
+        # (CrowPanel SDMMC slot 0: CLK 43, CMD 44, D0 39, 1-bit).
+        fatfs sdmmc esp_driver_sdmmc
 )
 
 target_compile_definitions(${COMPONENT_LIB} PRIVATE

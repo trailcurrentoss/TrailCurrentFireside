@@ -32,6 +32,7 @@
 
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "settings_store.h"
 
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -190,12 +191,7 @@ void action_toggle_theme(lv_event_t *e) {
      * themes[] array in the .eez-project). */
     change_color_theme(s_dark ? 1 : 0);
 #endif
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "theme", s_dark ? 1 : 0);
-        nvs_commit(nvs);
-        nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "theme", s_dark ? 1 : 0);
     ESP_LOGI(TAG, "theme = %s", s_dark ? "dark" : "light");
 }
 
@@ -275,22 +271,14 @@ void action_set_temp_unit_f(lv_event_t *e) { (void)e; set_var_temperature_unit(0
     if (objects.settings_f_btn) lv_obj_add_state(objects.settings_f_btn, LV_STATE_CHECKED);
     if (objects.settings_c_btn) lv_obj_clear_state(objects.settings_c_btn, LV_STATE_CHECKED);
 #endif
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "tempunit", 0);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "tempunit", 0);
 }
 void action_set_temp_unit_c(lv_event_t *e) { (void)e; set_var_temperature_unit(1);
 #if __has_include("ui/screens.h")
     if (objects.settings_c_btn) lv_obj_add_state(objects.settings_c_btn, LV_STATE_CHECKED);
     if (objects.settings_f_btn) lv_obj_clear_state(objects.settings_f_btn, LV_STATE_CHECKED);
 #endif
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "tempunit", 1);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "tempunit", 1);
 }
 
 /* ============================================================
@@ -353,11 +341,7 @@ void action_brightness_changed(lv_event_t *e) {
     /* CrowPanel BSP backlight PWM (0..100). */
     extern esp_err_t set_lcd_blight(uint32_t brightness);
     set_lcd_blight((uint32_t)v);
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "brightness", v);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "brightness", v);
 #endif
 }
 
@@ -375,11 +359,7 @@ void action_volume_changed(lv_event_t *e) {
         char buf[16]; snprintf(buf, sizeof(buf), "%ld%%", (long)v);
         lv_label_set_text(objects.settings_volume_pct, buf);
     }
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "volume", v);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "volume", v);
 #endif
 }
 
@@ -390,21 +370,13 @@ void action_timeout_up(lv_event_t *e)   { (void)e;
     int32_t v = get_var_screen_timeout_minutes(); if (v < 60) v++;
     set_var_screen_timeout_minutes(v);
     paint_screen_timeout_label();
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "timeout", v);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "timeout", v);
 }
 void action_timeout_down(lv_event_t *e) { (void)e;
     int32_t v = get_var_screen_timeout_minutes(); if (v > 0) v--;
     set_var_screen_timeout_minutes(v);
     paint_screen_timeout_label();
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_i32(nvs, "timeout", v);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_i32("fireside", "timeout", v);
 }
 
 void action_set_timezone(lv_event_t *e) {
@@ -415,11 +387,7 @@ void action_set_timezone(lv_event_t *e) {
     char sel[32] = {0};
     lv_dropdown_get_selected_str(objects.settings_timezone_dd, sel, sizeof(sel));
     bool applied = apply_timezone(sel);
-    nvs_handle_t nvs;
-    if (nvs_open("fireside", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_str(nvs, "tz", sel);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    settings_store_set_str("fireside", "tz", sel);
     ESP_LOGI(TAG, "timezone -> %s (idx=%u)%s", sel, (unsigned)idx,
              applied ? "" : " [unmapped, TZ unchanged]");
 #endif
@@ -1051,14 +1019,8 @@ void action_toggle_battery_alarm(lv_event_t *e) {
     (void)e;
     if (!objects.alarms_bat_switch) return;
     bool en = lv_obj_has_state(objects.alarms_bat_switch, LV_STATE_CHECKED);
-    nvs_handle_t nvs;
-    if (nvs_open("fireside_alarm", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_u8(nvs, "batt_en", en ? 1 : 0);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
-    /* Reload alarms module so the new enabled flag takes effect
-     * without needing a reboot. */
-    alarms_init();
+    alarms_set_battery_enabled(en);
+    settings_store_set_u8("fireside_alarm", "batt_en", en ? 1 : 0);
 #else
     (void)e;
 #endif
@@ -1071,16 +1033,12 @@ void action_battery_threshold(lv_event_t *e) {
     int32_t v = lv_slider_get_value(objects.alarms_bat_slider);
     if (v < 0)   v = 0;
     if (v > 100) v = 100;
-    nvs_handle_t nvs;
-    if (nvs_open("fireside_alarm", NVS_READWRITE, &nvs) == ESP_OK) {
-        nvs_set_u8(nvs, "batt_thr", (uint8_t)v);
-        nvs_commit(nvs); nvs_close(nvs);
-    }
+    alarms_set_battery_threshold((uint8_t)v);
+    settings_store_set_u8("fireside_alarm", "batt_thr", (uint8_t)v);
     if (objects.alarms_bat_current) {
         char buf[8]; snprintf(buf, sizeof(buf), "%d%%", (int)v);
         lv_label_set_text(objects.alarms_bat_current, buf);
     }
-    alarms_init();
 #else
     (void)e;
 #endif
@@ -1119,6 +1077,9 @@ void action_cancel_factory_reset_confirm(lv_event_t *e) {
 void action_factory_reset(lv_event_t *e) {
     (void)e;
     ESP_LOGW(TAG, "FACTORY RESET requested — wiping NVS");
+    /* A deferred settings write must not flush after the wipe and
+     * resurrect a key. */
+    settings_store_drop_pending();
     nvs_handle_t h;
     if (nvs_open("fireside", NVS_READWRITE, &h) == ESP_OK) {
         nvs_erase_all(h);
@@ -1697,5 +1658,132 @@ void action_back_to_edit_buttons(lv_event_t *e) {
         return;
     }
     if (objects.page_settings) lv_scr_load(objects.page_settings);
+#endif
+}
+
+/* ============================================================
+ * Push-to-talk (TALK) button on PageHome — Peregrine voice terminal.
+ *
+ * Two separate actions bound to PRESSED and RELEASED (plus PRESS_LOST ->
+ * released, so a finger drag off the button doesn't leave the mic
+ * capturing). Both handlers run under the LVGL lock; peregrine_voice
+ * hands the HTTP work off to its own task so the UI stays responsive
+ * during upload + playback.
+ * ============================================================ */
+
+#include "peregrine_voice.h"
+
+void action_ptt_pressed(lv_event_t *e) {
+    (void)e;
+    peregrine_voice_press();
+}
+
+void action_ptt_released(lv_event_t *e) {
+    (void)e;
+    peregrine_voice_release();
+}
+
+/* ============================================================
+ * TALK button "thinking" glow.
+ *
+ * While the released utterance is in flight to Peregrine (state ==
+ * PRG_VOICE_UPLOADING) the button wears a pulsating ring so the user
+ * knows the request is being worked on rather than dropped.
+ *
+ * Appearance is entirely EEZ-authored: home_ptt_glow1..6 are six
+ * concentric ring overlays on the button, each a frame of the pulse. All
+ * six are authored HIDDEN; this code only un-hides one frame at a time —
+ * no lv_obj_set_style_* calls, per the "code controls STATE, EEZ Studio
+ * controls APPEARANCE" rule.
+ *
+ * Frame order 1-2-3-4-5-6-5-4-3-2 at 90 ms = ~900 ms breathe cycle.
+ * ============================================================ */
+
+#if __has_include("ui/screens.h")
+
+#define PTT_GLOW_FRAMES 6
+#define PTT_GLOW_STEP_MS 90
+
+static const uint8_t s_ptt_glow_seq[] = { 0, 1, 2, 3, 4, 5, 4, 3, 2, 1 };
+
+static lv_obj_t *ptt_glow_frame(int i) {
+    switch (i) {
+    case 0: return objects.home_ptt_glow1;
+    case 1: return objects.home_ptt_glow2;
+    case 2: return objects.home_ptt_glow3;
+    case 3: return objects.home_ptt_glow4;
+    case 4: return objects.home_ptt_glow5;
+    case 5: return objects.home_ptt_glow6;
+    default: return NULL;
+    }
+}
+
+static void ptt_glow_hide_all(void) {
+    for (int i = 0; i < PTT_GLOW_FRAMES; i++) {
+        lv_obj_t *o = ptt_glow_frame(i);
+        if (o) lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void ptt_glow_cb(lv_timer_t *t) {
+    (void)t;
+    static bool     active = false;
+    static uint32_t step   = 0;
+
+    bool want = (peregrine_voice_get_state() == PRG_VOICE_UPLOADING);
+
+    if (!want) {
+        if (active) {
+            ptt_glow_hide_all();
+            active = false;
+        }
+        step = 0;
+        return;
+    }
+
+    if (!active) {
+        active = true;
+        step   = 0;
+    }
+
+    int prev = s_ptt_glow_seq[step % (sizeof(s_ptt_glow_seq) / sizeof(*s_ptt_glow_seq))];
+    step++;
+    int cur  = s_ptt_glow_seq[step % (sizeof(s_ptt_glow_seq) / sizeof(*s_ptt_glow_seq))];
+
+    if (prev != cur) {
+        lv_obj_t *po = ptt_glow_frame(prev);
+        if (po) lv_obj_add_flag(po, LV_OBJ_FLAG_HIDDEN);
+    }
+    lv_obj_t *co = ptt_glow_frame(cur);
+    if (co) lv_obj_clear_flag(co, LV_OBJ_FLAG_HIDDEN);
+}
+
+#endif /* __has_include("ui/screens.h") */
+
+/* Called once from app_main, under the display lock. */
+void init_ptt_glow(void) {
+#if __has_include("ui/screens.h")
+    ptt_glow_hide_all();
+    lv_timer_create(ptt_glow_cb, PTT_GLOW_STEP_MS, NULL);
+#endif
+}
+
+/* Show or hide the PageHome TALK button based on whether the microSD card
+ * supplied a Peregrine URL + token (/sdcard/environment.conf — same card
+ * and file as the Waveshare build). Called once from app_main right after
+ * sd_config_load(). */
+void apply_ptt_availability(bool available) {
+#if __has_include("ui/screens.h")
+    if (!objects.home_ptt_btn) return;
+    if (available) {
+        lv_obj_clear_flag(objects.home_ptt_btn, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(objects.home_ptt_btn, LV_OBJ_FLAG_HIDDEN);
+    }
+    ESP_LOGI(TAG, "TALK button %s (Peregrine SD config %s)",
+             available ? "visible" : "hidden",
+             available ? "found" : "missing");
+#else
+    (void)available;
 #endif
 }

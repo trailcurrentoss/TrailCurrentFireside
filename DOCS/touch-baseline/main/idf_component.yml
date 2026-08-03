@@ -1,0 +1,9 @@
+## IDF Component Manager Manifest File
+dependencies:
+  idf:
+    version: '>=5.4.2'
+  espressif/esp_lcd_touch_gt911: ^1.1.3
+  # EK79007 MIPI-DSI panel driver — used to bring the panel up exactly the
+  # way the vendor Lesson07 does, so the backlight actually lights and the
+  # stage changes are visible on the glass.
+  espressif/esp_lcd_ek79007: ^1.0.2

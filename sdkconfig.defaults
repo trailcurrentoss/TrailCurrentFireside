@@ -57,10 +57,26 @@ CONFIG_LV_COLOR_DEPTH_16=y
 #     core 1 inside display_init(), giving the panel refresh its own core. ---
 CONFIG_ESP_MAIN_TASK_AFFINITY_CPU0=y
 
+# --- Main task stack: 10240, and MUST stay larger than the P4's 7 KB TCM
+#     heap block. At the IDF default (3584) the allocator can place the
+#     main task stack inside TCM; the first flash op (nvs_flash_init) then
+#     trips `assert esp_task_stack_is_sane_cache_disabled` in cache_utils.c
+#     and the board boot-loops (observed 2026-08-03 after an sdkconfig
+#     regen). app_main also runs ui_init() + restore_user_settings()
+#     directly, which needs the headroom anyway.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
+
 # --- sys_evt task stack (LessonsLearned #20). ESP-Hosted marshals big
 #     wifi_ap_record_t batches on this task; the 2816-byte default overflows
 #     on the first scan-done event. Bump to 6144.
 CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=6144
+
+# --- FATFS long file names — required so we can fopen("/sdcard/environment.conf")
+#     by its real name. Without LFN, FATFS reports the DOS 8.3 short name
+#     (ENVIRO~1.CON) and the open fails. (Same values as the Waveshare build.)
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+CONFIG_FATFS_API_ENCODING_UTF_8=y
 
 # --- Internal-RAM reserve + mbedtls in PSRAM (LessonsLearned #20).
 #     Keeps 128 KB internal available for DMA-critical allocations that

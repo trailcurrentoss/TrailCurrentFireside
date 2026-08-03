@@ -85,10 +85,12 @@ static void on_mqtt_state(bool connected) {
     mqtt_client_stop();
     app_state_set(APP_STATE_MQTT_SETUP);
 #if __has_include("ui/screens.h")
-    if (objects.mqtt_setup_hint) {
+    /* Runs on the MQTT task — LVGL calls need the port lock. */
+    if (objects.mqtt_setup_hint && lvgl_port_lock(0)) {
         lv_label_set_text(objects.mqtt_setup_hint,
             "Couldn't reach the broker. Check the hostname, username, "
             "and password, then try again.");
+        lvgl_port_unlock();
     }
 #endif
 }

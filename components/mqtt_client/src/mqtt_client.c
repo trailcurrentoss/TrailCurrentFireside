@@ -321,9 +321,37 @@ bool mqtt_client_load_settings(void) {
     return has_config;
 }
 
+/* Guard against concurrent/duplicate connects. Both the got-IP handler
+ * (main.c) and app_state's WIFI_SETUP_STATE_CONNECTED path call
+ * mqtt_client_connect() on startup ~40 ms apart; without this the race
+ * created two live esp-mqtt clients with the same client_id (observed
+ * 2026-08-03: double Connected + doubled SUBACKs). */
+static volatile bool s_connect_busy = false;
+static portMUX_TYPE s_connect_mux = portMUX_INITIALIZER_UNLOCKED;
+static char s_active_host[128];
+static char s_active_user[64];
+static int  s_active_port = 0;
+
 void mqtt_client_connect(void) {
     if (strlen(s_host) == 0 || strlen(s_username) == 0) {
         ESP_LOGW(TAG, "Cannot connect - missing MQTT configuration");
+        return;
+    }
+
+    portENTER_CRITICAL(&s_connect_mux);
+    bool busy = s_connect_busy;
+    if (!busy) s_connect_busy = true;
+    portEXIT_CRITICAL(&s_connect_mux);
+    if (busy) {
+        ESP_LOGW(TAG, "connect already in progress — duplicate call ignored");
+        return;
+    }
+    if (s_client && s_port == s_active_port &&
+        strcmp(s_host, s_active_host) == 0 &&
+        strcmp(s_username, s_active_user) == 0) {
+        ESP_LOGI(TAG, "client already running for %s@%s:%d — duplicate "
+                 "connect ignored", s_username, s_host, s_port);
+        s_connect_busy = false;
         return;
     }
 
@@ -422,6 +450,7 @@ void mqtt_client_connect(void) {
     s_client = esp_mqtt_client_init(&mqtt_cfg);
     if (!s_client) {
         ESP_LOGE(TAG, "Failed to init MQTT client");
+        s_connect_busy = false;
         return;
     }
 
@@ -431,7 +460,12 @@ void mqtt_client_connect(void) {
     esp_err_t err = esp_mqtt_client_start(s_client);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start MQTT client: %s", esp_err_to_name(err));
+    } else {
+        strlcpy(s_active_host, s_host, sizeof(s_active_host));
+        strlcpy(s_active_user, s_username, sizeof(s_active_user));
+        s_active_port = s_port;
     }
+    s_connect_busy = false;
 }
 
 /* ============================================================
@@ -500,17 +534,33 @@ bool mqtt_client_is_connected(void) {
     return s_connected;
 }
 
+/* esp_mqtt_client_stop/destroy must never run on the MQTT client's own
+ * task (stop refuses with "Client cannot be stopped from MQTT task" and
+ * destroy then frees the running task's resources — observed spinlock
+ * assert + reboot on 2026-08-03 when the broker was unreachable and
+ * app_state's give-up path called us from the MQTT event handler). The
+ * teardown always happens on a short-lived helper task instead. */
+static void mqtt_stop_task(void *arg) {
+    esp_mqtt_client_handle_t c = (esp_mqtt_client_handle_t)arg;
+    esp_mqtt_client_stop(c);
+    esp_mqtt_client_destroy(c);
+    ESP_LOGI(TAG, "MQTT client stopped");
+    vTaskDelete(NULL);
+}
+
 void mqtt_client_stop(void) {
-    if (s_client) {
-        esp_mqtt_client_stop(s_client);
-        esp_mqtt_client_destroy(s_client);
-        s_client = NULL;
-    }
+    esp_mqtt_client_handle_t c = s_client;
+    s_client = NULL;
     s_connected = false;
+    if (c) {
+        if (xTaskCreate(mqtt_stop_task, "mqtt_stop", 4096, c, 5, NULL)
+                != pdPASS) {
+            ESP_LOGE(TAG, "mqtt_stop task spawn failed — client leaked");
+        }
+    }
     lvgl_port_lock(0);
     set_var_mqtt_connected(false);
     lvgl_port_unlock();
-    ESP_LOGI(TAG, "MQTT client stopped");
 }
 
 const char *mqtt_client_hostname(char *out, size_t out_len) {

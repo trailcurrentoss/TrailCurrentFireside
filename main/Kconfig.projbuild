@@ -1,0 +1,14 @@
+menu "Fireside"
+
+    config FIRESIDE_TOUCH_DIAG
+        bool "Enable touch/LVGL diagnostic probes"
+        default n
+        help
+            Installs the perf.c diagnostic probes: LVGL task stall
+            watchdog (logs when the LVGL task blocks >200 ms), raw touch
+            DOWN/UP transition sampler, and keyboard VALUE_CHANGED event
+            logging. Diagnosis builds only — the probes cost CPU and log
+            bandwidth on the LVGL task and must stay off in normal
+            builds.
+
+endmenu

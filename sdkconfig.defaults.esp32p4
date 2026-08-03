@@ -38,3 +38,14 @@ CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE=32
 # Internal RAM is tight when WiFi + LVGL + mbedtls all want internal
 # buffers; SPIRAM has 32 MB headroom. Move Hosted's worker tasks there.
 CONFIG_ESP_HOSTED_DFLT_TASK_FROM_SPIRAM=y
+
+# --- ESP-Hosted SDIO queue depth: 12/12 (default 20/20). The queues are
+#     ~1.6 KB/entry of INTERNAL SRAM, allocated in ESP-Hosted's
+#     __attribute__((constructor)) before app_main. With fatfs + sdmmc in
+#     the image (sd_config.c) the 20/20 pool no longer fits and the boot
+#     dies in `assert failed: sdio_mempool_create sdio_drv.c (buf_mp_g)`
+#     — observed on this board 2026-08-03, same incident as the Waveshare
+#     build documented. 12/12 leaves headroom with no observable
+#     throughput loss on local MQTT + HTTP traffic.
+CONFIG_ESP_HOSTED_SDIO_TX_Q_SIZE=12
+CONFIG_ESP_HOSTED_SDIO_RX_Q_SIZE=12

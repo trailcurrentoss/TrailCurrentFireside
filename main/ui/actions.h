@@ -51,6 +51,8 @@ extern void action_show_factory_reset_confirm(lv_event_t * e);
 extern void action_cancel_factory_reset_confirm(lv_event_t * e);
 extern void action_wifi_toggle_password(lv_event_t * e);
 extern void action_mqtt_toggle_password(lv_event_t * e);
+extern void action_ptt_pressed(lv_event_t * e);
+extern void action_ptt_released(lv_event_t * e);
 
 
 #ifdef __cplusplus

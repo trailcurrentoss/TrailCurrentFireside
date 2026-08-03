@@ -23,6 +23,8 @@
 #include "freertos/task.h"
 
 #include "nvs_flash.h"
+#include "settings_store.h"
+#include "sd_config.h"
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_check.h"
@@ -112,6 +114,9 @@ void app_main(void) {
         err = nvs_flash_init();
     }
     ESP_ERROR_CHECK(err);
+    /* Deferred NVS writer — UI callbacks persist settings through this
+     * instead of committing flash on the LVGL task. */
+    settings_store_init();
     ESP_ERROR_CHECK(fireside_config_init());
     /* Alarms module reads per-mode arm config from NVS ns "fireside_alarm".
      * Empty on first boot — no alarms fire until user configures via
@@ -176,6 +181,20 @@ void app_main(void) {
              * than a header include to keep this section self-contained. */
             extern void audio_init(void);
             audio_init();
+        }
+        {
+            /* Peregrine push-to-talk voice terminal. URL/token come from
+             * /sdcard/environment.conf (same card + file as the Waveshare
+             * build — sd_config.c). The TALK button is shown only when the
+             * card supplied both PEREGRINE_URL and PEREGRINE_VOICE_TOKEN. */
+            extern void peregrine_voice_init(void);
+            extern void init_ptt_glow(void);
+            extern void apply_ptt_availability(bool);
+
+            peregrine_voice_init();
+            sd_config_load();
+            init_ptt_glow();
+            apply_ptt_availability(sd_config_peregrine_present());
         }
         reset_placeholders();   /* clear canvas-only authored placeholders
                                  * (tank bars 50 % → 0 %, etc.) so the
