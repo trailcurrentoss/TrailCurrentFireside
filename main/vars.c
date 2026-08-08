@@ -717,13 +717,34 @@ void set_var_gnss_mode(const char *mode) {
 static bool s_system_time_set = false;
 bool system_time_set = false;
 
+/* Convert UTC calendar fields to a unix epoch WITHOUT consulting the
+ * local timezone. GPS time is UTC; using mktime() here interpreted the
+ * fields as LOCAL time and skewed the system clock by the TZ offset
+ * (+6 h with Chicago set — the "clock ignores the timezone" bug,
+ * 2026-08-03: every Milepost GPS message re-stomped the correct SNTP
+ * time with UTC+6). Days-from-civil algorithm, valid for y >= 2020. */
+static time_t utc_fields_to_epoch(int y, int mo, int d, int h, int mi, int s) {
+    int a   = (mo <= 2) ? 1 : 0;
+    int yy  = y - a;
+    int era = yy / 400;
+    int yoe = yy - era * 400;
+    int doy = (153 * (mo + (a ? 9 : -3)) + 2) / 5 + d - 1;
+    int doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    long days = (long)era * 146097 + doe - 719468;
+    return (time_t)days * 86400 + (time_t)h * 3600 + mi * 60 + s;
+}
+
 void set_var_gps_time(int y, int mo, int d, int h, int mi, int sec) {
     if (y < 2020) return;
-    struct tm t = {.tm_year = y - 1900, .tm_mon = mo - 1, .tm_mday = d,
-                   .tm_hour = h, .tm_min = mi, .tm_sec = sec};
-    time_t epoch = mktime(&t);
-    struct timeval tv = {.tv_sec = epoch};
-    settimeofday(&tv, NULL);
+    time_t epoch = utc_fields_to_epoch(y, mo, d, h, mi, sec);
+    /* Only step the clock when it actually drifted. GPS reports arrive
+     * continuously; unconditional settimeofday() would stomp SNTP's
+     * smooth adjustments every second for no benefit. */
+    time_t now = time(NULL);
+    if (llabs((long long)now - (long long)epoch) > 2) {
+        struct timeval tv = {.tv_sec = epoch};
+        settimeofday(&tv, NULL);
+    }
     s_system_time_set = true;
     system_time_set = true;
 }
