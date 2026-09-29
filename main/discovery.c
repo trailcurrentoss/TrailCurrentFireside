@@ -26,7 +26,10 @@ void discovery_mdns_init(void)
     mqtt_client_hostname(hostname, sizeof(hostname));
     mdns_init();
     mdns_hostname_set(hostname);
-    mdns_instance_name_set("TrailCurrent Fireside");
+
+    char instance[64];
+    snprintf(instance, sizeof(instance), "TrailCurrent Fireside %s", hostname);
+    mdns_instance_name_set(instance);
     ESP_LOGI(TAG, "mDNS resolver started — device is %s.local", hostname);
 }
 
@@ -39,13 +42,28 @@ static void discovery_mdns_advertise(void)
         { "fw",   app->version },
     };
 
-    mdns_service_add("TrailCurrent Discovery", "_trailcurrent", "_tcp",
-                     80, txt, sizeof(txt) / sizeof(txt[0]));
-
     char hostname[16];
     mqtt_client_hostname(hostname, sizeof(hostname));
-    ESP_LOGI(TAG, "mDNS discovery: %s.local type=%s fw=%s",
-             hostname, MODULE_TYPE, app->version);
+
+    /*
+     * Per-device DNS-SD service instance name. It must be unique on the link:
+     * the browser indexes the resolved record under it, so two devices
+     * claiming one name collapse into a single entry in Overlook's list.
+     * Headwaters' host-side browser (local_code/discovery-mdns.py) reads the
+     * hostname from the SRV target and the type from TXT and never looks at
+     * this string, so making it unique costs nothing downstream. See the
+     * longer note in the CAN modules' discovery.c for how the shared literal
+     * used to be papered over by rename-and-reprobe conflict resolution.
+     */
+    char service_instance[64];
+    snprintf(service_instance, sizeof(service_instance),
+             "TrailCurrent Discovery %s", hostname);
+
+    mdns_service_add(service_instance, "_trailcurrent", "_tcp",
+                     80, txt, sizeof(txt) / sizeof(txt[0]));
+
+    ESP_LOGI(TAG, "mDNS discovery: \"%s\" %s.local type=%s fw=%s",
+             service_instance, hostname, MODULE_TYPE, app->version);
 }
 
 static esp_err_t confirm_handler(httpd_req_t *req)
