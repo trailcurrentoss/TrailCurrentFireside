@@ -29,6 +29,14 @@ dependencies:
     version: "~8.4.0"
     public: true
 
+  # esp_lvgl_port — pulled in by the Waveshare BSP as "^2". Held below 2.9:
+  # 2.9.0 sets `on_frame_buf_complete` for any IDF >= 5.5.0, but that DPI
+  # callback does not exist in IDF 5.5.2 (only `on_refresh_done`), so
+  # esp_lvgl_port_disp.c fails to compile. Revisit when moving IDF forward.
+  espressif/esp_lvgl_port:
+    version: ">=2.8.0,<2.9.0"
+    public: true
+
   # WiFi over ESP-Hosted (ESP32-P4 has no native WiFi — bridged to on-board
   # ESP32-C6 slave over 4-bit SDIO). The Waveshare board uses ESP-Hosted's
   # default SDIO pin map (CLK=18 CMD=19 D0=14 D1=15 D2=16 D3=17), no

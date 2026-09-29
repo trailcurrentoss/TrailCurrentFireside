@@ -9,5 +9,12 @@ cmake_minimum_required(VERSION 3.16)
 
 set(EXTRA_COMPONENT_DIRS "components")
 
+# Skip the component manager's "new versions available" check. It re-solves
+# against the newest registry releases, and lvgl/lvgl 9.6.0 carries
+# $CONFIG{LV_USE_LIBPNG}-style rules that LVGL 8.4's Kconfig never defines,
+# which aborts configuration with "Missing required kconfig option after
+# retry". Run `idf.py update-dependencies` deliberately instead.
+set(ENV{IDF_COMPONENT_CHECK_NEW_VERSION} 0)
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(fireside)
